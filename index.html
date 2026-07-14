@@ -109,7 +109,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 @media(max-width:640px){.ph-row{grid-template-columns:1fr;justify-items:center;gap:6px}.ph-row .actions{grid-column:1}}
 
 /* ==== Header — mesmo ID visual do AURA VENCIMENTOS ==== */
-.aura-header{padding:18px 32px;background:linear-gradient(90deg,#b91c1c,#991b1b);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.2);gap:16px;flex-wrap:wrap;border-radius:var(--rl) var(--rl) 0 0;margin-bottom:0}
+.aura-header{padding:16px 32px;background:linear-gradient(90deg,#b91c1c,#991b1b);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.2);gap:16px;flex-wrap:wrap;border-radius:var(--rl);margin-bottom:14px}
 .aura-header-brand .sb-tagline{font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);margin-bottom:4px}
 .aura-header-brand .sb-badge-label{margin-left:4px;background:#fde047;color:#3f1818;font-size:9px;font-weight:700;padding:2px 6px;border-radius:2px;letter-spacing:.05em}
 .aura-brand-row{display:flex;align-items:center;gap:12px}
@@ -117,16 +117,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 @media(max-width:640px){.aura-logo{width:32px;height:32px;border-radius:8px}}
 .aura-header h1{font-size:24px;font-weight:700;color:#fff;line-height:1;letter-spacing:-.025em;margin:0}
 .aura-header p{color:rgba(255,255,255,.8);font-size:13px;margin-top:5px}
-.aura-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.aura-header-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.aura-header-actions-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.aura-status-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:4px 12px;font-size:11px;color:rgba(255,255,255,.92);white-space:nowrap}
+.aura-status-pill .dot{flex-shrink:0}
 .aura-btn{background:rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:500;padding:7px 14px;border-radius:6px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .15s;backdrop-filter:blur(4px)}
 .aura-btn:hover{background:rgba(255,255,255,.25)}
 .aura-btn-accent{background:#facc15;color:#3f1818;font-weight:700}
 .aura-btn-accent:hover{background:#fde047}
-.aura-syncbar{padding:7px 20px;font-size:11px;color:rgba(255,255,255,.75);background:#7f1d1d;display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;border-radius:0 0 var(--rl) var(--rl);margin-bottom:14px}
-.aura-syncbar .dot{flex-shrink:0}
-.aura-syncbar .st{color:rgba(255,255,255,.9);font-weight:500}
-.aura-syncbar .btn{font-size:11px;padding:3px 10px;border-color:rgba(255,255,255,.3);color:#fff;background:rgba(255,255,255,.1)}
-.aura-syncbar .btn:hover{background:rgba(255,255,255,.2)}
 @media(max-width:760px){
   .aura-header{padding:14px 16px}
 }
@@ -139,6 +137,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   .aura-header-actions{gap:4px;flex-shrink:0}
   .aura-header-actions .aura-btn{font-size:11px;padding:5px 8px;gap:4px}
   .aura-header-actions .aura-btn span{display:none}
+  .aura-status-pill{font-size:9px;padding:3px 9px}
 }
 </style>
 </head>
@@ -155,20 +154,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <p>Gerador de placas de promoção</p>
     </div>
     <div class="aura-header-actions">
-      <button class="aura-btn" id="btnCfg" onclick="toggleCfg()" title="Configurar conexão">
-        <i class="ti ti-settings" style="font-size:16px"></i>
-        <span>Configurar</span>
-      </button>
-      <button class="aura-btn aura-btn-accent" id="btnSync" onclick="syncAll()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-        <span>Sincronizar</span>
-      </button>
+      <div class="aura-header-actions-row">
+        <button class="aura-btn" id="btnCfg" onclick="toggleCfg()" title="Configurar conexão">
+          <i class="ti ti-settings" style="font-size:16px"></i>
+          <span>Configurar</span>
+        </button>
+        <button class="aura-btn aura-btn-accent" id="btnSync" onclick="syncAll()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+          <span>Sincronizar</span>
+        </button>
+      </div>
+      <div class="aura-status-pill">
+        <span class="dot" id="dot"></span>
+        <span id="stText">Aguardando configuração...</span>
+      </div>
     </div>
   </header>
-  <div class="aura-syncbar">
-    <span class="dot" id="dot"></span>
-    <span class="st" id="stText">Aguardando configuração...</span>
-  </div>
+
 
   <div class="cfg" id="cfg">
     <h3><i class="ti ti-database"></i> Configuração da fonte de dados (Google Sheets)</h3>
