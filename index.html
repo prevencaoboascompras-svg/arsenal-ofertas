@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Placas de Promoção</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fff;--bg2:#f5f5f3;--bg3:#eeede8;--tx:#1a1a18;--tx2:#6b6b67;--bd:rgba(0,0,0,.12);--bds:rgba(0,0,0,.22);--r:8px;--rl:12px;--green:#1D9E75;--gd:#0F6E56;--blue:#378ADD;--amber:#BA7517;--red:#E24B4A;}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#282825;--bg3:#323230;--tx:#f0efe8;--tx2:#9b9b95;--bd:rgba(255,255,255,.1);--bds:rgba(255,255,255,.2);}}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg3);color:var(--tx);min-height:100vh;padding:14px}
+.wrap{max-width:1280px;margin:0 auto}
+.hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.hd h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
+.hd h1 i{color:var(--green)}
+.hd .sub{font-size:12px;color:var(--tx2);margin-left:auto}
+.status-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.dot{width:8px;height:8px;border-radius:50%;background:#888}
+.dot.ok{background:var(--green)}.dot.err{background:var(--red)}.dot.loading{background:var(--amber)}
+.st{font-size:12px;color:var(--tx2)}
+.btn{border:1px solid var(--bds);background:var(--bg);color:var(--tx);font-size:13px;font-weight:500;padding:7px 14px;border-radius:var(--r);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s;white-space:nowrap}
+.btn:hover{background:var(--bg2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff}
+.btn-green:hover{background:var(--gd)}
+.btn-sm{padding:5px 11px;font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite;display:inline-block}
+.cfg{background:var(--bg);border:2px dashed var(--bds);border-radius:var(--rl);padding:16px 18px;margin-bottom:14px;display:none}
+.cfg.open{display:block}
+.cfg h3{font-size:14px;font-weight:600;margin-bottom:10px;color:var(--amber);display:flex;align-items:center;gap:6px}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.cfg-grid{grid-template-columns:1fr}}
+.cfg-field label{display:block;font-size:11px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.cfg-field input{width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg2);color:var(--tx);outline:none}
+.cfg-actions{margin-top:12px;display:flex;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:960px){.grid2{grid-template-columns:1fr}}
+.panel{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rl);padding:16px}
+.panel h2{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em}
+.f-row{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.f-row label{font-size:12px;font-weight:600;color:var(--tx2)}
+.f-row input,.f-row select{height:36px;padding:0 10px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:14px;outline:none;font-family:inherit}
+.f-row input:focus,.f-row select:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
+.f-row .hint{font-size:11px;color:var(--tx2)}
+.cod-input{font-family:monospace;font-size:15px!important;letter-spacing:.5px}
+.prod-info{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:12px;margin-bottom:12px;min-height:70px;display:flex;flex-direction:column;gap:6px}
+.prod-info .empty{color:var(--tx2);font-size:12px;text-align:center;padding:8px 0}
+.pi-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx2)}
+.pi-value{font-size:14px;font-weight:600;color:var(--tx)}
+.pi-price{font-size:20px;font-weight:700;color:var(--green)}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pct-badge{font-size:12px;font-weight:700;color:var(--green);background:rgba(29,158,117,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
+.canvas-wrap{background:var(--bg2);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+#placaCanvas{max-width:100%;height:auto;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);background:#fff}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 18px;border-radius:var(--r);font-size:13px;z-index:1000;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.warn{background:var(--amber);color:#fff}
+.toast.err{background:var(--red);color:#fff}
+.toast.ok{background:var(--green);color:#fff}
+.color-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.color-row label{font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:6px}
+.color-row input[type=color]{width:34px;height:32px;border:1px solid var(--bds);border-radius:6px;cursor:pointer;padding:2px;background:var(--bg)}
+.opts{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx2)}
+.opts label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.opts input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--green)}
+.divider{border:none;border-top:1px solid var(--bd);margin:12px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1><i class="ti ti-tag"></i> Gerador de Placas de Promoção</h1>
+    <span class="sub">Consulta produto no banco &middot; digite preço promocional</span>
+  </div>
+
+  <div class="status-row">
+    <span class="dot" id="dot"></span>
+    <span class="st" id="stText">Aguardando configuração...</span>
+    <button class="btn btn-sm" id="btnCfg" onclick="toggleCfg()"><i class="ti ti-settings"></i> Configurar</button>
+    <button class="btn btn-sm btn-green" id="btnSync" onclick="syncAll()"><i class="ti ti-refresh"></i> Sincronizar</button>
+  </div>
+
+  <div class="cfg" id="cfg">
+    <h3><i class="ti ti-database"></i> Configuração da fonte de dados (Google Sheets)</h3>
+    <div class="cfg-grid">
+      <div class="cfg-field"><label>ID da planilha (Validades / Preços)</label><input id="cId" placeholder="1HDJvgbKqYRUh8YvKeNTJZ5Phj..."></div>
+      <div class="cfg-field"><label>Aba de validades/preços</label><input id="cAba" placeholder="2025"></div>
+      <div class="cfg-field"><label>ID da planilha do banco de produtos</label><input id="cIdBanco" placeholder="mesmo ID se estiverem na mesma planilha"></div>
+      <div class="cfg-field"><label>Aba Banco de Dados</label><input id="cAbaBanco" placeholder="BANCO DE DADOS"></div>
+    </div>
+    <div class="cfg-actions">
+      <button class="btn btn-green" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
+      <button class="btn" onclick="toggleCfg()"><i class="ti ti-x"></i> Fechar</button>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2><i class="ti ti-barcode"></i> Dados do produto</h2>
+
+      <div class="f-row">
+        <label for="pCod">Código interno ou EAN</label>
+        <input type="text" id="pCod" class="cod-input" placeholder="Digite ou escaneie o código" autocomplete="off" inputmode="numeric">
+        <span class="hint">Enter para buscar. A descrição e o valor de venda serão preenchidos automaticamente.</span>
+      </div>
+
+      <div class="prod-info" id="prodInfo">
+        <div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>
+      </div>
+
+      <div class="f-row">
+        <label for="pDescOverride">Descrição (editável)</label>
+        <input type="text" id="pDescOverride" placeholder="Preencha o código para carregar" oninput="drawPlaca()">
+      </div>
+
+      <div class="row-2">
+        <div class="f-row">
+          <label for="pDe">Valor de venda (De)</label>
+          <input type="text" id="pDe" placeholder="0,00" inputmode="decimal" oninput="onPrecoChange();drawPlaca()">
+        </div>
+        <div class="f-row">
+          <label for="pPor">Valor promocional (Por)</label>
+          <input type="text" id="pPor" placeholder="0,00" inputmode="decimal" oninput="onPrecoChange();drawPlaca()">
+        </div>
+      </div>
+
+      <div class="f-row">
+        <label>% de desconto (calculado)</label>
+        <div><span class="pct-badge" id="pPctBadge">--</span></div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="row-2">
+        <div class="f-row">
+          <label for="pUnidade">Unidade / medida</label>
+          <select id="pUnidade" onchange="drawPlaca()">
+            <option value="CADA">CADA</option>
+            <option value="KG">KG</option>
+            <option value="UND">UND</option>
+            <option value="LT">LT</option>
+            <option value="PCT">PCT</option>
+            <option value="CX">CX</option>
+            <option value="DZ">DZ</option>
+            <option value="">(nenhuma)</option>
+          </select>
+        </div>
+        <div class="f-row">
+          <label for="pValidade">Validade da oferta (opcional)</label>
+          <input type="text" id="pValidade" placeholder="dd/mm/aaaa" oninput="drawPlaca()">
+        </div>
+      </div>
+
+      <div class="opts" style="margin-bottom:12px">
+        <label><input type="checkbox" id="pShowPct" checked onchange="drawPlaca()"> Mostrar % desconto</label>
+        <label><input type="checkbox" id="pShowUnidade" checked onchange="drawPlaca()"> Mostrar unidade</label>
+        <label><input type="checkbox" id="pShowCod" checked onchange="drawPlaca()"> Mostrar código no rodapé</label>
+      </div>
+
+      <hr class="divider">
+
+      <div class="opts" style="margin-bottom:10px">
+        <label style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pPackOn" onchange="togglePack();drawPlaca()"> <i class="ti ti-stack-2" style="color:var(--green)"></i> Modo Pack (leve X, pague Y)</label>
+      </div>
+      <div id="packFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;margin-bottom:12px">
+        <div class="row-2">
+          <div class="f-row" style="margin-bottom:8px">
+            <label for="pPackQtd">Quantidade (leve)</label>
+            <input type="number" id="pPackQtd" min="1" step="1" value="3" oninput="onPackChange();drawPlaca()">
+          </div>
+          <div class="f-row" style="margin-bottom:8px">
+            <label for="pPackTotal">Preço do pack (por R$)</label>
+            <input type="text" id="pPackTotal" placeholder="9,99" inputmode="decimal" oninput="onPackChange();drawPlaca()">
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--tx2)">
+          Cada unidade: <strong id="pPackCada" style="color:var(--green)">--</strong>
+          &middot; No modo Pack, o "Por" da placa é substituído pelo valor do pack.
+        </div>
+      </div>
+
+      <div class="f-row">
+        <label for="pMsg">Mensagem do rodapé (faixa vermelha)</label>
+        <input type="text" id="pMsg" placeholder="Ex: LEVE 3UN POR R$9,99 (R$3,33 CADA). VÁLIDO ENQUANTO DURAR O ESTOQUE." oninput="drawPlaca()">
+        <span class="hint">Deixe em branco para não mostrar. No modo Pack, é preenchido automaticamente ao alterar quantidade ou preço.</span>
+      </div>
+      <div class="opts" style="margin-bottom:12px">
+        <label><input type="checkbox" id="pShowMsg" checked onchange="drawPlaca()"> Mostrar faixa de mensagem</label>
+      </div>
+
+      <div class="color-row">
+        <label>Cor produto <input type="color" id="pCorTexto" value="#000000" oninput="drawPlaca()"></label>
+        <label>Cor valores <input type="color" id="pCorValor" value="#ffffff" oninput="drawPlaca()"></label>
+        <label>Cor unidade <input type="color" id="pCorUnidade" value="#FFD600" oninput="drawPlaca()"></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><i class="ti ti-photo"></i> Prévia da placa</h2>
+      <div class="canvas-wrap">
+        <canvas id="placaCanvas"></canvas>
+        <div class="actions">
+          <button class="btn btn-green" onclick="downloadPlaca()"><i class="ti ti-download"></i> Baixar PNG</button>
+          <button class="btn" onclick="copiarPlaca()"><i class="ti ti-copy"></i> Copiar imagem</button>
+          <button class="btn" onclick="limparCampos()"><i class="ti ti-eraser"></i> Limpar campos</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO E ESTADO
+// ============================================================
+var CFG_KEY='aura_cfg';
+var PROD_KEY='placa_prod_cache';
+var banco={};          // cod -> nome
+var bancoPreco={};     // cod -> preco venda (da planilha de validades)
+var products=[];       // lista consolidada com preços
+var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
+var templateImg=null;
+var templateReady=false;
+
+function loadCfg(){
+  var d={
+    id:'1HDJvgbKqYRUh8YvKeNTJZ5PhjbqyqZTsYT3bUnjp0VQ',
+    aba:'2025',
+    idBanco:'1HDJvgbKqYRUh8YvKeNTJZ5PhjbqyqZTsYT3bUnjp0VQ',
+    abaBanco:'BANCO DE DADOS'
+  };
+  try{var s=localStorage.getItem(CFG_KEY);if(s){var c=JSON.parse(s);return Object.assign(d,c);}}catch(e){}
+  return d;
+}
+function saveConfig(){
+  var cfg={
+    id:document.getElementById('cId').value.trim(),
+    aba:document.getElementById('cAba').value.trim()||'2025',
+    idBanco:document.getElementById('cIdBanco').value.trim(),
+    abaBanco:document.getElementById('cAbaBanco').value.trim()||'BANCO DE DADOS'
+  };
+  if(!cfg.idBanco)cfg.idBanco=cfg.id;
+  var existing={};try{existing=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');}catch(e){}
+  localStorage.setItem(CFG_KEY,JSON.stringify(Object.assign(existing,cfg)));
+  mostrarToast('Configuração salva.','ok');
+  toggleCfg();syncAll();
+}
+function toggleCfg(){
+  var el=document.getElementById('cfg');
+  var open=el.classList.toggle('open');
+  if(open){
+    var c=loadCfg();
+    document.getElementById('cId').value=c.id||'';
+    document.getElementById('cAba').value=c.aba||'2025';
+    document.getElementById('cIdBanco').value=c.idBanco||'';
+    document.getElementById('cAbaBanco').value=c.abaBanco||'BANCO DE DADOS';
+  }
+}
+function setDot(t,m){
+  var d=document.getElementById('dot'),tx=document.getElementById('stText');
+  if(d)d.className='dot'+(t==='ok'?' ok':t==='err'?' err':t==='loading'?' loading':'');
+  if(tx)tx.textContent=m;
+}
+function mostrarToast(msg,tipo){
+  var t=document.getElementById('toast');
+  t.className='toast show '+(tipo||'');
+  t.textContent=msg;
+  setTimeout(function(){t.className='toast';},2400);
+}
+
+// ============================================================
+// LEITURA GOOGLE SHEETS (gviz)
+// ============================================================
+function sheetsURL(id,aba){
+  return 'https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=out:json&sheet='+encodeURIComponent(aba)+'&_ts='+Date.now();
+}
+async function fetchSheet(id,aba){
+  var r=await fetch(sheetsURL(id,aba),{cache:'no-store'});
+  var txt=await r.text();
+  var m=txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\);?\s*$/);
+  if(!m)throw new Error('Resposta inesperada do Sheets');
+  var j=JSON.parse(m[1]);
+  if(!j.table)throw new Error('Aba não encontrada: '+aba);
+  return j.table;
+}
+function cellStr(c){return String((c&&c.f)||(c&&c.v)||'').trim();}
+function cellNum(c){
+  if(!c)return 0;
+  if(typeof c.v==='number')return c.v;
+  var s=String(c.f||c.v||'').replace(/[R$\s.]/g,'').replace(',','.').replace(/[^\d.\-]/g,'');
+  var n=parseFloat(s);return isNaN(n)?0:n;
+}
+function rawRows(t){return t.rows||[];}
+
+// ============================================================
+// CARREGAR BANCO DE DADOS (cod -> nome)
+// ============================================================
+async function loadBanco(cfg){
+  if(!cfg.idBanco)cfg.idBanco=cfg.id;
+  if(!cfg.idBanco)return;
+  var table=await fetchSheet(cfg.idBanco,cfg.abaBanco);
+  var rows=rawRows(table);
+  banco={};
+  var hIdx=-1,ciCod=-1,ciNome=-1;
+  function isCod(t){return /\bEAN\b|\bGTIN\b|\bPLU\b|COD[\s._\-]?BARRA|BARRAS?\b|C[OÓ]D(IGO)?/.test(t);}
+  function isNome(t){return /DESC(RI)?|NOME|PRODUTO|ITEM\b/.test(t);}
+
+  if(table.cols&&table.cols.length){
+    var colTexts=table.cols.map(function(c){return String(c.label||'').toUpperCase();});
+    var ci2=colTexts.findIndex(isCod);
+    var ni2=colTexts.findIndex(isNome);
+    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;}
+  }
+  if(ciCod<0||ciNome<0){
+    for(var i=0;i<Math.min(5,rows.length);i++){
+      var cells=rows[i].c||[];
+      var rowTexts=cells.map(function(c){return String((c&&c.f)||(c&&c.v)||'').toUpperCase();});
+      var ci=rowTexts.findIndex(isCod);
+      var ni=rowTexts.findIndex(isNome);
+      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;break;}
+    }
+  }
+  if(ciCod<0||ciNome<0){hIdx=0;ciCod=0;ciNome=1;}
+
+  for(var i=hIdx+1;i<rows.length;i++){
+    var cells=rows[i].c||[];
+    var cod=String((cells[ciCod]&&cells[ciCod].f)||(cells[ciCod]&&cells[ciCod].v)||'').trim().replace(/[^0-9]/g,'');
+    var nome=String((cells[ciNome]&&cells[ciNome].f)||(cells[ciNome]&&cells[ciNome].v)||'').replace(/^,\s*/,'').trim();
+    if(cod&&nome)banco[cod]=nome;
+  }
+}
+
+// ============================================================
+// CARREGAR PLANILHA COM PREÇOS (aba principal 2025)
+// ============================================================
+async function loadPrecos(cfg){
+  if(!cfg.id)return;
+  var table=await fetchSheet(cfg.id,cfg.aba);
+  var rows=rawRows(table);
+  if(!rows.length)return;
+
+  var hIdx=-1,hCells=[];
+  for(var i=0;i<Math.min(10,rows.length);i++){
+    var cs=rows[i].c||[];
+    var txt=cs.map(function(c){return String((c&&c.f)||(c&&c.v)||'').toUpperCase();});
+    if(txt.some(function(t){return /PRODUTO|DESCRI/.test(t);})){hIdx=i;hCells=cs;break;}
+  }
+  if(!hCells.length){
+    if(table.cols&&table.cols.length){hIdx=-1;hCells=table.cols.map(function(c){return{v:String(c.label||'')};});}
+    else return;
+  }
+  function colIdx(kws){
+    for(var ki=0;ki<kws.length;ki++){
+      var idx=hCells.findIndex(function(c){
+        return String((c&&c.f)||(c&&c.v)||'').toUpperCase().replace(/\s+/g,' ').trim().includes(kws[ki].toUpperCase());
+      });
+      if(idx>=0)return idx;
+    }
+    return -1;
+  }
+  var ci={
+    produto:colIdx(['PRODUTO','DESCRI']),
+    venda:colIdx(['VALOR VENDA','VENDA','PRECO','PREÇO']),
+    codBarra:colIdx(['COD.BARRAS','COD. BARRAS','COD BARRAS','BARRAS','EAN','GTIN','COD'])
+  };
+
+  products=[];bancoPreco={};
+  var startRow=hIdx<0?0:hIdx+1;
+  for(var i=startRow;i<rows.length;i++){
+    var cells=rows[i].c||[];
+    var nome=cellStr(cells[ci.produto]);
+    if(!nome)continue;
+    var cod='';
+    if(ci.codBarra>=0){
+      var rawCod=String((cells[ci.codBarra]&&cells[ci.codBarra].f)||(cells[ci.codBarra]&&cells[ci.codBarra].v)||'').trim().replace(/[^0-9]/g,'');
+      if(rawCod)cod=rawCod;
+    }
+    var preco=ci.venda>=0?cellNum(cells[ci.venda]):0;
+    if(cod&&preco>0)bancoPreco[cod]=preco;
+    products.push({cod:cod,nome:nome,preco:preco});
+  }
+  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,ts:Date.now()}));}catch(e){}
+}
+
+async function syncAll(){
+  var cfg=loadCfg();
+  if(!cfg.id){setDot('err','Configure o Google Sheets primeiro');toggleCfg();return;}
+  var btn=document.getElementById('btnSync');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Sincronizando...';
+  setDot('loading','Sincronizando...');
+  try{
+    await loadBanco(cfg);
+    await loadPrecos(cfg);
+    var totalProd=Object.keys(banco).length;
+    var totalPreco=Object.keys(bancoPreco).length;
+    setDot('ok','Conectado &mdash; '+totalProd+' produtos, '+totalPreco+' preços');
+  }catch(e){
+    console.error(e);
+    setDot('err','Erro: '+e.message);
+    mostrarToast('Falha ao sincronizar: '+e.message,'err');
+  }finally{
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-refresh"></i> Sincronizar';
+  }
+}
+
+// ============================================================
+// BUSCA DE PRODUTO POR CÓDIGO
+// ============================================================
+function normalizarCodigo(c){return String(c||'').trim().replace(/[^0-9]/g,'');}
+
+function buscarProduto(cod){
+  var c=normalizarCodigo(cod);
+  if(!c)return null;
+  var nome=banco[c]||'';
+  var preco=bancoPreco[c]||0;
+  // fallback: pega nome/preco a partir do array products (planilha principal)
+  if(!nome||!preco){
+    for(var i=0;i<products.length;i++){
+      if(normalizarCodigo(products[i].cod)===c){
+        if(!nome&&products[i].nome)nome=products[i].nome;
+        if(!preco&&products[i].preco)preco=products[i].preco;
+        break;
+      }
+    }
+  }
+  if(!nome&&!preco)return null;
+  return {cod:c,nome:nome,preco:preco};
+}
+
+function preencherProduto(prod){
+  var info=document.getElementById('prodInfo');
+  if(!prod){
+    info.innerHTML='<div class="empty" style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Produto não encontrado para o código informado.</div>';
+    return;
+  }
+  var precoTxt=prod.preco?fmtR(prod.preco):'--';
+  info.innerHTML=''+
+    '<div><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+prod.cod+'</div></div>'+
+    '<div><span class="pi-label">Descrição</span><div class="pi-value">'+escapeHtml(prod.nome||'(sem descrição)')+'</div></div>'+
+    '<div><span class="pi-label">Valor de venda</span><div class="pi-price">'+precoTxt+'</div></div>';
+  document.getElementById('pDescOverride').value=prod.nome||'';
+  if(prod.preco){
+    document.getElementById('pDe').value=fmtDec(prod.preco);
+  }
+  onPrecoChange();
+  drawPlaca();
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fmtR(v){if(!v)return'--';return 'R$ '+v.toFixed(2).replace('.',',');}
+function fmtDec(v){if(!v)return'';return v.toFixed(2).replace('.',',');}
+function parseDec(s){if(!s)return 0;var n=parseFloat(String(s).replace(/[R$\s.]/g,'').replace(',','.'));return isNaN(n)?0:n;}
+
+function onPrecoChange(){
+  var de=parseDec(document.getElementById('pDe').value);
+  var por=parseDec(document.getElementById('pPor').value);
+  var badge=document.getElementById('pPctBadge');
+  var packOn=document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked;
+  if(packOn){
+    // no modo pack, o % é calculado em onPackChange
+    onPackChange();
+    return;
+  }
+  if(de>0&&por>0&&por<de){
+    var pct=((de-por)/de)*100;
+    badge.textContent=pct.toFixed(0)+'% OFF';
+  }else{
+    badge.textContent='--';
+  }
+}
+
+function togglePack(){
+  var on=document.getElementById('pPackOn').checked;
+  document.getElementById('packFields').style.display=on?'block':'none';
+  if(on){
+    onPackChange();
+  }else{
+    // limpa a mensagem auto-preenchida
+    var msg=document.getElementById('pMsg');
+    if(msg && /^LEVE \d+UN POR R\$/.test(msg.value)) msg.value='';
+    onPrecoChange();
+  }
+}
+
+function onPackChange(){
+  var qtd=parseInt(document.getElementById('pPackQtd').value)||0;
+  var total=parseDec(document.getElementById('pPackTotal').value);
+  var de=parseDec(document.getElementById('pDe').value);
+  var cadaEl=document.getElementById('pPackCada');
+  var badge=document.getElementById('pPctBadge');
+  var msg=document.getElementById('pMsg');
+  if(qtd>0 && total>0){
+    var cada=total/qtd;
+    cadaEl.textContent='R$ '+cada.toFixed(2).replace('.',',');
+    // preenche mensagem automaticamente
+    msg.value='LEVE '+qtd+'UN POR R$'+total.toFixed(2).replace('.',',')+' (R$'+cada.toFixed(2).replace('.',',')+' CADA). VÁLIDO ENQUANTO DURAR O ESTOQUE.';
+    // % de desconto baseado no preço original vs "cada"
+    if(de>0 && cada<de){
+      var pct=((de-cada)/de)*100;
+      badge.textContent=pct.toFixed(0)+'% OFF';
+    }else{
+      badge.textContent='--';
+    }
+  }else{
+    cadaEl.textContent='--';
+    badge.textContent='--';
+  }
+}
+
+function limparCampos(){
+  document.getElementById('pCod').value='';
+  document.getElementById('pDescOverride').value='';
+  document.getElementById('pDe').value='';
+  document.getElementById('pPor').value='';
+  document.getElementById('pValidade').value='';
+  document.getElementById('prodInfo').innerHTML='<div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>';
+  onPrecoChange();
+  drawPlaca();
+  document.getElementById('pCod').focus();
+}
+
+// ============================================================
+// CANVAS - DESENHO DA PLACA
+// ============================================================
+function loadTemplate(){
+  return new Promise(function(resolve){
+    if(templateImg&&templateReady){resolve(templateImg);return;}
+    var img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=function(){templateImg=img;templateReady=true;resolve(img);};
+    img.onerror=function(){resolve(null);};
+    img.src='template-placa.png';
+  });
+}
+
+async function ensureFonts(){
+  if(document.fonts&&document.fonts.ready){
+    try{await document.fonts.ready;}catch(e){}
+  }
+}
+
+async function drawPlaca(){
+  await ensureFonts();
+  var cv=document.getElementById('placaCanvas');
+  var ctx=cv.getContext('2d');
+  var W=1054,H=1492;
+  cv.width=W;cv.height=H;
+
+  var produto=(document.getElementById('pDescOverride').value||'NOME DO PRODUTO').trim();
+  var de=document.getElementById('pDe').value.replace(/R\$\s*/i,'').trim();
+  var por=document.getElementById('pPor').value.replace(/R\$\s*/i,'').trim();
+  var deN=parseDec(de),porN=parseDec(por);
+
+  // Modo Pack: substitui o "Por" pelo total do pack; % é calculado sobre o valor "cada"
+  var packOn=document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked;
+  var packQtd=0,packTotal=0,packCada=0;
+  if(packOn){
+    packQtd=parseInt(document.getElementById('pPackQtd').value)||0;
+    packTotal=parseDec(document.getElementById('pPackTotal').value);
+    if(packQtd>0 && packTotal>0){
+      packCada=packTotal/packQtd;
+      por=packTotal.toFixed(2).replace('.',',');
+      porN=packTotal;
+    }
+  }
+
+  var showPct=document.getElementById('pShowPct').checked;
+  var pct='';
+  if(showPct){
+    if(packOn && packCada>0 && deN>0 && packCada<deN){
+      pct=Math.round(((deN-packCada)/deN)*100)+'';
+    }else if(!packOn && deN>0 && porN>0 && porN<deN){
+      pct=Math.round(((deN-porN)/deN)*100)+'';
+    }
+  }
+  var showMsg=document.getElementById('pShowMsg').checked;
+  var msgTxt=(document.getElementById('pMsg').value||'').trim();
+  var validade=document.getElementById('pValidade').value.trim();
+  var showUnidade=document.getElementById('pShowUnidade').checked;
+  var unidade=showUnidade?(document.getElementById('pUnidade').value||''):'';
+  var showCod=document.getElementById('pShowCod').checked;
+  var cod=document.getElementById('pCod').value.trim();
+  var corTexto=document.getElementById('pCorTexto').value||'#000000';
+  var corValor=document.getElementById('pCorValor').value||'#ffffff';
+  var corUnidade=document.getElementById('pCorUnidade').value||'#FFD600';
+  var fonte=fonteAtual;
+
+  var tmpl=await loadTemplate();
+  if(tmpl){
+    ctx.drawImage(tmpl,0,0,W,H);
+  }else{
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#E8000D';ctx.fillRect(0,0,W,240);
+    ctx.fillStyle='#fff';ctx.font='900 90px '+fonte;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('OFERTÃO DO DIA',W/2,120);
+  }
+
+  function splitLines(text,maxW){
+    var words=text.split(' ');var lines=[];var line='';
+    for(var wi=0;wi<words.length;wi++){
+      var test=line?line+' '+words[wi]:words[wi];
+      if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=words[wi];}
+      else line=test;
+    }
+    if(line)lines.push(line);
+    return lines;
+  }
+
+  // NOME DO PRODUTO — dentro da área branca, abaixo do banner OFERTÃO
+  // Intervalo seguro: y=430~630 (não invade o banner e não vai até o preço)
+  var nomeClean=produto
+    .replace(/\s*\(\d+\s*[A-Z]*\)\s*\{\d+\}/gi,'')
+    .replace(/\s*\{.*?\}/g,'')
+    .replace(/\s*\(\d+\)/g,'')
+    .trim();
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=corTexto;
+  var fs=90;
+  while(fs>28){
+    ctx.font='900 '+fs+'px '+fonte;
+    var lines=splitLines(nomeClean,960);
+    if(lines.length<=3 && lines.length*fs*1.10<=200)break;
+    fs-=4;
+  }
+  ctx.font='900 '+fs+'px '+fonte;
+  var nLines=splitLines(nomeClean,960);
+  var lh=fs*1.10;
+  var nomeCY=525; // centro vertical dentro da área branca
+  var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
+  for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
+
+  // % DESCONTO — círculo flutuante à esquerda da caixa de preço (não sobrepõe)
+  if(pct){
+    var cx=105,cy=1055,r=55;
+    ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=10;
+    ctx.fillStyle='#FFD600';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#E8000D';ctx.beginPath();ctx.arc(cx,cy,r-8,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+    ctx.fillStyle='#FFD600';ctx.textAlign='center';ctx.textBaseline='middle';
+    var pctFs=36;
+    ctx.font='900 '+pctFs+'px '+fonte;
+    while(ctx.measureText(pct+'%').width>85&&pctFs>18){pctFs-=2;ctx.font='900 '+pctFs+'px '+fonte;}
+    ctx.fillText(pct+'%',cx,cy-8);
+    ctx.fillStyle='#ffffff';ctx.font='900 18px '+fonte;
+    ctx.fillText('OFF',cx,cy+18);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CAIXA VERMELHA DO PREÇO (parte inferior)
+  // Layout do exemplo: "R$" amarelo à esquerda, valor branco grande,
+  // "UNID"/quantidade em amarelo no canto superior direito.
+  // ═══════════════════════════════════════════════════════════
+  (function drawPrecoBox(){
+    // Define o valor a exibir e o rótulo direito conforme modo
+    var valTxt='', labelDir='';
+    if(packOn && packQtd>0 && packTotal>0){
+      valTxt=packTotal.toFixed(2).replace('.',',');
+      labelDir=packQtd+' UN POR';
+    }else{
+      valTxt=(por||de||'0,00');
+      labelDir=unidade||'UNID';
+    }
+
+    // Caixa vermelha arredondada — menor e mais alta que antes
+    var boxX=170, boxY=980, boxW=720, boxH=155, boxR=24;
+    ctx.shadowColor='rgba(0,0,0,0.35)';ctx.shadowBlur=14;
+    ctx.fillStyle='#E8000D';
+    ctx.beginPath();
+    ctx.moveTo(boxX+boxR,boxY);
+    ctx.lineTo(boxX+boxW-boxR,boxY);
+    ctx.quadraticCurveTo(boxX+boxW,boxY,boxX+boxW,boxY+boxR);
+    ctx.lineTo(boxX+boxW,boxY+boxH-boxR);
+    ctx.quadraticCurveTo(boxX+boxW,boxY+boxH,boxX+boxW-boxR,boxY+boxH);
+    ctx.lineTo(boxX+boxR,boxY+boxH);
+    ctx.quadraticCurveTo(boxX,boxY+boxH,boxX,boxY+boxH-boxR);
+    ctx.lineTo(boxX,boxY+boxR);
+    ctx.quadraticCurveTo(boxX,boxY,boxX+boxR,boxY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+
+    // ── Rótulo direito em amarelo (UNID ou "X UN POR") ──
+    ctx.fillStyle='#FFD600';
+    ctx.textAlign='right';ctx.textBaseline='top';
+    var labelFs = (labelDir.length>6 ? 28 : 34);
+    ctx.font='900 '+labelFs+'px '+fonte;
+    while(ctx.measureText(labelDir).width>240 && labelFs>18){labelFs-=2;ctx.font='900 '+labelFs+'px '+fonte;}
+    ctx.fillText(labelDir, boxX+boxW-22, boxY+16);
+
+    // ── R$ (amarelo) + valor (branco) centralizados verticalmente ──
+    var maxValW = boxW - 50;
+    var valFs=110;
+    ctx.font='900 '+valFs+'px '+fonte;
+    // R$ é menor que o valor
+    var rsFs=Math.round(valFs*0.55);
+    while(valFs>60){
+      rsFs=Math.round(valFs*0.55);
+      ctx.font='900 '+rsFs+'px '+fonte;
+      var rsW=ctx.measureText('R$').width;
+      ctx.font='900 '+valFs+'px '+fonte;
+      var vW=ctx.measureText(valTxt).width;
+      if(rsW+12+vW<=maxValW)break;
+      valFs-=4;
+    }
+    rsFs=Math.round(valFs*0.55);
+    ctx.font='900 '+rsFs+'px '+fonte;
+    var rsW=ctx.measureText('R$').width;
+    ctx.font='900 '+valFs+'px '+fonte;
+    var vW=ctx.measureText(valTxt).width;
+    var totalW=rsW+12+vW;
+    var startX=boxX+(boxW-totalW)/2;
+    var baseY=boxY+boxH/2+valFs*0.34;
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    // R$ amarelo
+    ctx.fillStyle='#FFD600';
+    ctx.font='900 '+rsFs+'px '+fonte;
+    ctx.fillText('R$', startX, baseY-valFs*0.05);
+    // valor branco
+    ctx.fillStyle='#FFFFFF';
+    ctx.font='900 '+valFs+'px '+fonte;
+    ctx.fillText(valTxt, startX+rsW+12, baseY);
+  })();
+
+  // FAIXA DE MENSAGEM (rodapé) — barra vermelha com texto branco
+  if(showMsg && msgTxt){
+    // Mesma largura da caixa de preço (170..890 = 720px)
+    var bandX=170,bandW=720;
+    ctx.font='900 20px '+fonte;
+    (function drawBand(){
+      var maxW=bandW-28;
+      var words=msgTxt.split(' ');
+      var lines=[],line='';
+      for(var wi=0;wi<words.length;wi++){
+        var test=line?line+' '+words[wi]:words[wi];
+        if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=words[wi];}
+        else line=test;
+      }
+      if(line)lines.push(line);
+      // Reduz fonte se ficar com muitas linhas
+      var fSize=20;
+      while((lines.length>2 && fSize>14) || lines.length>3){
+        fSize-=1;
+        ctx.font='900 '+fSize+'px '+fonte;
+        lines=[];line='';
+        for(var wi=0;wi<words.length;wi++){
+          var test=line?line+' '+words[wi]:words[wi];
+          if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=words[wi];}
+          else line=test;
+        }
+        if(line)lines.push(line);
+        if(fSize<=14)break;
+      }
+      var lineH=fSize*1.20;
+      var bandH=lines.length*lineH+14;
+      // Faixa fica logo abaixo da caixa de preço (termina em y≈1135)
+      var bandY=1150;
+      if(bandY+bandH>1240){bandY=1240-bandH;}
+      // Sombra sutil
+      ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=8;
+      // Retângulo vermelho arredondado
+      ctx.fillStyle='#E8000D';
+      var rad=10;
+      ctx.beginPath();
+      ctx.moveTo(bandX+rad,bandY);
+      ctx.lineTo(bandX+bandW-rad,bandY);
+      ctx.quadraticCurveTo(bandX+bandW,bandY,bandX+bandW,bandY+rad);
+      ctx.lineTo(bandX+bandW,bandY+bandH-rad);
+      ctx.quadraticCurveTo(bandX+bandW,bandY+bandH,bandX+bandW-rad,bandY+bandH);
+      ctx.lineTo(bandX+rad,bandY+bandH);
+      ctx.quadraticCurveTo(bandX,bandY+bandH,bandX,bandY+bandH-rad);
+      ctx.lineTo(bandX,bandY+rad);
+      ctx.quadraticCurveTo(bandX,bandY,bandX+rad,bandY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur=0;ctx.shadowColor='transparent';
+      // Borda amarela
+      ctx.strokeStyle='#FFD600';ctx.lineWidth=2;ctx.stroke();
+      // Texto branco centralizado
+      ctx.fillStyle='#ffffff';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='900 '+fSize+'px '+fonte;
+      var textStart=bandY+bandH/2-(lines.length-1)*lineH/2;
+      for(var li=0;li<lines.length;li++){
+        ctx.fillText(lines[li],W/2,textStart+li*lineH);
+      }
+    })();
+  }
+
+  // RODAPÉ - validade e código (só se não houver faixa cobrindo o rodapé)
+  var faixaAtiva=(showMsg && msgTxt);
+  if(!faixaAtiva){
+    if(validade){
+      ctx.fillStyle='#000000';
+      ctx.font='normal 20px '+fonte;
+      ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillText('Validade da oferta: '+validade,30,1245);
+    }
+    if(showCod&&cod){
+      ctx.fillStyle='#000000';
+      ctx.font='normal 20px '+fonte;
+      ctx.textAlign='right';ctx.textBaseline='middle';
+      ctx.fillText('Cod: '+cod,W-30,1245);
+    }
+  }
+}
+
+async function downloadPlaca(){
+  await drawPlaca();
+  var cv=document.getElementById('placaCanvas');
+  var nome=(document.getElementById('pDescOverride').value||'placa').substring(0,25).replace(/\s+/g,'-').toLowerCase();
+  cv.toBlob(function(blob){
+    var a=document.createElement('a');
+    a.download='placa-'+nome+'.png';
+    a.href=URL.createObjectURL(blob);
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+    mostrarToast('Placa baixada.','ok');
+  },'image/png');
+}
+
+async function copiarPlaca(){
+  try{
+    await drawPlaca();
+    var cv=document.getElementById('placaCanvas');
+    cv.toBlob(async function(blob){
+      try{
+        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+        mostrarToast('Imagem copiada para a área de transferência.','ok');
+      }catch(e){
+        mostrarToast('Navegador não suporta copiar imagem. Use "Baixar PNG".','warn');
+      }
+    },'image/png');
+  }catch(e){mostrarToast('Falha ao copiar: '+e.message,'err');}
+}
+
+// ============================================================
+// EVENTOS DE ENTRADA DE CÓDIGO
+// ============================================================
+var buscaTimer=null;
+document.getElementById('pCod').addEventListener('input',function(e){
+  clearTimeout(buscaTimer);
+  var v=e.target.value.trim();
+  if(!v)return;
+  buscaTimer=setTimeout(function(){
+    if(!Object.keys(banco).length&&!Object.keys(bancoPreco).length){
+      mostrarToast('Sincronize primeiro (clique em Sincronizar).','warn');
+      return;
+    }
+    var p=buscarProduto(v);
+    preencherProduto(p);
+  },350);
+});
+document.getElementById('pCod').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    clearTimeout(buscaTimer);
+    var p=buscarProduto(e.target.value);
+    preencherProduto(p);
+  }
+});
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+(function init(){
+  // recupera cache local
+  try{
+    var s=localStorage.getItem(PROD_KEY);
+    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;}
+  }catch(e){}
+  var cfg=loadCfg();
+  if(cfg.id){
+    setDot('loading','Cache carregado — sincronizando com Sheets...');
+    syncAll();
+  }else{
+    setDot('err','Configure o Google Sheets para começar');
+    toggleCfg();
+  }
+  drawPlaca();
+  document.getElementById('pCod').focus();
+})();
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
