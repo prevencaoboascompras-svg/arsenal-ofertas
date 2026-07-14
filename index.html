@@ -45,11 +45,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .f-row input:focus,.f-row select:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
 .f-row .hint{font-size:11px;color:var(--tx2)}
 .cod-input{font-family:monospace;font-size:15px!important;letter-spacing:.5px}
+.search-wrap{position:relative}
+.suggestions{display:none;position:absolute;z-index:50;left:0;right:0;top:calc(100% + 4px);max-height:280px;overflow:auto;background:var(--bg);border:1px solid var(--bds);border-radius:var(--r);box-shadow:0 14px 36px rgba(0,0,0,.22);padding:4px}
+.suggestions.open{display:block}
+.sg-item{width:100%;border:0;background:transparent;color:var(--tx);display:grid;grid-template-columns:1fr auto;gap:8px;text-align:left;padding:9px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.sg-item:hover,.sg-item.active{background:var(--bg2)}
+.sg-name{font-size:13px;font-weight:700;line-height:1.25}
+.sg-meta{font-size:11px;color:var(--tx2);margin-top:2px}
+.sg-price{font-size:13px;font-weight:800;color:var(--green);white-space:nowrap;align-self:center}
+.sg-empty{font-size:12px;color:var(--tx2);padding:10px;text-align:center}
 .prod-info{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:12px;margin-bottom:12px;min-height:70px;display:flex;flex-direction:column;gap:6px}
 .prod-info .empty{color:var(--tx2);font-size:12px;text-align:center;padding:8px 0}
 .pi-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx2)}
 .pi-value{font-size:14px;font-weight:600;color:var(--tx)}
 .pi-price{font-size:20px;font-weight:700;color:var(--green)}
+.foto-panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.foto-preview{width:62px;height:62px;border:1px dashed var(--bds);border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:var(--tx2)}
+.foto-preview img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.foto-meta{min-width:0;flex:1}
+.foto-title{font-size:12px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.foto-status{font-size:11px;color:var(--tx2);line-height:1.35;margin-bottom:7px}
+.foto-actions{display:flex;gap:6px;flex-wrap:wrap}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pct-badge{font-size:12px;font-weight:700;color:var(--green);background:rgba(29,158,117,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
 .canvas-wrap{background:var(--bg2);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -102,13 +118,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <h2><i class="ti ti-barcode"></i> Dados do produto</h2>
 
       <div class="f-row">
-        <label for="pCod">Código interno ou EAN</label>
-        <input type="text" id="pCod" class="cod-input" placeholder="Digite ou escaneie o código" autocomplete="off" inputmode="numeric">
-        <span class="hint">Enter para buscar. A descrição e o valor de venda serão preenchidos automaticamente.</span>
+        <label for="pCod">Código interno, EAN ou produto</label>
+        <div class="search-wrap">
+          <input type="text" id="pCod" class="cod-input" placeholder="Digite código, EAN ou palavra-chave. Ex: coca" autocomplete="off">
+          <div id="prodSug" class="suggestions" role="listbox" aria-label="Sugestões de produtos"></div>
+        </div>
+        <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN.</span>
       </div>
 
       <div class="prod-info" id="prodInfo">
         <div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>
+      </div>
+
+      <div class="foto-panel">
+        <div class="foto-preview" id="fotoPreview"><i class="ti ti-photo-search" style="font-size:24px"></i></div>
+        <div class="foto-meta">
+          <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
+          <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada no Drive, Google Imagens e Open Food Facts.</div>
+          <div class="foto-actions">
+            <button type="button" class="btn btn-sm" onclick="buscarFotoDoFormulario()"><i class="ti ti-refresh"></i> Buscar foto</button>
+            <label class="btn btn-sm" for="pFoto"><i class="ti ti-upload"></i> Enviar manual</label>
+            <input type="file" id="pFoto" accept="image/*" onchange="loadFoto(this)" style="display:none">
+          </div>
+        </div>
       </div>
 
       <div class="f-row">
@@ -220,19 +252,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 // ============================================================
 var CFG_KEY='aura_cfg';
 var PROD_KEY='placa_prod_cache';
+var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec';
+var DRIVE_FOLDER_ID='1Qhsc63GHVcACTzYTp392O_S3iMd8vmpS';
+var GCSE_API_KEY='AIzaSyClxbl8yzMpHdahpB38Fc66NcqtDWxjdvw';
+var GCSE_CX='a74b49ecb1fd546fb';
 var banco={};          // cod -> nome
 var bancoPreco={};     // cod -> preco venda (da planilha de validades)
 var products=[];       // lista consolidada com preços
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
 var templateImg=null;
 var templateReady=false;
+var fotoImg=null;
+var fotoToken=0;
 
 function loadCfg(){
   var d={
     id:'1HDJvgbKqYRUh8YvKeNTJZ5PhjbqyqZTsYT3bUnjp0VQ',
     aba:'2025',
     idBanco:'1HDJvgbKqYRUh8YvKeNTJZ5PhjbqyqZTsYT3bUnjp0VQ',
-    abaBanco:'BANCO DE DADOS'
+    abaBanco:'BANCO DE DADOS',
+    url:GAS_URL
   };
   try{var s=localStorage.getItem(CFG_KEY);if(s){var c=JSON.parse(s);return Object.assign(d,c);}}catch(e){}
   return d;
@@ -279,6 +318,12 @@ function mostrarToast(msg,tipo){
 function sheetsURL(id,aba){
   return 'https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=out:json&sheet='+encodeURIComponent(aba)+'&_ts='+Date.now();
 }
+function _gasGet(action,extra){
+  var cfg=loadCfg();
+  if(!cfg.url)return Promise.resolve({ok:false});
+  var url=cfg.url+'?action='+encodeURIComponent(action)+(extra||'');
+  return fetch(url,{cache:'no-store'}).then(function(r){return r.json();}).catch(function(){return{ok:false};});
+}
 async function fetchSheet(id,aba){
   var r=await fetch(sheetsURL(id,aba),{cache:'no-store'});
   var txt=await r.text();
@@ -306,15 +351,18 @@ async function loadBanco(cfg){
   var table=await fetchSheet(cfg.idBanco,cfg.abaBanco);
   var rows=rawRows(table);
   banco={};
-  var hIdx=-1,ciCod=-1,ciNome=-1;
+  bancoPreco={};
+  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1;
   function isCod(t){return /\bEAN\b|\bGTIN\b|\bPLU\b|COD[\s._\-]?BARRA|BARRAS?\b|C[OÓ]D(IGO)?/.test(t);}
   function isNome(t){return /DESC(RI)?|NOME|PRODUTO|ITEM\b/.test(t);}
+  function isPreco(t){return /PRE[CÇ]O|VALOR|VENDA|VLR|PR\.?\s*VENDA|P\.?\s*VENDA/.test(t);}
 
   if(table.cols&&table.cols.length){
     var colTexts=table.cols.map(function(c){return String(c.label||'').toUpperCase();});
     var ci2=colTexts.findIndex(isCod);
     var ni2=colTexts.findIndex(isNome);
-    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;}
+    var pi2=colTexts.findIndex(isPreco);
+    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;}
   }
   if(ciCod<0||ciNome<0){
     for(var i=0;i<Math.min(5,rows.length);i++){
@@ -322,7 +370,8 @@ async function loadBanco(cfg){
       var rowTexts=cells.map(function(c){return String((c&&c.f)||(c&&c.v)||'').toUpperCase();});
       var ci=rowTexts.findIndex(isCod);
       var ni=rowTexts.findIndex(isNome);
-      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;break;}
+      var pi=rowTexts.findIndex(isPreco);
+      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;break;}
     }
   }
   if(ciCod<0||ciNome<0){hIdx=0;ciCod=0;ciNome=1;}
@@ -332,6 +381,10 @@ async function loadBanco(cfg){
     var cod=String((cells[ciCod]&&cells[ciCod].f)||(cells[ciCod]&&cells[ciCod].v)||'').trim().replace(/[^0-9]/g,'');
     var nome=String((cells[ciNome]&&cells[ciNome].f)||(cells[ciNome]&&cells[ciNome].v)||'').replace(/^,\s*/,'').trim();
     if(cod&&nome)banco[cod]=nome;
+    if(cod&&ciPreco>=0){
+      var precoBanco=cellNum(cells[ciPreco]);
+      if(precoBanco>0)bancoPreco[cod]=precoBanco;
+    }
   }
 }
 
@@ -369,7 +422,7 @@ async function loadPrecos(cfg){
     codBarra:colIdx(['COD.BARRAS','COD. BARRAS','COD BARRAS','BARRAS','EAN','GTIN','COD'])
   };
 
-  products=[];bancoPreco={};
+  products=[];
   var startRow=hIdx<0?0:hIdx+1;
   for(var i=startRow;i<rows.length;i++){
     var cells=rows[i].c||[];
@@ -384,7 +437,7 @@ async function loadPrecos(cfg){
     if(cod&&preco>0)bancoPreco[cod]=preco;
     products.push({cod:cod,nome:nome,preco:preco});
   }
-  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,ts:Date.now()}));}catch(e){}
+  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,products:products,ts:Date.now()}));}catch(e){}
 }
 
 async function syncAll(){
@@ -398,7 +451,7 @@ async function syncAll(){
     await loadPrecos(cfg);
     var totalProd=Object.keys(banco).length;
     var totalPreco=Object.keys(bancoPreco).length;
-    setDot('ok','Conectado &mdash; '+totalProd+' produtos, '+totalPreco+' preços');
+    setDot('ok','Conectado — '+totalProd+' produtos, '+totalPreco+' preços');
   }catch(e){
     console.error(e);
     setDot('err','Erro: '+e.message);
@@ -409,11 +462,38 @@ async function syncAll(){
 }
 
 // ============================================================
-// BUSCA DE PRODUTO POR CÓDIGO
+// BUSCA DE PRODUTO POR CÓDIGO, EAN OU PALAVRA-CHAVE
 // ============================================================
 function normalizarCodigo(c){return String(c||'').trim().replace(/[^0-9]/g,'');}
+function normalizarTexto(s){
+  return String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toUpperCase().replace(/[^A-Z0-9]+/g,' ')
+    .trim();
+}
+function ehBuscaCodigo(v){return /^[\d\s.\-\/]+$/.test(String(v||'').trim());}
+function temBaseProdutos(){return Object.keys(banco).length||Object.keys(bancoPreco).length||products.length;}
 
-function buscarProduto(cod){
+function consolidarProdutos(){
+  var map={};
+  function add(cod,nome,preco){
+    cod=normalizarCodigo(cod);
+    nome=String(nome||'').replace(/^,\s*/,'').trim();
+    preco=Number(preco)||0;
+    if(!cod&&!nome)return;
+    var key=cod||normalizarTexto(nome);
+    if(!key)return;
+    if(!map[key])map[key]={cod:cod,nome:nome,preco:0};
+    if(cod&&!map[key].cod)map[key].cod=cod;
+    if(nome&&(!map[key].nome||map[key].nome.length<nome.length))map[key].nome=nome;
+    if(preco>0)map[key].preco=preco;
+  }
+  Object.keys(banco).forEach(function(cod){add(cod,banco[cod],bancoPreco[cod]||0);});
+  products.forEach(function(p){add(p.cod,p.nome,p.preco||bancoPreco[normalizarCodigo(p.cod)]||0);});
+  return Object.keys(map).map(function(k){return map[k];}).filter(function(p){return p.nome||p.cod;});
+}
+
+function buscarPorCodigo(cod){
   var c=normalizarCodigo(cod);
   if(!c)return null;
   var nome=banco[c]||'';
@@ -432,15 +512,254 @@ function buscarProduto(cod){
   return {cod:c,nome:nome,preco:preco};
 }
 
+function buscarProdutos(termo,limite){
+  termo=String(termo||'').trim();
+  if(!termo)return [];
+  var texto=normalizarTexto(termo);
+  var dig=normalizarCodigo(termo);
+  var termos=texto.split(' ').filter(Boolean);
+  var lista=consolidarProdutos();
+  var resultados=[];
+
+  for(var i=0;i<lista.length;i++){
+    var p=lista[i];
+    var nomeNorm=normalizarTexto(p.nome);
+    var codNorm=normalizarCodigo(p.cod);
+    var score=0;
+
+    if(dig&&codNorm){
+      if(codNorm===dig)score+=220;
+      else if(codNorm.indexOf(dig)===0)score+=120;
+      else if(codNorm.indexOf(dig)>0)score+=50;
+    }
+    if(texto&&nomeNorm){
+      if(nomeNorm===texto)score+=180;
+      else if(nomeNorm.indexOf(texto)===0)score+=130;
+      else if(nomeNorm.indexOf(texto)>0)score+=90;
+      var todos=termos.every(function(t){return nomeNorm.indexOf(t)>=0||codNorm.indexOf(t)>=0;});
+      if(todos)score+=termos.length*25;
+      else if(!dig)score=0;
+    }
+    if(score>0){
+      if(p.preco>0)score+=8;
+      resultados.push({cod:p.cod,nome:p.nome,preco:p.preco,score:score});
+    }
+  }
+
+  resultados.sort(function(a,b){
+    if(b.score!==a.score)return b.score-a.score;
+    return String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR');
+  });
+  return resultados.slice(0,limite||10);
+}
+
+function buscarProduto(termo){
+  termo=String(termo||'').trim();
+  if(!termo)return null;
+  if(ehBuscaCodigo(termo)){
+    var porCodigo=buscarPorCodigo(termo);
+    if(porCodigo)return porCodigo;
+  }
+  var lista=buscarProdutos(termo,1);
+  return lista.length?lista[0]:null;
+}
+
+// ============================================================
+// FOTO DO PRODUTO: Drive -> Google Imagens -> Open Food Facts
+// ============================================================
+function setFotoStatus(msg,tipo){
+  var el=document.getElementById('fotoStatus');
+  if(!el)return;
+  var cor=tipo==='ok'?'var(--green)':tipo==='warn'?'var(--amber)':tipo==='err'?'var(--red)':'var(--tx2)';
+  el.style.color=cor;
+  el.textContent=msg;
+}
+function setFotoPreview(img){
+  var box=document.getElementById('fotoPreview');
+  if(!box)return;
+  if(img){
+    box.innerHTML='';
+    var el=document.createElement('img');
+    el.src=img.src;
+    el.alt='Foto do produto';
+    box.appendChild(el);
+  }else{
+    box.innerHTML='<i class="ti ti-photo-search" style="font-size:24px"></i>';
+  }
+}
+function limparFoto(msg){
+  fotoImg=null;
+  setFotoPreview(null);
+  setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada no Drive, Google Imagens e Open Food Facts.');
+}
+function carregarImagemUrl(url){
+  return new Promise(function(resolve){
+    if(!url){resolve(null);return;}
+    var img=new Image();
+    img.crossOrigin='anonymous';
+    img.referrerPolicy='no-referrer';
+    img.onload=function(){resolve(img);};
+    img.onerror=function(){resolve(null);};
+    img.src=url;
+  });
+}
+async function buscarFotoDrive(codigoBarras,tipo){
+  var cod=normalizarCodigo(codigoBarras);
+  if(!cod)return null;
+  var extra='&codigoBarras='+encodeURIComponent(cod)+
+    '&tipo='+encodeURIComponent(tipo||'produto')+
+    '&folderId='+encodeURIComponent(DRIVE_FOLDER_ID);
+  var res=await _gasGet('buscarImagemProduto',extra);
+  if(res&&res.ok&&res.encontrado){
+    if(res.base64){
+      return await carregarImagemUrl('data:'+(res.mimeType||'image/png')+';base64,'+res.base64);
+    }
+    if(res.url||res.imageUrl){
+      return await carregarImagemUrl(res.url||res.imageUrl);
+    }
+  }
+  return null;
+}
+async function buscarFotoGoogleCSE(query){
+  query=String(query||'').trim();
+  if(!query||!GCSE_API_KEY||!GCSE_CX)return null;
+  var url='https://www.googleapis.com/customsearch/v1?key='+encodeURIComponent(GCSE_API_KEY)+
+    '&cx='+encodeURIComponent(GCSE_CX)+
+    '&searchType=image&num=6&safe=active&imgSize=medium&q='+encodeURIComponent(query);
+  try{
+    var r=await fetch(url,{cache:'no-store'});
+    if(!r.ok)return null;
+    var j=await r.json();
+    var items=j.items||[];
+    for(var i=0;i<items.length;i++){
+      var links=[items[i].link,items[i].image&&items[i].image.thumbnailLink].filter(Boolean);
+      for(var li=0;li<links.length;li++){
+        var img=await carregarImagemUrl(links[li]);
+        if(img)return img;
+      }
+    }
+  }catch(e){}
+  return null;
+}
+async function buscarFotoOpenFoodFacts(ean,nomeProduto){
+  var cod=normalizarCodigo(ean);
+  if(cod){
+    try{
+      var r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(cod)+'.json?fields=product_name,image_url,image_front_url,image_front_small_url',{cache:'no-store'});
+      if(r.ok){
+        var j=await r.json();
+        if(j&&j.status===1&&j.product){
+          var urls=[j.product.image_front_url,j.product.image_url,j.product.image_front_small_url].filter(Boolean);
+          for(var i=0;i<urls.length;i++){
+            var img=await carregarImagemUrl(urls[i]);
+            if(img)return img;
+          }
+        }
+      }
+    }catch(e){}
+  }
+  var nome=String(nomeProduto||'').trim();
+  if(nome){
+    try{
+      var sUrl='https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(nome)+'&search_simple=1&action=process&json=1&page_size=5';
+      var sr=await fetch(sUrl,{cache:'no-store'});
+      if(sr.ok){
+        var sj=await sr.json();
+        var prods=sj.products||[];
+        for(var pi=0;pi<prods.length;pi++){
+          var p=prods[pi];
+          var urls2=[p.image_front_url,p.image_url,p.image_front_small_url].filter(Boolean);
+          for(var ui=0;ui<urls2.length;ui++){
+            var img2=await carregarImagemUrl(urls2[ui]);
+            if(img2)return img2;
+          }
+        }
+      }
+    }catch(e){}
+  }
+  return null;
+}
+async function buscarFotoCompleta(ean,nomeProduto){
+  var token=++fotoToken;
+  limparFoto('Buscando foto no Google Drive pelo código de barras...');
+  drawPlaca();
+  var cod=normalizarCodigo(ean);
+  var nome=String(nomeProduto||'').trim();
+  var img=null;
+
+  if(cod){
+    img=await buscarFotoDrive(cod,'produto');
+    if(token!==fotoToken)return false;
+    if(img){
+      fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Drive.','ok');drawPlaca();return true;
+    }
+  }
+
+  setFotoStatus('Não achou no Drive. Buscando no Google Imagens...');
+  if(nome){
+    img=await buscarFotoGoogleCSE(nome);
+    if(token!==fotoToken)return false;
+    if(img){
+      fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Imagens pelo nome.','ok');drawPlaca();return true;
+    }
+  }
+  if(cod){
+    img=await buscarFotoGoogleCSE(cod);
+    if(token!==fotoToken)return false;
+    if(img){
+      fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Imagens pelo código.','ok');drawPlaca();return true;
+    }
+  }
+
+  setFotoStatus('Não achou no Google. Buscando no Open Food Facts...');
+  img=await buscarFotoOpenFoodFacts(cod,nome);
+  if(token!==fotoToken)return false;
+  if(img){
+    fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Open Food Facts.','ok');drawPlaca();return true;
+  }
+
+  limparFoto('Foto não encontrada no Drive, Google Imagens nem Open Food Facts.');
+  drawPlaca();
+  return false;
+}
+function buscarFotoDoFormulario(){
+  var cod=document.getElementById('pCod').value.trim();
+  var nome=document.getElementById('pDescOverride').value.trim();
+  if(!cod&&!nome){
+    mostrarToast('Informe ou selecione um produto primeiro.','warn');
+    return;
+  }
+  buscarFotoCompleta(cod,nome);
+}
+function loadFoto(input){
+  var f=input&&input.files&&input.files[0];
+  if(!f)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    carregarImagemUrl(e.target.result).then(function(img){
+      if(img){
+        ++fotoToken;
+        fotoImg=img;
+        setFotoPreview(img);
+        setFotoStatus('Foto carregada manualmente.','ok');
+        drawPlaca();
+      }
+    });
+  };
+  reader.readAsDataURL(f);
+}
+
 function preencherProduto(prod){
   var info=document.getElementById('prodInfo');
   if(!prod){
-    info.innerHTML='<div class="empty" style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Produto não encontrado para o código informado.</div>';
+    ++fotoToken;
+    limparFoto();
+    info.innerHTML='<div class="empty" style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Produto não encontrado para o termo informado.</div>';
     return;
   }
   var precoTxt=prod.preco?fmtR(prod.preco):'--';
   info.innerHTML=''+
-    '<div><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+prod.cod+'</div></div>'+
+    '<div><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+escapeHtml(prod.cod||'(sem código)')+'</div></div>'+
     '<div><span class="pi-label">Descrição</span><div class="pi-value">'+escapeHtml(prod.nome||'(sem descrição)')+'</div></div>'+
     '<div><span class="pi-label">Valor de venda</span><div class="pi-price">'+precoTxt+'</div></div>';
   document.getElementById('pDescOverride').value=prod.nome||'';
@@ -449,6 +768,7 @@ function preencherProduto(prod){
   }
   onPrecoChange();
   drawPlaca();
+  buscarFotoCompleta(prod.cod,prod.nome);
 }
 
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -513,11 +833,15 @@ function onPackChange(){
 }
 
 function limparCampos(){
+  esconderSugestoes();
+  ++fotoToken;
   document.getElementById('pCod').value='';
   document.getElementById('pDescOverride').value='';
   document.getElementById('pDe').value='';
   document.getElementById('pPor').value='';
   document.getElementById('pValidade').value='';
+  var pf=document.getElementById('pFoto');if(pf)pf.value='';
+  limparFoto();
   document.getElementById('prodInfo').innerHTML='<div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>';
   onPrecoChange();
   drawPlaca();
@@ -633,6 +957,19 @@ async function drawPlaca(){
   var nomeCY=525; // centro vertical dentro da área branca
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
+
+  // FOTO DO PRODUTO — buscada automaticamente e posicionada entre nome e preço
+  if(fotoImg){
+    var fX=265,fY=640,fW=524,fH=300;
+    var ratio=Math.min(fW/fotoImg.width,fH/fotoImg.height);
+    var dw=fotoImg.width*ratio,dh=fotoImg.height*ratio;
+    var dx=fX+(fW-dw)/2,dy=fY+(fH-dh)/2;
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.18)';
+    ctx.shadowBlur=12;
+    ctx.drawImage(fotoImg,dx,dy,dw,dh);
+    ctx.restore();
+  }
 
   // % DESCONTO — círculo flutuante à esquerda da caixa de preço (não sobrepõe)
   if(pct){
@@ -842,26 +1179,95 @@ async function copiarPlaca(){
 // EVENTOS DE ENTRADA DE CÓDIGO
 // ============================================================
 var buscaTimer=null;
+var sugestoesAtuais=[];
+var sugestaoAtiva=-1;
+
+function esconderSugestoes(){
+  var box=document.getElementById('prodSug');
+  if(box){box.className='suggestions';box.innerHTML='';}
+  sugestoesAtuais=[];
+  sugestaoAtiva=-1;
+}
+
+function renderSugestoes(lista,termo){
+  var box=document.getElementById('prodSug');
+  if(!box)return;
+  sugestoesAtuais=lista||[];
+  if(sugestaoAtiva<0||sugestaoAtiva>=sugestoesAtuais.length)sugestaoAtiva=sugestoesAtuais.length?0:-1;
+  if(!termo||!String(termo).trim()){esconderSugestoes();return;}
+  if(!sugestoesAtuais.length){
+    box.className='suggestions open';
+    box.innerHTML='<div class="sg-empty">Nenhum produto encontrado para "'+escapeHtml(termo)+'".</div>';
+    return;
+  }
+  box.className='suggestions open';
+  box.innerHTML=sugestoesAtuais.map(function(p,idx){
+    var preco=p.preco?fmtR(p.preco):'sem preço';
+    var meta=(p.cod?'Cód/EAN: '+escapeHtml(p.cod):'sem código');
+    return ''+
+      '<button type="button" class="sg-item '+(idx===sugestaoAtiva?'active':'')+'" data-idx="'+idx+'" role="option" aria-selected="'+(idx===sugestaoAtiva?'true':'false')+'">'+
+        '<span><span class="sg-name">'+escapeHtml(p.nome||'(sem descrição)')+'</span><span class="sg-meta">'+meta+'</span></span>'+
+        '<span class="sg-price">'+escapeHtml(preco)+'</span>'+
+      '</button>';
+  }).join('');
+}
+
+function moverSugestao(delta){
+  if(!sugestoesAtuais.length)return;
+  sugestaoAtiva=(sugestaoAtiva+delta+sugestoesAtuais.length)%sugestoesAtuais.length;
+  renderSugestoes(sugestoesAtuais,document.getElementById('pCod').value);
+}
+
+function selecionarProduto(prod){
+  if(!prod)return;
+  document.getElementById('pCod').value=prod.cod||prod.nome||'';
+  esconderSugestoes();
+  preencherProduto(prod);
+}
+
 document.getElementById('pCod').addEventListener('input',function(e){
   clearTimeout(buscaTimer);
   var v=e.target.value.trim();
-  if(!v)return;
+  if(!v){esconderSugestoes();return;}
   buscaTimer=setTimeout(function(){
-    if(!Object.keys(banco).length&&!Object.keys(bancoPreco).length){
+    if(!temBaseProdutos()){
       mostrarToast('Sincronize primeiro (clique em Sincronizar).','warn');
       return;
     }
-    var p=buscarProduto(v);
-    preencherProduto(p);
-  },350);
+    var lista=buscarProdutos(v,10);
+    sugestaoAtiva=-1;
+    renderSugestoes(lista,v);
+    if(ehBuscaCodigo(v)&&lista.length&&normalizarCodigo(lista[0].cod)===normalizarCodigo(v)){
+      selecionarProduto(lista[0]);
+    }
+  },140);
 });
 document.getElementById('pCod').addEventListener('keydown',function(e){
+  var aberto=document.getElementById('prodSug').classList.contains('open');
+  if(e.key==='ArrowDown'&&aberto){e.preventDefault();moverSugestao(1);return;}
+  if(e.key==='ArrowUp'&&aberto){e.preventDefault();moverSugestao(-1);return;}
+  if(e.key==='Escape'){esconderSugestoes();return;}
   if(e.key==='Enter'){
     e.preventDefault();
     clearTimeout(buscaTimer);
-    var p=buscarProduto(e.target.value);
-    preencherProduto(p);
+    if(aberto&&sugestoesAtuais.length){
+      selecionarProduto(sugestoesAtuais[Math.max(0,sugestaoAtiva)]);
+    }else{
+      var p=buscarProduto(e.target.value);
+      esconderSugestoes();
+      preencherProduto(p);
+    }
   }
+});
+document.getElementById('prodSug').addEventListener('mousedown',function(e){
+  var item=e.target.closest('.sg-item');
+  if(!item)return;
+  e.preventDefault();
+  var idx=parseInt(item.getAttribute('data-idx'),10);
+  selecionarProduto(sugestoesAtuais[idx]);
+});
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.search-wrap'))esconderSugestoes();
 });
 
 // ============================================================
@@ -871,7 +1277,7 @@ document.getElementById('pCod').addEventListener('keydown',function(e){
   // recupera cache local
   try{
     var s=localStorage.getItem(PROD_KEY);
-    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;}
+    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(Array.isArray(c.products))products=c.products;}
   }catch(e){}
   var cfg=loadCfg();
   if(cfg.id){
