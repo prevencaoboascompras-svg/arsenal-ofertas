@@ -278,6 +278,8 @@ var templateImg=null;
 var templateReady=false;
 var fotoImg=null;
 var fotoToken=0;
+var prodAtualCod='';
+var fotoOrigemDrive=false;
 
 function loadCfg(){
   var d={
@@ -337,6 +339,17 @@ function _gasGet(action,extra){
   if(!cfg.url)return Promise.resolve({ok:false});
   var url=cfg.url+'?action='+encodeURIComponent(action)+(extra||'');
   return fetch(url,{cache:'no-store'}).then(function(r){return r.json();}).catch(function(){return{ok:false};});
+}
+function _gasPost(action,payload){
+  var cfg=loadCfg();
+  if(!cfg.url)return Promise.resolve({ok:false});
+  var body=Object.assign({action:action},payload||{});
+  // usa text/plain para evitar preflight CORS (Apps Script não responde bem a OPTIONS)
+  return fetch(cfg.url,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(body)
+  }).then(function(r){return r.json();}).catch(function(){return{ok:false};});
 }
 async function fetchSheet(id,aba){
   var r=await fetch(sheetsURL(id,aba),{cache:'no-store'});
@@ -770,7 +783,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     img=await buscarFotoDrive(cod,'produto');
     if(token!==fotoToken)return false;
     if(img){
-      fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Drive.','ok');drawPlaca();return true;
+      fotoImg=img;fotoOrigemDrive=true;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Drive.','ok');drawPlaca();return true;
     }
   }
 
@@ -778,7 +791,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     var achadoTermo=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
     if(achadoTermo&&achadoTermo.img){
-      fotoImg=achadoTermo.img;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo termo manual em '+achadoTermo.fonte+'.','ok');drawPlaca();return true;
+      fotoImg=achadoTermo.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo termo manual em '+achadoTermo.fonte+'.','ok');drawPlaca();return true;
     }
   }
 
@@ -787,14 +800,14 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     var achadoNome=await buscarFotoWeb(nome,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
     if(achadoNome&&achadoNome.img){
-      fotoImg=achadoNome.img;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo nome em '+achadoNome.fonte+'.','ok');drawPlaca();return true;
+      fotoImg=achadoNome.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo nome em '+achadoNome.fonte+'.','ok');drawPlaca();return true;
     }
   }
   if(cod){
     var achadoCod=await buscarFotoWeb(cod,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
     if(achadoCod&&achadoCod.img){
-      fotoImg=achadoCod.img;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo código em '+achadoCod.fonte+'.','ok');drawPlaca();return true;
+      fotoImg=achadoCod.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo código em '+achadoCod.fonte+'.','ok');drawPlaca();return true;
     }
   }
 
@@ -802,7 +815,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   img=await buscarFotoOpenFoodFacts(cod,nome);
   if(token!==fotoToken)return false;
   if(img){
-    fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Open Food Facts.','ok');drawPlaca();return true;
+    fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no Open Food Facts.','ok');drawPlaca();return true;
   }
 
   limparFoto('Foto não encontrada automaticamente. Clique em Abrir Google, copie a URL da imagem e use o campo URL.');
@@ -823,6 +836,7 @@ async function buscarFotoPorTermoManual(){
   if(token!==fotoToken)return false;
   if(achado&&achado.img){
     fotoImg=achado.img;
+    fotoOrigemDrive=false;
     setFotoPreview(fotoImg);
     setFotoStatus('Foto encontrada pelo termo manual em '+achado.fonte+'.','ok');
     drawPlaca();
@@ -855,6 +869,7 @@ async function usarFotoUrlManual(){
   if(token!==fotoToken)return false;
   if(img){
     fotoImg=img;
+    fotoOrigemDrive=false;
     setFotoPreview(img);
     setFotoStatus('Foto carregada pela URL manual.','ok');
     drawPlaca();
@@ -883,6 +898,7 @@ function loadFoto(input){
       if(img){
         ++fotoToken;
         fotoImg=img;
+        fotoOrigemDrive=false;
         setFotoPreview(img);
         setFotoStatus('Foto carregada manualmente.','ok');
         drawPlaca();
@@ -900,6 +916,7 @@ function preencherProduto(prod){
     info.innerHTML='<div class="empty" style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Produto não encontrado para o termo informado.</div>';
     return;
   }
+  prodAtualCod=normalizarCodigo(prod.cod)||'';
   var precoTxt=prod.preco?fmtR(prod.preco):'--';
   info.innerHTML=''+
     '<div><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+escapeHtml(prod.cod||'(sem código)')+'</div></div>'+
@@ -980,6 +997,8 @@ function onPackChange(){
 function limparCampos(){
   esconderSugestoes();
   ++fotoToken;
+  prodAtualCod='';
+  fotoOrigemDrive=false;
   document.getElementById('pCod').value='';
   document.getElementById('pDescOverride').value='';
   document.getElementById('pDe').value='';
@@ -1324,6 +1343,50 @@ async function drawPlaca(){
   }
 }
 
+// ============================================================
+// SALVAR FOTO DO PRODUTO NO BANCO DE IMAGENS (GOOGLE DRIVE)
+// ============================================================
+function imgParaBase64Jpeg(img){
+  var c=document.createElement('canvas');
+  c.width=img.naturalWidth||img.width;
+  c.height=img.naturalHeight||img.height;
+  var ctx=c.getContext('2d');
+  ctx.fillStyle='#fff';
+  ctx.fillRect(0,0,c.width,c.height);
+  ctx.drawImage(img,0,0,c.width,c.height);
+  var dataUrl=c.toDataURL('image/jpeg',0.92);
+  return dataUrl.split(',')[1];
+}
+async function salvarFotoAtualNoDrive(mostrarMsg){
+  if(!fotoImg){
+    if(mostrarMsg)mostrarToast('Nenhuma foto carregada para salvar no banco de imagens.','warn');
+    return false;
+  }
+  var codigo=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
+  if(!codigo){
+    if(mostrarMsg)mostrarToast('Informe/selecione o código do produto antes de salvar a foto.','warn');
+    return false;
+  }
+  if(fotoOrigemDrive){
+    // já veio do banco de imagens do Drive, não precisa reenviar
+    return true;
+  }
+  try{
+    var base64=imgParaBase64Jpeg(fotoImg);
+    var res=await _gasPost('salvarImagemProduto',{codigoBarras:codigo,imagemBase64:base64,mimeType:'image/jpeg',tipo:'produto'});
+    if(res&&res.ok){
+      fotoOrigemDrive=true;
+      if(mostrarMsg)mostrarToast('Foto salva no banco de imagens (código '+codigo+').','ok');
+      return true;
+    }
+    if(mostrarMsg)mostrarToast('Não consegui salvar a foto no banco de imagens.','err');
+    return false;
+  }catch(e){
+    if(mostrarMsg)mostrarToast('Erro ao salvar foto no banco de imagens: '+e.message,'err');
+    return false;
+  }
+}
+
 async function downloadPlaca(){
   await drawPlaca();
   var cv=document.getElementById('placaCanvas');
@@ -1336,6 +1399,8 @@ async function downloadPlaca(){
     setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
     mostrarToast('Placa baixada.','ok');
   },'image/png');
+  // alimenta o banco de imagens de produtos no Drive em paralelo, sem travar o download
+  salvarFotoAtualNoDrive(false);
 }
 
 async function copiarPlaca(){
