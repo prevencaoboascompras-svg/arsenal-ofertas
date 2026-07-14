@@ -1,0 +1,18 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="26" fill="#fc0000"/>
+
+  <!-- etiqueta amarela cheia -->
+  <g transform="translate(18,22)">
+    <path d="M8 6h29.5a7 7 0 0 1 4.95 2.05l29 29a7 7 0 0 1 0 9.9l-24.5 24.5a7 7 0 0 1-9.9 0l-29-29A7 7 0 0 1 6 37.5V13a7 7 0 0 1 2-7z"
+          fill="#fedb01"/>
+    <circle cx="23" cy="23" r="5" fill="#ffffff"/>
+    <text x="41" y="52" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="30" fill="#ffffff" text-anchor="middle">$</text>
+  </g>
+
+  <!-- brilhos -->
+  <g fill="#fedb01">
+    <path d="M98 14 L101 21 L108 24 L101 27 L98 34 L95 27 L88 24 L95 21 Z"/>
+    <path d="M108 46 L110 51 L115 53 L110 55 L108 60 L106 55 L101 53 L106 51 Z"/>
+    <path d="M92 60 L93.5 63.5 L97 65 L93.5 66.5 L92 70 L90.5 66.5 L87 65 L90.5 63.5 Z"/>
+  </g>
+</svg>
