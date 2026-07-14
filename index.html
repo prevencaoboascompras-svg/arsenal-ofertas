@@ -143,8 +143,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <input type="text" id="pFotoTermo" placeholder="Termo manual. Ex: peça de presunto para fatiar" autocomplete="off">
             <button type="button" class="btn btn-sm btn-green" onclick="buscarFotoPorTermoManual()"><i class="ti ti-search"></i> Pesquisar termo</button>
           </div>
+          <div class="foto-search">
+            <input type="url" id="pFotoUrl" placeholder="Ou cole a URL direta da imagem encontrada no Google" autocomplete="off">
+            <button type="button" class="btn btn-sm" onclick="usarFotoUrlManual()"><i class="ti ti-link"></i> Usar URL</button>
+          </div>
           <div class="foto-actions">
             <button type="button" class="btn btn-sm" onclick="buscarFotoDoFormulario()"><i class="ti ti-refresh"></i> Buscar foto</button>
+            <button type="button" class="btn btn-sm" onclick="abrirGoogleImagens()"><i class="ti ti-brand-google"></i> Abrir Google</button>
             <label class="btn btn-sm" for="pFoto"><i class="ti ti-upload"></i> Enviar manual</label>
             <input type="file" id="pFoto" accept="image/*" onchange="loadFoto(this)" style="display:none">
           </div>
@@ -600,14 +605,26 @@ function limparFoto(msg){
   setFotoPreview(null);
   setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada no Drive, Google Imagens e Open Food Facts.');
 }
-function carregarImagemUrl(url){
+function proxyImagemUrl(url){
+  url=String(url||'').trim();
+  if(!/^https?:\/\//i.test(url))return url;
+  if(/\/\/images\.weserv\.nl\//i.test(url))return url;
+  return 'https://images.weserv.nl/?url='+encodeURIComponent(url.replace(/^https?:\/\//i,''))+'&output=png';
+}
+function carregarImagemUrl(url,semProxy){
   return new Promise(function(resolve){
     if(!url){resolve(null);return;}
     var img=new Image();
     img.crossOrigin='anonymous';
     img.referrerPolicy='no-referrer';
     img.onload=function(){resolve(img);};
-    img.onerror=function(){resolve(null);};
+    img.onerror=function(){
+      if(!semProxy&&/^https?:\/\//i.test(url)){
+        carregarImagemUrl(proxyImagemUrl(url),true).then(resolve);
+      }else{
+        resolve(null);
+      }
+    };
     img.src=url;
   });
 }
@@ -647,6 +664,61 @@ async function buscarFotoGoogleCSE(query){
       }
     }
   }catch(e){}
+  return null;
+}
+async function buscarFotoOpenverse(query){
+  query=String(query||'').trim();
+  if(!query)return null;
+  try{
+    var url='https://api.openverse.engineering/v1/images/?mature=false&page_size=12&q='+encodeURIComponent(query);
+    var r=await fetch(url,{cache:'no-store'});
+    if(!r.ok)return null;
+    var j=await r.json();
+    var items=j.results||[];
+    for(var i=0;i<items.length;i++){
+      var links=[items[i].thumbnail,items[i].thumbnail_url,items[i].url].filter(Boolean);
+      for(var li=0;li<links.length;li++){
+        var img=await carregarImagemUrl(links[li]);
+        if(img)return img;
+      }
+    }
+  }catch(e){}
+  return null;
+}
+async function buscarFotoWikimedia(query){
+  query=String(query||'').trim();
+  if(!query)return null;
+  try{
+    var url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=12&gsrsearch='+encodeURIComponent(query)+'&prop=imageinfo&iiprop=url|mime&iiurlwidth=900&format=json&origin=*';
+    var r=await fetch(url,{cache:'no-store'});
+    if(!r.ok)return null;
+    var j=await r.json();
+    var pages=(j.query&&j.query.pages)||{};
+    var keys=Object.keys(pages);
+    for(var i=0;i<keys.length;i++){
+      var info=pages[keys[i]].imageinfo&&pages[keys[i]].imageinfo[0];
+      if(!info||!/^image\//.test(info.mime||''))continue;
+      var links=[info.thumburl,info.url].filter(Boolean);
+      for(var li=0;li<links.length;li++){
+        var img=await carregarImagemUrl(links[li]);
+        if(img)return img;
+      }
+    }
+  }catch(e){}
+  return null;
+}
+async function buscarFotoWeb(query,statusFn){
+  query=String(query||'').trim();
+  if(!query)return null;
+  if(statusFn)statusFn('Buscando no Google Imagens por: "'+query+'"...');
+  var img=await buscarFotoGoogleCSE(query);
+  if(img)return {img:img,fonte:'Google Imagens'};
+  if(statusFn)statusFn('Google não retornou imagem. Tentando Openverse...');
+  img=await buscarFotoOpenverse(query);
+  if(img)return {img:img,fonte:'Openverse'};
+  if(statusFn)statusFn('Tentando Wikimedia Commons...');
+  img=await buscarFotoWikimedia(query);
+  if(img)return {img:img,fonte:'Wikimedia Commons'};
   return null;
 }
 async function buscarFotoOpenFoodFacts(ean,nomeProduto){
@@ -705,27 +777,26 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   }
 
   if(termo){
-    setFotoStatus('Buscando no Google Imagens pelo termo manual: "'+termo+'"...');
-    img=await buscarFotoGoogleCSE(termo);
+    var achadoTermo=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
-    if(img){
-      fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada pelo termo manual.','ok');drawPlaca();return true;
+    if(achadoTermo&&achadoTermo.img){
+      fotoImg=achadoTermo.img;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo termo manual em '+achadoTermo.fonte+'.','ok');drawPlaca();return true;
     }
   }
 
-  setFotoStatus('Não achou no Drive'+(termo?' nem pelo termo manual':'')+'. Buscando no Google Imagens...');
+  setFotoStatus('Não achou no Drive'+(termo?' nem pelo termo manual':'')+'. Tentando busca pelo nome do produto...');
   if(nome){
-    img=await buscarFotoGoogleCSE(nome);
+    var achadoNome=await buscarFotoWeb(nome,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
-    if(img){
-      fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Imagens pelo nome.','ok');drawPlaca();return true;
+    if(achadoNome&&achadoNome.img){
+      fotoImg=achadoNome.img;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo nome em '+achadoNome.fonte+'.','ok');drawPlaca();return true;
     }
   }
   if(cod){
-    img=await buscarFotoGoogleCSE(cod);
+    var achadoCod=await buscarFotoWeb(cod,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
-    if(img){
-      fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Imagens pelo código.','ok');drawPlaca();return true;
+    if(achadoCod&&achadoCod.img){
+      fotoImg=achadoCod.img;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo código em '+achadoCod.fonte+'.','ok');drawPlaca();return true;
     }
   }
 
@@ -736,7 +807,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada no Open Food Facts.','ok');drawPlaca();return true;
   }
 
-  limparFoto('Foto não encontrada no Drive, Google Imagens nem Open Food Facts.');
+  limparFoto('Foto não encontrada automaticamente. Clique em Abrir Google, copie a URL da imagem e use o campo URL.');
   drawPlaca();
   return false;
 }
@@ -748,18 +819,50 @@ async function buscarFotoPorTermoManual(){
     return;
   }
   var token=++fotoToken;
-  limparFoto('Buscando imagem no Google Imagens por: "'+termo+'"...');
+  limparFoto('Buscando imagem por: "'+termo+'"...');
   drawPlaca();
-  var img=await buscarFotoGoogleCSE(termo);
+  var achado=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
+  if(token!==fotoToken)return false;
+  if(achado&&achado.img){
+    fotoImg=achado.img;
+    setFotoPreview(fotoImg);
+    setFotoStatus('Foto encontrada pelo termo manual em '+achado.fonte+'.','ok');
+    drawPlaca();
+    return true;
+  }
+  setFotoStatus('Nenhuma imagem automática. Clique em Abrir Google ou cole uma URL direta da imagem.','warn');
+  drawPlaca();
+  return false;
+}
+function abrirGoogleImagens(){
+  var termo=(document.getElementById('pFotoTermo').value||document.getElementById('pDescOverride').value||document.getElementById('pCod').value||'').trim();
+  if(!termo){
+    mostrarToast('Digite um termo para abrir no Google Imagens.','warn');
+    document.getElementById('pFotoTermo').focus();
+    return;
+  }
+  window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(termo),'_blank','noopener');
+}
+async function usarFotoUrlManual(){
+  var url=document.getElementById('pFotoUrl').value.trim();
+  if(!/^https?:\/\//i.test(url)&&!/^data:image\//i.test(url)){
+    mostrarToast('Cole uma URL válida começando com http ou https.','warn');
+    document.getElementById('pFotoUrl').focus();
+    return false;
+  }
+  var token=++fotoToken;
+  limparFoto('Carregando imagem pela URL informada...');
+  drawPlaca();
+  var img=await carregarImagemUrl(url);
   if(token!==fotoToken)return false;
   if(img){
     fotoImg=img;
     setFotoPreview(img);
-    setFotoStatus('Foto encontrada pelo termo manual.','ok');
+    setFotoStatus('Foto carregada pela URL manual.','ok');
     drawPlaca();
     return true;
   }
-  setFotoStatus('Nenhuma imagem encontrada para o termo manual. Tente outro texto.','warn');
+  setFotoStatus('Não consegui carregar essa URL. Tente copiar o endereço direto da imagem ou envie o arquivo manualmente.','err');
   drawPlaca();
   return false;
 }
@@ -885,6 +988,7 @@ function limparCampos(){
   document.getElementById('pPor').value='';
   document.getElementById('pValidade').value='';
   var ft=document.getElementById('pFotoTermo');if(ft)ft.value='';
+  var fu=document.getElementById('pFotoUrl');if(fu)fu.value='';
   var pf=document.getElementById('pFoto');if(pf)pf.value='';
   limparFoto();
   document.getElementById('prodInfo').innerHTML='<div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>';
@@ -1341,6 +1445,12 @@ document.getElementById('pFotoTermo').addEventListener('keydown',function(e){
   if(e.key==='Enter'){
     e.preventDefault();
     buscarFotoPorTermoManual();
+  }
+});
+document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    usarFotoUrlManual();
   }
 });
 
