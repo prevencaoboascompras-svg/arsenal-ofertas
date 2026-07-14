@@ -1091,8 +1091,8 @@ async function drawPlaca(){
     .replace(/\s*\(\d+\)/g,'')
     .trim();
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=corTexto;
-  var fs=90;
-  while(fs>28){
+  var fs=76;
+  while(fs>26){
     ctx.font='900 '+fs+'px '+fonte;
     var lines=splitLines(nomeClean,960);
     if(lines.length<=3 && lines.length*fs*1.10<=200)break;
@@ -1107,7 +1107,7 @@ async function drawPlaca(){
 
   // FOTO DO PRODUTO — com cartão de fundo branco, posicionada entre nome e preço
   if(fotoImg){
-    var fX=245,fY=625,fW=564,fH=335,fR=28,pad=26;
+    var fX=195,fY=610,fW=664,fH=430,fR=28,pad=26;
     function fotoRoundRect(x,y,w,h,r){
       ctx.beginPath();
       ctx.moveTo(x+r,y);
@@ -1143,7 +1143,7 @@ async function drawPlaca(){
 
   // % DESCONTO — círculo flutuante à esquerda da caixa de preço (não sobrepõe)
   if(pct){
-    var cx=105,cy=1055,r=55;
+    var cx=105,cy=1150,r=55;
     ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=10;
     ctx.fillStyle='#FFD600';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#E8000D';ctx.beginPath();ctx.arc(cx,cy,r-8,0,Math.PI*2);ctx.fill();
@@ -1163,7 +1163,7 @@ async function drawPlaca(){
   // "UNID"/quantidade em amarelo no canto superior direito.
   // ═══════════════════════════════════════════════════════════
   (function drawPrecoBox(){
-    // Define o valor a exibir e o rótulo direito conforme modo
+    // Define o valor a exibir e o rótulo (quantidade/unidade) conforme modo
     var valTxt='', labelDir='';
     if(packOn && packQtd>0 && packTotal>0){
       valTxt=packTotal.toFixed(2).replace('.',',');
@@ -1173,8 +1173,31 @@ async function drawPlaca(){
       labelDir=unidade||'UNID';
     }
 
-    // Caixa vermelha arredondada — menor e mais alta que antes
-    var boxX=170, boxY=980, boxW=720, boxH=155, boxR=24;
+    // ── Calcula o tamanho de fonte do valor e a largura necessária ANTES de desenhar a caixa ──
+    var valFs=110;
+    var rsFs=Math.round(valFs*0.55);
+    var rsW=0,vW=0;
+    while(valFs>60){
+      rsFs=Math.round(valFs*0.55);
+      ctx.font='900 '+rsFs+'px '+fonte;
+      rsW=ctx.measureText('R$').width;
+      ctx.font='900 '+valFs+'px '+fonte;
+      vW=ctx.measureText(valTxt).width;
+      if(rsW+12+vW<=560)break;
+      valFs-=4;
+    }
+    rsFs=Math.round(valFs*0.55);
+    ctx.font='900 '+rsFs+'px '+fonte;
+    rsW=ctx.measureText('R$').width;
+    ctx.font='900 '+valFs+'px '+fonte;
+    vW=ctx.measureText(valTxt).width;
+    var totalW=rsW+12+vW;
+
+    // ── Caixa vermelha adaptável: largura acompanha o valor, com mínimo/máximo ──
+    var boxH=168, boxR=24;
+    var boxW=Math.max(360,Math.min(720,totalW+140));
+    var boxX=(W-boxW)/2, boxY=1065;
+
     ctx.shadowColor='rgba(0,0,0,0.35)';ctx.shadowBlur=14;
     ctx.fillStyle='#E8000D';
     ctx.beginPath();
@@ -1191,85 +1214,75 @@ async function drawPlaca(){
     ctx.fill();
     ctx.shadowBlur=0;ctx.shadowColor='transparent';
 
-    // ── Rótulo direito em amarelo (UNID ou "X UN POR") ──
-    ctx.fillStyle='#FFD600';
-    ctx.textAlign='right';ctx.textBaseline='top';
-    var labelFs = (labelDir.length>6 ? 28 : 34);
-    ctx.font='900 '+labelFs+'px '+fonte;
-    while(ctx.measureText(labelDir).width>240 && labelFs>18){labelFs-=2;ctx.font='900 '+labelFs+'px '+fonte;}
-    ctx.fillText(labelDir, boxX+boxW-22, boxY+16);
-
-    // ── R$ (amarelo) + valor (branco) centralizados verticalmente ──
-    var maxValW = boxW - 50;
-    var valFs=110;
-    ctx.font='900 '+valFs+'px '+fonte;
-    // R$ é menor que o valor
-    var rsFs=Math.round(valFs*0.55);
-    while(valFs>60){
-      rsFs=Math.round(valFs*0.55);
-      ctx.font='900 '+rsFs+'px '+fonte;
-      var rsW=ctx.measureText('R$').width;
-      ctx.font='900 '+valFs+'px '+fonte;
-      var vW=ctx.measureText(valTxt).width;
-      if(rsW+12+vW<=maxValW)break;
-      valFs-=4;
+    if(packOn){
+      // ── Etiqueta amarela separada, sobreposta na parte de cima da caixa vermelha ──
+      var lblFs=30;
+      ctx.font='900 '+lblFs+'px '+fonte;
+      var lblPadX=22;
+      var lblW=Math.min(boxW-40,ctx.measureText(labelDir).width+lblPadX*2);
+      while(ctx.measureText(labelDir).width+lblPadX*2>boxW-40 && lblFs>16){
+        lblFs-=2;ctx.font='900 '+lblFs+'px '+fonte;
+        lblW=Math.min(boxW-40,ctx.measureText(labelDir).width+lblPadX*2);
+      }
+      var lblH=54, lblR=14;
+      var lblX=boxX+(boxW-lblW)/2, lblY=boxY-lblH+22;
+      ctx.shadowColor='rgba(0,0,0,0.25)';ctx.shadowBlur=8;
+      ctx.fillStyle='#FFD600';
+      ctx.beginPath();
+      ctx.moveTo(lblX+lblR,lblY);
+      ctx.lineTo(lblX+lblW-lblR,lblY);
+      ctx.quadraticCurveTo(lblX+lblW,lblY,lblX+lblW,lblY+lblR);
+      ctx.lineTo(lblX+lblW,lblY+lblH-lblR);
+      ctx.quadraticCurveTo(lblX+lblW,lblY+lblH,lblX+lblW-lblR,lblY+lblH);
+      ctx.lineTo(lblX+lblR,lblY+lblH);
+      ctx.quadraticCurveTo(lblX,lblY+lblH,lblX,lblY+lblH-lblR);
+      ctx.lineTo(lblX,lblY+lblR);
+      ctx.quadraticCurveTo(lblX,lblY,lblX+lblR,lblY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur=0;ctx.shadowColor='transparent';
+      ctx.fillStyle='#1a1a18';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='900 '+lblFs+'px '+fonte;
+      ctx.fillText(labelDir,lblX+lblW/2,lblY+lblH/2+1);
+    }else{
+      // ── Rótulo direito em amarelo dentro da caixa (UNID) ──
+      ctx.fillStyle='#FFD600';
+      ctx.textAlign='right';ctx.textBaseline='top';
+      var labelFs = (labelDir.length>6 ? 22 : 26);
+      ctx.font='900 '+labelFs+'px '+fonte;
+      while(ctx.measureText(labelDir).width>boxW-60 && labelFs>18){labelFs-=2;ctx.font='900 '+labelFs+'px '+fonte;}
+      ctx.fillText(labelDir, boxX+boxW-22, boxY+16);
     }
-    rsFs=Math.round(valFs*0.55);
-    ctx.font='900 '+rsFs+'px '+fonte;
-    var rsW=ctx.measureText('R$').width;
-    ctx.font='900 '+valFs+'px '+fonte;
-    var vW=ctx.measureText(valTxt).width;
-    var totalW=rsW+12+vW;
+
+    // ── R$ (amarelo) + valor (branco) centralizados na caixa ──
     var startX=boxX+(boxW-totalW)/2;
-    var baseY=boxY+boxH/2+valFs*0.34;
+    var baseY=boxY+boxH/2+valFs*0.34+(packOn?6:24);
     ctx.textAlign='left';ctx.textBaseline='alphabetic';
-    // R$ amarelo
     ctx.fillStyle='#FFD600';
     ctx.font='900 '+rsFs+'px '+fonte;
     ctx.fillText('R$', startX, baseY-valFs*0.05);
-    // valor branco
     ctx.fillStyle='#FFFFFF';
     ctx.font='900 '+valFs+'px '+fonte;
     ctx.fillText(valTxt, startX+rsW+12, baseY);
   })();
 
-  // FAIXA DE MENSAGEM (rodapé) — barra vermelha com texto branco
+  // FAIXA DE MENSAGEM (rodapé) — barra vermelha com texto branco, sempre em uma linha só
   if(showMsg && msgTxt){
-    // Mesma largura da caixa de preço (170..890 = 720px)
     var bandX=170,bandW=720;
-    ctx.font='900 20px '+fonte;
     (function drawBand(){
-      var maxW=bandW-28;
-      var words=msgTxt.split(' ');
-      var lines=[],line='';
-      for(var wi=0;wi<words.length;wi++){
-        var test=line?line+' '+words[wi]:words[wi];
-        if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=words[wi];}
-        else line=test;
-      }
-      if(line)lines.push(line);
-      // Reduz fonte se ficar com muitas linhas
+      var maxW=bandW-32;
       var fSize=20;
-      while((lines.length>2 && fSize>14) || lines.length>3){
+      ctx.font='900 '+fSize+'px '+fonte;
+      while(ctx.measureText(msgTxt).width>maxW && fSize>11){
         fSize-=1;
         ctx.font='900 '+fSize+'px '+fonte;
-        lines=[];line='';
-        for(var wi=0;wi<words.length;wi++){
-          var test=line?line+' '+words[wi]:words[wi];
-          if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=words[wi];}
-          else line=test;
-        }
-        if(line)lines.push(line);
-        if(fSize<=14)break;
       }
-      var lineH=fSize*1.20;
-      var bandH=lines.length*lineH+14;
-      // Faixa fica logo abaixo da caixa de preço (termina em y≈1135)
-      var bandY=1150;
-      if(bandY+bandH>1240){bandY=1240-bandH;}
-      // Sombra sutil
+      var lineH=fSize*1.2;
+      var bandH=lineH+16;
+      // Faixa fica logo abaixo da caixa de preço
+      var bandY=1245;
       ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=8;
-      // Retângulo vermelho arredondado
       ctx.fillStyle='#E8000D';
       var rad=10;
       ctx.beginPath();
@@ -1285,16 +1298,11 @@ async function drawPlaca(){
       ctx.closePath();
       ctx.fill();
       ctx.shadowBlur=0;ctx.shadowColor='transparent';
-      // Borda amarela
       ctx.strokeStyle='#FFD600';ctx.lineWidth=2;ctx.stroke();
-      // Texto branco centralizado
       ctx.fillStyle='#ffffff';
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.font='900 '+fSize+'px '+fonte;
-      var textStart=bandY+bandH/2-(lines.length-1)*lineH/2;
-      for(var li=0;li<lines.length;li++){
-        ctx.fillText(lines[li],W/2,textStart+li*lineH);
-      }
+      ctx.fillText(msgTxt,W/2,bandY+bandH/2+1);
     })();
   }
 
