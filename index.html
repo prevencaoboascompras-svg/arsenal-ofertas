@@ -59,13 +59,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .pi-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx2)}
 .pi-value{font-size:14px;font-weight:600;color:var(--tx)}
 .pi-price{font-size:20px;font-weight:700;color:var(--green)}
-.foto-panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
-.foto-preview{width:62px;height:62px;border:1px dashed var(--bds);border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:var(--tx2)}
+.foto-panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;align-items:flex-start;gap:12px}
+.foto-preview{width:62px;height:62px;border:1px dashed var(--bds);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:#777}
 .foto-preview img{max-width:100%;max-height:100%;object-fit:contain;display:block}
 .foto-meta{min-width:0;flex:1}
 .foto-title{font-size:12px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:5px;margin-bottom:2px}
 .foto-status{font-size:11px;color:var(--tx2);line-height:1.35;margin-bottom:7px}
+.foto-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-bottom:7px}
+.foto-search input{height:32px;padding:0 9px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;outline:none;font-family:inherit}
+.foto-search input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
 .foto-actions{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:640px){.foto-panel{align-items:stretch}.foto-search{grid-template-columns:1fr}.foto-preview{width:56px;height:56px}}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pct-badge{font-size:12px;font-weight:700;color:var(--green);background:rgba(29,158,117,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
 .canvas-wrap{background:var(--bg2);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -135,6 +139,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <div class="foto-meta">
           <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
           <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada no Drive, Google Imagens e Open Food Facts.</div>
+          <div class="foto-search">
+            <input type="text" id="pFotoTermo" placeholder="Termo manual. Ex: peça de presunto para fatiar" autocomplete="off">
+            <button type="button" class="btn btn-sm btn-green" onclick="buscarFotoPorTermoManual()"><i class="ti ti-search"></i> Pesquisar termo</button>
+          </div>
           <div class="foto-actions">
             <button type="button" class="btn btn-sm" onclick="buscarFotoDoFormulario()"><i class="ti ti-refresh"></i> Buscar foto</button>
             <label class="btn btn-sm" for="pFoto"><i class="ti ti-upload"></i> Enviar manual</label>
@@ -679,13 +687,14 @@ async function buscarFotoOpenFoodFacts(ean,nomeProduto){
   }
   return null;
 }
-async function buscarFotoCompleta(ean,nomeProduto){
+async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   var token=++fotoToken;
-  limparFoto('Buscando foto no Google Drive pelo código de barras...');
-  drawPlaca();
   var cod=normalizarCodigo(ean);
   var nome=String(nomeProduto||'').trim();
+  var termo=String(termoManual||'').trim();
   var img=null;
+  limparFoto(cod?'Buscando foto no Google Drive pelo código de barras...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
+  drawPlaca();
 
   if(cod){
     img=await buscarFotoDrive(cod,'produto');
@@ -695,7 +704,16 @@ async function buscarFotoCompleta(ean,nomeProduto){
     }
   }
 
-  setFotoStatus('Não achou no Drive. Buscando no Google Imagens...');
+  if(termo){
+    setFotoStatus('Buscando no Google Imagens pelo termo manual: "'+termo+'"...');
+    img=await buscarFotoGoogleCSE(termo);
+    if(token!==fotoToken)return false;
+    if(img){
+      fotoImg=img;setFotoPreview(img);setFotoStatus('Foto encontrada pelo termo manual.','ok');drawPlaca();return true;
+    }
+  }
+
+  setFotoStatus('Não achou no Drive'+(termo?' nem pelo termo manual':'')+'. Buscando no Google Imagens...');
   if(nome){
     img=await buscarFotoGoogleCSE(nome);
     if(token!==fotoToken)return false;
@@ -722,14 +740,38 @@ async function buscarFotoCompleta(ean,nomeProduto){
   drawPlaca();
   return false;
 }
+async function buscarFotoPorTermoManual(){
+  var termo=document.getElementById('pFotoTermo').value.trim();
+  if(!termo){
+    mostrarToast('Digite um termo para pesquisar a imagem.','warn');
+    document.getElementById('pFotoTermo').focus();
+    return;
+  }
+  var token=++fotoToken;
+  limparFoto('Buscando imagem no Google Imagens por: "'+termo+'"...');
+  drawPlaca();
+  var img=await buscarFotoGoogleCSE(termo);
+  if(token!==fotoToken)return false;
+  if(img){
+    fotoImg=img;
+    setFotoPreview(img);
+    setFotoStatus('Foto encontrada pelo termo manual.','ok');
+    drawPlaca();
+    return true;
+  }
+  setFotoStatus('Nenhuma imagem encontrada para o termo manual. Tente outro texto.','warn');
+  drawPlaca();
+  return false;
+}
 function buscarFotoDoFormulario(){
   var cod=document.getElementById('pCod').value.trim();
   var nome=document.getElementById('pDescOverride').value.trim();
-  if(!cod&&!nome){
-    mostrarToast('Informe ou selecione um produto primeiro.','warn');
+  var termo=document.getElementById('pFotoTermo').value.trim();
+  if(!cod&&!nome&&!termo){
+    mostrarToast('Informe um produto ou digite um termo manual.','warn');
     return;
   }
-  buscarFotoCompleta(cod,nome);
+  buscarFotoCompleta(cod,nome,termo);
 }
 function loadFoto(input){
   var f=input&&input.files&&input.files[0];
@@ -763,6 +805,8 @@ function preencherProduto(prod){
     '<div><span class="pi-label">Descrição</span><div class="pi-value">'+escapeHtml(prod.nome||'(sem descrição)')+'</div></div>'+
     '<div><span class="pi-label">Valor de venda</span><div class="pi-price">'+precoTxt+'</div></div>';
   document.getElementById('pDescOverride').value=prod.nome||'';
+  var termoFoto=document.getElementById('pFotoTermo');
+  if(termoFoto)termoFoto.placeholder='Termo manual. Ex: '+(prod.nome||'peça de presunto para fatiar');
   if(prod.preco){
     document.getElementById('pDe').value=fmtDec(prod.preco);
   }
@@ -840,6 +884,7 @@ function limparCampos(){
   document.getElementById('pDe').value='';
   document.getElementById('pPor').value='';
   document.getElementById('pValidade').value='';
+  var ft=document.getElementById('pFotoTermo');if(ft)ft.value='';
   var pf=document.getElementById('pFoto');if(pf)pf.value='';
   limparFoto();
   document.getElementById('prodInfo').innerHTML='<div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>';
@@ -958,15 +1003,38 @@ async function drawPlaca(){
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
 
-  // FOTO DO PRODUTO — buscada automaticamente e posicionada entre nome e preço
+  // FOTO DO PRODUTO — com cartão de fundo branco, posicionada entre nome e preço
   if(fotoImg){
-    var fX=265,fY=640,fW=524,fH=300;
-    var ratio=Math.min(fW/fotoImg.width,fH/fotoImg.height);
+    var fX=245,fY=625,fW=564,fH=335,fR=28,pad=26;
+    function fotoRoundRect(x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.lineTo(x+w-r,y);
+      ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+      ctx.lineTo(x+w,y+h-r);
+      ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+      ctx.lineTo(x+r,y+h);
+      ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+      ctx.lineTo(x,y+r);
+      ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath();
+    }
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.12)';
+    ctx.shadowBlur=14;
+    ctx.fillStyle='#FFFFFF';
+    fotoRoundRect(fX,fY,fW,fH,fR);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    fotoRoundRect(fX,fY,fW,fH,fR);
+    ctx.clip();
+    var areaW=fW-pad*2,areaH=fH-pad*2;
+    var ratio=Math.min(areaW/fotoImg.width,areaH/fotoImg.height);
     var dw=fotoImg.width*ratio,dh=fotoImg.height*ratio;
     var dx=fX+(fW-dw)/2,dy=fY+(fH-dh)/2;
-    ctx.save();
-    ctx.shadowColor='rgba(0,0,0,0.18)';
-    ctx.shadowBlur=12;
+    ctx.fillStyle='#FFFFFF';
+    ctx.fillRect(dx,dy,dw,dh);
     ctx.drawImage(fotoImg,dx,dy,dw,dh);
     ctx.restore();
   }
@@ -1269,6 +1337,12 @@ document.getElementById('prodSug').addEventListener('mousedown',function(e){
 document.addEventListener('click',function(e){
   if(!e.target.closest('.search-wrap'))esconderSugestoes();
 });
+document.getElementById('pFotoTermo').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    buscarFotoPorTermoManual();
+  }
+});
 
 // ============================================================
 // INICIALIZAÇÃO
@@ -1291,6 +1365,7 @@ document.addEventListener('click',function(e){
   document.getElementById('pCod').focus();
 })();
 </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
