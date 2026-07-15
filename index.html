@@ -1211,9 +1211,20 @@ async function drawPlaca(){
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
 
-  // FOTO DO PRODUTO — com cartão de fundo branco, posicionada entre nome e preço
+  // FOTO DO PRODUTO — cartão de fundo branco que se adapta à proporção real da imagem,
+  // sem cortar conteúdo e sem esticar (evita perda de qualidade)
   if(fotoImg){
-    var fX=137,fY=615,fW=780,fH=440,fR=28,pad=22;
+    var maxW=760,maxH=460,areaCX=W/2,areaTopY=605,pad2=18,fR=26;
+    var imgAspect=fotoImg.width/fotoImg.height;
+    var boxAspect=maxW/maxH;
+    var fW,fH;
+    if(imgAspect>boxAspect){ fW=maxW; fH=maxW/imgAspect; }
+    else{ fH=maxH; fW=maxH*imgAspect; }
+    fW=Math.max(fW,300); fH=Math.max(fH,300);
+    fW+=pad2*2; fH+=pad2*2;
+    if(fW>maxW+pad2*2){fW=maxW+pad2*2;}
+    if(fH>maxH+pad2*2){fH=maxH+pad2*2;}
+    var fX=areaCX-fW/2, fY=areaTopY+(maxH-(fH-pad2*2))/2;
     function fotoRoundRect(x,y,w,h,r){
       ctx.beginPath();
       ctx.moveTo(x+r,y);
@@ -1235,20 +1246,10 @@ async function drawPlaca(){
     ctx.fill();
     ctx.restore();
     ctx.save();
-    fotoRoundRect(fX,fY,fW,fH,fR);
-    ctx.clip();
-    var pad2=10;
-    var areaW=fW-pad2*2,areaH=fH-pad2*2;
-    var ratio=Math.max(areaW/fotoImg.width,areaH/fotoImg.height);
-    var dw=fotoImg.width*ratio,dh=fotoImg.height*ratio;
-    var dx=fX+(fW-dw)/2,dy=fY+(fH-dh)/2;
-    ctx.fillStyle='#FFFFFF';
-    ctx.fillRect(fX+pad2,fY+pad2,areaW,areaH);
-    ctx.save();
-    fotoRoundRect(fX+pad2,fY+pad2,areaW,areaH,fR*0.6);
-    ctx.clip();
-    ctx.drawImage(fotoImg,dx,dy,dw,dh);
-    ctx.restore();
+    ctx.imageSmoothingEnabled=true;
+    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+    var dw=fW-pad2*2, dh=fH-pad2*2;
+    ctx.drawImage(fotoImg,fX+pad2,fY+pad2,dw,dh);
     ctx.restore();
   }
 
