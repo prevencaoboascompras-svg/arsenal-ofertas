@@ -63,8 +63,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .pi-value{font-size:14px;font-weight:600;color:var(--tx)}
 .pi-price{font-size:20px;font-weight:700;color:var(--green)}
 .foto-panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
-.foto-preview{width:62px;height:62px;border:1px dashed var(--bds);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:#777}
+.foto-preview{position:relative;width:62px;height:62px;border:1px dashed var(--bds);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:#777}
 .foto-preview img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.foto-busca-pop{position:absolute;top:-8px;left:-8px;width:210px;max-width:70vw;background:rgba(192,0,14,.88);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:8px 10px 8px 30px;font-size:11px;line-height:1.35;color:#fff;z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.45);backdrop-filter:blur(2px);display:none;pointer-events:none}
+.foto-busca-pop.show{display:block;animation:fotoPopIn .22s ease}
+.foto-busca-pop .spin{position:absolute;left:9px;top:11px;width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:fotoSpin .7s linear infinite}
+.foto-busca-pop .spin::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(255,255,255,.35);animation:fotoPulse 1.2s ease-out infinite}
+@keyframes fotoSpin{to{transform:rotate(360deg)}}
+@keyframes fotoPulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.9);opacity:0}}
+@keyframes fotoPopIn{from{opacity:0;transform:translateY(4px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
 .foto-meta{min-width:0;flex:1}
 .foto-title{font-size:12px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:5px;margin-bottom:2px}
 .foto-status{font-size:11px;color:var(--tx2);line-height:1.35;margin-bottom:7px}
@@ -204,7 +211,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
 
       <div class="foto-panel">
-        <div class="foto-preview" id="fotoPreview"><i class="ti ti-photo-search" style="font-size:24px"></i></div>
+        <div class="foto-preview" id="fotoPreview"><i class="ti ti-photo-search" style="font-size:24px"></i>
+          <div class="foto-busca-pop" id="fotoBuscaPop"><span class="spin"></span><span id="fotoBuscaPopTxt"></span></div>
+        </div>
         <div class="foto-meta">
           <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
           <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada no Drive, Google Imagens e Open Food Facts.</div>
@@ -663,12 +672,29 @@ function buscarProduto(termo){
 // ============================================================
 // FOTO DO PRODUTO: Drive -> Google Imagens -> Open Food Facts
 // ============================================================
+function isBuscaAtiva(msg){
+  return !!msg && /buscando|carregando|tentando/i.test(msg);
+}
+function showFotoBuscaPop(msg){
+  var pop=document.getElementById('fotoBuscaPop');
+  var txt=document.getElementById('fotoBuscaPopTxt');
+  if(!pop)return;
+  if(txt)txt.textContent=msg;
+  pop.classList.add('show');
+}
+function hideFotoBuscaPop(){
+  var pop=document.getElementById('fotoBuscaPop');
+  if(!pop)return;
+  pop.classList.remove('show');
+}
 function setFotoStatus(msg,tipo){
   var el=document.getElementById('fotoStatus');
-  if(!el)return;
-  var cor=tipo==='ok'?'var(--green)':tipo==='warn'?'var(--amber)':tipo==='err'?'var(--red)':'var(--tx2)';
-  el.style.color=cor;
-  el.textContent=msg;
+  if(el){
+    var cor=tipo==='ok'?'var(--green)':tipo==='warn'?'var(--amber)':tipo==='err'?'var(--red)':'var(--tx2)';
+    el.style.color=cor;
+    el.textContent=msg;
+  }
+  if(isBuscaAtiva(msg))showFotoBuscaPop(msg);else hideFotoBuscaPop();
 }
 function setFotoPreview(img){
   var box=document.getElementById('fotoPreview');
@@ -680,7 +706,7 @@ function setFotoPreview(img){
     el.alt='Foto do produto';
     box.appendChild(el);
   }else{
-    box.innerHTML='<i class="ti ti-photo-search" style="font-size:24px"></i>';
+    box.innerHTML='<i class="ti ti-photo-search" style="font-size:24px"></i><div class="foto-busca-pop" id="fotoBuscaPop"><span class="spin"></span><span id="fotoBuscaPopTxt"></span></div>';
   }
 }
 function limparFoto(msg){
