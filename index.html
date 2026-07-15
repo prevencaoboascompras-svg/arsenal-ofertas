@@ -1237,13 +1237,18 @@ async function drawPlaca(){
     ctx.save();
     fotoRoundRect(fX,fY,fW,fH,fR);
     ctx.clip();
-    var areaW=fW-pad*2,areaH=fH-pad*2;
-    var ratio=Math.min(areaW/fotoImg.width,areaH/fotoImg.height);
+    var pad2=10;
+    var areaW=fW-pad2*2,areaH=fH-pad2*2;
+    var ratio=Math.max(areaW/fotoImg.width,areaH/fotoImg.height);
     var dw=fotoImg.width*ratio,dh=fotoImg.height*ratio;
     var dx=fX+(fW-dw)/2,dy=fY+(fH-dh)/2;
     ctx.fillStyle='#FFFFFF';
-    ctx.fillRect(dx,dy,dw,dh);
+    ctx.fillRect(fX+pad2,fY+pad2,areaW,areaH);
+    ctx.save();
+    fotoRoundRect(fX+pad2,fY+pad2,areaW,areaH,fR*0.6);
+    ctx.clip();
     ctx.drawImage(fotoImg,dx,dy,dw,dh);
+    ctx.restore();
     ctx.restore();
   }
 
