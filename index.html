@@ -1618,9 +1618,9 @@ async function imprimirPlacaA4(){
 }
 
 // ============================================================
-// PLACAS SALVAS NA NUVEM (aba "Encartes" na mesma planilha)
+// PLACAS SALVAS NA NUVEM (aba "Encartes" — usa as ações já
+// existentes no seu Apps Script: 'buscarEncartes' e 'salvarEncartes')
 // ============================================================
-var ENCARTES_ABA='Encartes';
 var encartesCache=[];
 var encartesSelecionados={}; // id -> true
 
@@ -1631,7 +1631,7 @@ function gerarIdEncarte(){
 async function salvarEncarteNuvem(){
   var btn=document.getElementById('btnSalvarNuvem');
   var cfg=loadCfg();
-  if(!cfg.id){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
+  if(!cfg.url){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
   await drawPlaca();
   var cv=document.getElementById('placaCanvas');
   var produto=(document.getElementById('pDescOverride').value||'').trim()||'PRODUTO';
@@ -1642,23 +1642,26 @@ async function salvarEncarteNuvem(){
   btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Salvando...';
   try{
     var dataUrl=cv.toDataURL('image/png');
-    var base64=dataUrl.split(',')[1];
-    var res=await _gasPost('salvarEncarte',{
+    var novoItem={
       id:gerarIdEncarte(),
-      planilhaId:cfg.id,
-      aba:ENCARTES_ABA,
       produto:produto,
       codigo:cod,
-      precoDe:de,
-      precoPor:por,
-      imagemBase64:base64,
-      mimeType:'image/png'
-    });
+      de:de,
+      por:por,
+      data:new Date().toISOString(),
+      img:dataUrl
+    };
+    // busca a lista atual (o backend faz bulk-replace, então
+    // precisamos reenviar a lista inteira com o item novo incluído)
+    var atual=await _gasGet('buscarEncartes');
+    var lista=(atual&&atual.ok&&Array.isArray(atual.dados))?atual.dados:[];
+    lista.push(novoItem);
+    var res=await _gasPost('salvarEncartes',{dados:lista});
     if(res&&res.ok){
       mostrarToast('Placa salva na nuvem.','ok');
       carregarEncartes();
     }else{
-      mostrarToast('Não consegui salvar na nuvem (verifique o script do Apps Script).','err');
+      mostrarToast('Não consegui salvar na nuvem: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
     }
   }catch(e){
     mostrarToast('Erro ao salvar na nuvem: '+e.message,'err');
@@ -1669,59 +1672,21 @@ async function salvarEncarteNuvem(){
 
 async function carregarEncartes(){
   var cfg=loadCfg();
-  if(!cfg.id)return;
+  if(!cfg.url)return;
   var listEl=document.getElementById('encartesList');
   var infoEl=document.getElementById('encartesInfo');
   infoEl.textContent='Carregando...';
   try{
-    var table=await fetchSheet(cfg.id,ENCARTES_ABA);
-    var rows=rawRows(table);
-    var hIdx=-1,hCells=[];
-    for(var i=0;i<Math.min(5,rows.length);i++){
-      var cs=rows[i].c||[];
-      var txt=cs.map(function(c){return String((c&&c.f)||(c&&c.v)||'').toUpperCase();});
-      if(txt.some(function(t){return /PRODUTO|IMAGEM|IMAGEN/.test(t);})){hIdx=i;hCells=cs;break;}
-    }
-    if(!hCells.length&&table.cols&&table.cols.length){hCells=table.cols.map(function(c){return{v:String(c.label||'')};});}
-    function idxOf(kws){
-      for(var k=0;k<kws.length;k++){
-        var idx=hCells.findIndex(function(c){return String((c&&c.f)||(c&&c.v)||'').toUpperCase().includes(kws[k]);});
-        if(idx>=0)return idx;
-      }
-      return -1;
-    }
-    var ci={
-      id:idxOf(['ID']),
-      data:idxOf(['DATA']),
-      produto:idxOf(['PRODUTO']),
-      codigo:idxOf(['CÓDIGO','CODIGO','COD']),
-      de:idxOf(['PREÇO DE','PRECO DE','DE']),
-      por:idxOf(['PREÇO POR','PRECO POR','POR']),
-      img:idxOf(['IMAGEM','URL','LINK'])
-    };
-    var startRow=hIdx<0?0:hIdx+1;
-    var lista=[];
-    for(var i=startRow;i<rows.length;i++){
-      var cells=rows[i].c||[];
-      var url=ci.img>=0?cellStr(cells[ci.img]):'';
-      if(!url)continue;
-      lista.push({
-        id:ci.id>=0?cellStr(cells[ci.id]):('row'+i),
-        data:ci.data>=0?cellStr(cells[ci.data]):'',
-        produto:ci.produto>=0?cellStr(cells[ci.produto]):'(sem nome)',
-        codigo:ci.codigo>=0?cellStr(cells[ci.codigo]):'',
-        de:ci.de>=0?cellStr(cells[ci.de]):'',
-        por:ci.por>=0?cellStr(cells[ci.por]):'',
-        imagemUrl:url
-      });
-    }
+    var res=await _gasGet('buscarEncartes');
+    if(!res||!res.ok)throw new Error((res&&res.erro)||'resposta inválida do Apps Script');
+    var lista=(res.dados||[]).slice();
     lista.reverse(); // mais recentes primeiro
     encartesCache=lista;
     infoEl.textContent=lista.length+' placa(s) salva(s)';
     renderEncartes();
   }catch(e){
     infoEl.textContent='';
-    listEl.innerHTML='<div class="enc-empty">Não foi possível carregar a aba "'+ENCARTES_ABA+'". Verifique se ela existe na planilha.<br>('+e.message+')</div>';
+    listEl.innerHTML='<div class="enc-empty">Não foi possível carregar os encartes salvos.<br>('+e.message+')</div>';
   }
 }
 
@@ -1738,8 +1703,8 @@ function renderEncartes(){
     return ''+
       '<div class="enc-card'+(marcado?' checked':'')+'" data-id="'+escapeHtml(it.id)+'" onclick="toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
         '<input type="checkbox" '+(marcado?'checked':'')+' onclick="event.stopPropagation();toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
-        '<div class="enc-thumb"><img src="'+escapeHtml(it.imagemUrl)+'" loading="lazy" alt=""></div>'+
-        '<div class="enc-nome">'+escapeHtml(it.produto)+'</div>'+
+        '<div class="enc-thumb"><img src="'+escapeHtml(it.img||'')+'" loading="lazy" alt=""></div>'+
+        '<div class="enc-nome">'+escapeHtml(it.produto||'(sem nome)')+'</div>'+
         '<div class="enc-meta"><span>'+escapeHtml(it.codigo||'')+'</span><span style="color:var(--green);font-weight:700">'+escapeHtml(precoTxt)+'</span></div>'+
       '</div>';
   }).join('');
@@ -1778,7 +1743,7 @@ async function imprimirSelecionados(qtd){
     var grupo=selecionados.slice(p,p+qtd);
     html+='<div class="print-page" style="grid-template-columns:repeat('+cols+',1fr);grid-template-rows:repeat('+rows+',1fr)">';
     grupo.forEach(function(it){
-      html+='<div class="print-cell'+(comLinha&&qtd>1?' bordered':'')+'"><img src="'+escapeHtml(it.imagemUrl)+'" alt=""></div>';
+      html+='<div class="print-cell'+(comLinha&&qtd>1?' bordered':'')+'"><img src="'+escapeHtml(it.img||'')+'" alt=""></div>';
     });
     html+='</div>';
   }
