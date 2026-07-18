@@ -97,6 +97,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .opts label{display:flex;align-items:center;gap:6px;cursor:pointer}
 .opts input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--green)}
 .divider{border:none;border-top:1px solid var(--bd);margin:8px 0}
+.print-qtd-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.print-qtd-row .lbl{font-size:12px;font-weight:600;color:var(--tx2)}
+.print-qtd-opts{display:flex;gap:6px}
+.print-qtd-opts button{border:1px solid var(--bds);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600;padding:6px 12px;border-radius:var(--r);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:56px}
+.print-qtd-opts button small{font-weight:400;color:var(--tx2);font-size:10px}
+.print-qtd-opts button.active{background:var(--green);border-color:var(--green);color:#fff}
+.print-qtd-opts button.active small{color:rgba(255,255,255,.85)}
+.encartes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:6px;min-height:60px}
+.enc-card{position:relative;border:1px solid var(--bd);border-radius:var(--r);background:var(--bg2);padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:border-color .15s}
+.enc-card:hover{border-color:var(--bds)}
+.enc-card.checked{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.18)}
+.enc-card input[type=checkbox]{position:absolute;top:6px;left:6px;width:17px;height:17px;cursor:pointer;accent-color:var(--green);z-index:2}
+.enc-thumb{width:100%;aspect-ratio:1054/1492;background:#fff;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--bd)}
+.enc-thumb img{max-width:100%;max-height:100%;object-fit:contain}
+.enc-nome{font-size:12px;font-weight:700;line-height:1.25;max-height:2.5em;overflow:hidden}
+.enc-meta{font-size:11px;color:var(--tx2);display:flex;justify-content:space-between}
+.enc-empty{grid-column:1/-1;text-align:center;color:var(--tx2);font-size:12px;padding:18px 0}
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block !important;position:absolute;top:0;left:0;width:100%;margin:0;padding:0}
+  .print-page{width:100%;height:100vh;display:grid;gap:6mm;padding:6mm;box-sizing:border-box;page-break-after:always;break-after:page}
+  .print-page:last-child{page-break-after:auto;break-after:auto}
+  .print-cell{display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .print-cell.bordered{border:1px dashed #999}
+  .print-cell img{max-width:100%;max-height:100%;object-fit:contain}
+  @page{size:A4 portrait;margin:0}
+}
 .hd-red{background:linear-gradient(120deg,#6b1018 0%,#9c2230 45%,#7a151f 100%);border-radius:var(--rl);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,.28)}
 .hd-red-left{display:flex;flex-direction:column;gap:3px;min-width:0}
 .hd-brand{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -332,11 +361,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <div class="canvas-wrap">
         <canvas id="placaCanvas"></canvas>
       </div>
+      <hr class="divider" style="width:100%">
+      <div class="print-qtd-row">
+        <span class="lbl"><i class="ti ti-printer"></i> Imprimir em folha A4:</span>
+        <div class="print-qtd-opts" id="printQtdOpts">
+          <button type="button" data-qtd="1" class="active" onclick="setPrintQtd(1)">1 <small>por folha</small></button>
+          <button type="button" data-qtd="2" onclick="setPrintQtd(2)">2 <small>por folha</small></button>
+          <button type="button" data-qtd="4" onclick="setPrintQtd(4)">4 <small>por folha</small></button>
+        </div>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);cursor:pointer">
+          <input type="checkbox" id="pPrintLinhaCorte" checked style="width:14px;height:14px;accent-color:var(--green)"> Linha de corte
+        </label>
+        <button class="btn btn-green btn-sm" onclick="imprimirPlacaA4()"><i class="ti ti-printer"></i> Imprimir</button>
+        <button class="btn btn-sm" id="btnSalvarNuvem" onclick="salvarEncarteNuvem()"><i class="ti ti-cloud-upload"></i> Salvar na nuvem</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <div class="ph-row">
+      <h2><i class="ti ti-layout-grid"></i> Placas salvas na nuvem (aba "Encartes")</h2>
+      <div class="actions">
+        <span class="hint" id="encartesInfo" style="color:var(--tx2);font-size:12px"></span>
+        <button class="btn btn-sm" onclick="carregarEncartes()"><i class="ti ti-refresh"></i> Atualizar lista</button>
+        <button class="btn btn-sm" onclick="selecionarTodosEncartes(true)"><i class="ti ti-checkbox"></i> Selecionar tudo</button>
+        <button class="btn btn-sm" onclick="selecionarTodosEncartes(false)"><i class="ti ti-square"></i> Limpar seleção</button>
+      </div>
+    </div>
+    <div id="encartesList" class="encartes-grid"></div>
+    <hr class="divider" style="width:100%">
+    <div class="print-qtd-row">
+      <span class="lbl"><i class="ti ti-printer"></i> Imprimir <b id="encartesSelCount">0</b> selecionada(s):</span>
+      <button class="btn btn-sm" onclick="imprimirSelecionados(1)">1 por folha</button>
+      <button class="btn btn-sm" onclick="imprimirSelecionados(2)">2 por folha</button>
+      <button class="btn btn-sm" onclick="imprimirSelecionados(4)">4 por folha</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="printArea"></div>
 
 <script>
 // ============================================================
@@ -1522,6 +1586,214 @@ async function downloadPlaca(){
   salvarFotoAtualNoDrive(false);
 }
 
+var printQtdAtual=1;
+function setPrintQtd(qtd){
+  printQtdAtual=qtd;
+  document.querySelectorAll('#printQtdOpts button').forEach(function(b){
+    b.classList.toggle('active',parseInt(b.getAttribute('data-qtd'),10)===qtd);
+  });
+}
+
+async function imprimirPlacaA4(){
+  await drawPlaca();
+  var cv=document.getElementById('placaCanvas');
+  var dataUrl=cv.toDataURL('image/png');
+  var qtd=printQtdAtual||1;
+  var comLinha=document.getElementById('pPrintLinhaCorte').checked;
+
+  var cols=1,rows=1;
+  if(qtd===2){cols=1;rows=2;}
+  else if(qtd===4){cols=2;rows=2;}
+
+  var cells='';
+  for(var i=0;i<qtd;i++){
+    cells+='<div class="print-cell'+(comLinha&&qtd>1?' bordered':'')+'"><img src="'+dataUrl+'" alt="placa"></div>';
+  }
+  var area=document.getElementById('printArea');
+  area.innerHTML='<div class="print-page" style="grid-template-columns:repeat('+cols+',1fr);grid-template-rows:repeat('+rows+',1fr)">'+cells+'</div>';
+
+  setTimeout(function(){
+    window.print();
+  },80);
+}
+
+// ============================================================
+// PLACAS SALVAS NA NUVEM (aba "Encartes" na mesma planilha)
+// ============================================================
+var ENCARTES_ABA='Encartes';
+var encartesCache=[];
+var encartesSelecionados={}; // id -> true
+
+function gerarIdEncarte(){
+  return 'enc_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+}
+
+async function salvarEncarteNuvem(){
+  var btn=document.getElementById('btnSalvarNuvem');
+  var cfg=loadCfg();
+  if(!cfg.id){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
+  await drawPlaca();
+  var cv=document.getElementById('placaCanvas');
+  var produto=(document.getElementById('pDescOverride').value||'').trim()||'PRODUTO';
+  var cod=(document.getElementById('pCod').value||'').trim();
+  var por=(document.getElementById('pPor').value||'').trim();
+  var de=(document.getElementById('pDe').value||'').trim();
+
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Salvando...';
+  try{
+    var dataUrl=cv.toDataURL('image/png');
+    var base64=dataUrl.split(',')[1];
+    var res=await _gasPost('salvarEncarte',{
+      id:gerarIdEncarte(),
+      planilhaId:cfg.id,
+      aba:ENCARTES_ABA,
+      produto:produto,
+      codigo:cod,
+      precoDe:de,
+      precoPor:por,
+      imagemBase64:base64,
+      mimeType:'image/png'
+    });
+    if(res&&res.ok){
+      mostrarToast('Placa salva na nuvem.','ok');
+      carregarEncartes();
+    }else{
+      mostrarToast('Não consegui salvar na nuvem (verifique o script do Apps Script).','err');
+    }
+  }catch(e){
+    mostrarToast('Erro ao salvar na nuvem: '+e.message,'err');
+  }finally{
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-cloud-upload"></i> Salvar na nuvem';
+  }
+}
+
+async function carregarEncartes(){
+  var cfg=loadCfg();
+  if(!cfg.id)return;
+  var listEl=document.getElementById('encartesList');
+  var infoEl=document.getElementById('encartesInfo');
+  infoEl.textContent='Carregando...';
+  try{
+    var table=await fetchSheet(cfg.id,ENCARTES_ABA);
+    var rows=rawRows(table);
+    var hIdx=-1,hCells=[];
+    for(var i=0;i<Math.min(5,rows.length);i++){
+      var cs=rows[i].c||[];
+      var txt=cs.map(function(c){return String((c&&c.f)||(c&&c.v)||'').toUpperCase();});
+      if(txt.some(function(t){return /PRODUTO|IMAGEM|IMAGEN/.test(t);})){hIdx=i;hCells=cs;break;}
+    }
+    if(!hCells.length&&table.cols&&table.cols.length){hCells=table.cols.map(function(c){return{v:String(c.label||'')};});}
+    function idxOf(kws){
+      for(var k=0;k<kws.length;k++){
+        var idx=hCells.findIndex(function(c){return String((c&&c.f)||(c&&c.v)||'').toUpperCase().includes(kws[k]);});
+        if(idx>=0)return idx;
+      }
+      return -1;
+    }
+    var ci={
+      id:idxOf(['ID']),
+      data:idxOf(['DATA']),
+      produto:idxOf(['PRODUTO']),
+      codigo:idxOf(['CÓDIGO','CODIGO','COD']),
+      de:idxOf(['PREÇO DE','PRECO DE','DE']),
+      por:idxOf(['PREÇO POR','PRECO POR','POR']),
+      img:idxOf(['IMAGEM','URL','LINK'])
+    };
+    var startRow=hIdx<0?0:hIdx+1;
+    var lista=[];
+    for(var i=startRow;i<rows.length;i++){
+      var cells=rows[i].c||[];
+      var url=ci.img>=0?cellStr(cells[ci.img]):'';
+      if(!url)continue;
+      lista.push({
+        id:ci.id>=0?cellStr(cells[ci.id]):('row'+i),
+        data:ci.data>=0?cellStr(cells[ci.data]):'',
+        produto:ci.produto>=0?cellStr(cells[ci.produto]):'(sem nome)',
+        codigo:ci.codigo>=0?cellStr(cells[ci.codigo]):'',
+        de:ci.de>=0?cellStr(cells[ci.de]):'',
+        por:ci.por>=0?cellStr(cells[ci.por]):'',
+        imagemUrl:url
+      });
+    }
+    lista.reverse(); // mais recentes primeiro
+    encartesCache=lista;
+    infoEl.textContent=lista.length+' placa(s) salva(s)';
+    renderEncartes();
+  }catch(e){
+    infoEl.textContent='';
+    listEl.innerHTML='<div class="enc-empty">Não foi possível carregar a aba "'+ENCARTES_ABA+'". Verifique se ela existe na planilha.<br>('+e.message+')</div>';
+  }
+}
+
+function renderEncartes(){
+  var listEl=document.getElementById('encartesList');
+  if(!encartesCache.length){
+    listEl.innerHTML='<div class="enc-empty">Nenhuma placa salva ainda. Crie uma placa e clique em "Salvar na nuvem".</div>';
+    atualizarContagemSelecao();
+    return;
+  }
+  listEl.innerHTML=encartesCache.map(function(it){
+    var marcado=!!encartesSelecionados[it.id];
+    var precoTxt=it.por?('R$ '+it.por):'';
+    return ''+
+      '<div class="enc-card'+(marcado?' checked':'')+'" data-id="'+escapeHtml(it.id)+'" onclick="toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
+        '<input type="checkbox" '+(marcado?'checked':'')+' onclick="event.stopPropagation();toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
+        '<div class="enc-thumb"><img src="'+escapeHtml(it.imagemUrl)+'" loading="lazy" alt=""></div>'+
+        '<div class="enc-nome">'+escapeHtml(it.produto)+'</div>'+
+        '<div class="enc-meta"><span>'+escapeHtml(it.codigo||'')+'</span><span style="color:var(--green);font-weight:700">'+escapeHtml(precoTxt)+'</span></div>'+
+      '</div>';
+  }).join('');
+  atualizarContagemSelecao();
+}
+
+function toggleEncarteCard(e,id){
+  if(encartesSelecionados[id])delete encartesSelecionados[id];
+  else encartesSelecionados[id]=true;
+  renderEncartes();
+}
+
+function selecionarTodosEncartes(v){
+  encartesSelecionados={};
+  if(v)encartesCache.forEach(function(it){encartesSelecionados[it.id]=true;});
+  renderEncartes();
+}
+
+function atualizarContagemSelecao(){
+  var n=Object.keys(encartesSelecionados).length;
+  var el=document.getElementById('encartesSelCount');
+  if(el)el.textContent=n;
+}
+
+async function imprimirSelecionados(qtd){
+  var selecionados=encartesCache.filter(function(it){return encartesSelecionados[it.id];});
+  if(!selecionados.length){mostrarToast('Selecione ao menos uma placa na lista.','warn');return;}
+  var comLinha=document.getElementById('pPrintLinhaCorte').checked;
+  var cols=1,rows=1;
+  if(qtd===2){cols=1;rows=2;}
+  else if(qtd===4){cols=2;rows=2;}
+
+  var area=document.getElementById('printArea');
+  var html='';
+  for(var p=0;p<selecionados.length;p+=qtd){
+    var grupo=selecionados.slice(p,p+qtd);
+    html+='<div class="print-page" style="grid-template-columns:repeat('+cols+',1fr);grid-template-rows:repeat('+rows+',1fr)">';
+    grupo.forEach(function(it){
+      html+='<div class="print-cell'+(comLinha&&qtd>1?' bordered':'')+'"><img src="'+escapeHtml(it.imagemUrl)+'" alt=""></div>';
+    });
+    html+='</div>';
+  }
+  area.innerHTML=html;
+
+  // espera as imagens carregarem antes de imprimir
+  var imgs=area.querySelectorAll('img');
+  var promessas=Array.prototype.map.call(imgs,function(img){
+    if(img.complete)return Promise.resolve();
+    return new Promise(function(res){img.onload=img.onerror=res;});
+  });
+  await Promise.all(promessas);
+  setTimeout(function(){window.print();},100);
+}
+
 async function copiarPlaca(){
   try{
     await drawPlaca();
@@ -1662,6 +1934,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     toggleCfg();
   }
   drawPlaca();
+  if(cfg.id)carregarEncartes();
   document.getElementById('pCod').focus();
 })();
 </script>
