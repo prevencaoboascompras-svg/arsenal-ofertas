@@ -1315,22 +1315,22 @@ async function drawPlaca(){
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
   }else{
-    // No modo Pack, o nome do produto vai compacto na área branca abaixo do escudo,
-    // logo acima do card com a foto do produto.
+    // No modo Pack — coordenadas exatas do layout: caixa left65 top794 w924,
+    // fonte 39px, line-height 55px, até 2 linhas.
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=corTexto;
-    var pfs=40;
-    while(pfs>20){
-      ctx.font='900 '+pfs+'px '+fonte;
-      var plines=splitLines(nomeClean,940);
-      if(plines.length<=2 && plines.length*pfs*1.15<=100)break;
-      pfs-=3;
-    }
+    var pfs=39, plh=55;
+    var pMaxW=924;
     ctx.font='900 '+pfs+'px '+fonte;
-    var pLines=splitLines(nomeClean,940);
-    var plh=pfs*1.15;
-    var pCY=843;
-    var pStartY=pCY-((pLines.length-1)*plh)/2;
-    for(var pi=0;pi<pLines.length;pi++)ctx.fillText(pLines[pi],W/2,pStartY+pi*plh);
+    var pLines=splitLines(nomeClean,pMaxW);
+    while(pLines.length>2 && pfs>22){
+      pfs-=2; plh=Math.round(pfs*1.41);
+      ctx.font='900 '+pfs+'px '+fonte;
+      pLines=splitLines(nomeClean,pMaxW);
+    }
+    var pTop=794;
+    for(var pi=0;pi<pLines.length && pi<2;pi++){
+      ctx.fillText(pLines[pi],527,pTop+plh*(pi+0.5));
+    }
   }
 
   // FOTO DO PRODUTO — cartão de fundo branco que se adapta à proporção real da imagem,
@@ -1375,19 +1375,10 @@ async function drawPlaca(){
     ctx.restore();
   }
 
-  // No modo Pack, a foto do produto entra como um "badge" compacto logo abaixo
-  // do nome, dentro da área branca que sobra antes do arco amarelo do rodapé.
+  // No modo Pack — coordenadas exatas do layout: caixa left345 top884 w364 h381
+  // (cartão branco arredondado com a foto do produto dentro, "object-fit: contain").
   if(fotoImg && packOn){
-    var maxW2=360,maxH2=140,areaCX2=W/2,areaTopY2=880,pad3=14,fR2=18;
-    var imgAspect2=fotoImg.width/fotoImg.height;
-    var boxAspect2=maxW2/maxH2;
-    var fW2,fH2;
-    if(imgAspect2>boxAspect2){ fW2=maxW2; fH2=maxW2/imgAspect2; }
-    else{ fH2=maxH2; fW2=maxH2*imgAspect2; }
-    fW2+=pad3*2; fH2+=pad3*2;
-    if(fW2>maxW2+pad3*2)fW2=maxW2+pad3*2;
-    if(fH2>maxH2+pad3*2)fH2=maxH2+pad3*2;
-    var fX2=areaCX2-fW2/2, fY2=areaTopY2+(maxH2-(fH2-pad3*2))/2;
+    var fX2=345, fY2=884, fW2=364, fH2=381, fR2=22, pad3=16;
     function fotoRoundRect2(x,y,w,h,r){
       ctx.beginPath();
       ctx.moveTo(x+r,y);
@@ -1413,8 +1404,14 @@ async function drawPlaca(){
     ctx.clip();
     ctx.imageSmoothingEnabled=true;
     if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
-    var dw2=fW2-pad3*2, dh2=fH2-pad3*2;
-    ctx.drawImage(fotoImg,fX2+pad3,fY2+pad3,dw2,dh2);
+    var innerW2=fW2-pad3*2, innerH2=fH2-pad3*2;
+    var imgAspect2=fotoImg.width/fotoImg.height;
+    var boxAspect2=innerW2/innerH2;
+    var dw2,dh2;
+    if(imgAspect2>boxAspect2){ dw2=innerW2; dh2=innerW2/imgAspect2; }
+    else{ dh2=innerH2; dw2=innerH2*imgAspect2; }
+    var dx2=fX2+pad3+(innerW2-dw2)/2, dy2=fY2+pad3+(innerH2-dh2)/2;
+    ctx.drawImage(fotoImg,dx2,dy2,dw2,dh2);
     ctx.restore();
   }
 
@@ -1452,45 +1449,38 @@ async function drawPlaca(){
       var partes=valTxt.split(',');
       var inteiro=partes[0], centavos=partes[1]||'00';
 
-      // Bandeirola amarela (coords do template-pack.png, canvas 1054x1492)
-      var bx=400,bw=253,bTop=316,bBot=560;
-      var bcx=bx+bw/2;
+      // Coordenadas exatas do layout (caixas left/top/largura/altura, centro = left+largura/2, top+altura/2)
       ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#1a1a18';
-      ctx.font='900 34px '+fonte;
-      ctx.fillText('LEVE',bcx,bTop+48);
-      ctx.font='900 78px '+fonte;
-      ctx.fillText(qtdTxt,bcx,bTop+150);
-      ctx.font='900 34px '+fonte;
-      ctx.fillText('POR',bcx,bTop+236);
-
-      // Valor grande em branco, sobre o escudo vermelho, abaixo da bandeirola
-      var baseY=700;
-      var rsFs=54, intFs=132, centFs=64;
-      ctx.font='900 '+rsFs+'px '+fonte;
-      var rsW=ctx.measureText('R$').width;
-      ctx.font='900 '+intFs+'px '+fonte;
-      var intW=ctx.measureText(inteiro).width;
-      ctx.font='900 '+centFs+'px '+fonte;
-      var centW=ctx.measureText(','+centavos).width;
-      var totalW=rsW+16+intW+centW;
-      // reduz proporcionalmente se não couber na largura do escudo
-      var maxW=880;
-      if(totalW>maxW){
-        var esc=maxW/totalW;
-        rsFs=Math.round(rsFs*esc);intFs=Math.round(intFs*esc);centFs=Math.round(centFs*esc);
-        ctx.font='900 '+rsFs+'px '+fonte;rsW=ctx.measureText('R$').width;
-        ctx.font='900 '+intFs+'px '+fonte;intW=ctx.measureText(inteiro).width;
-        ctx.font='900 '+centFs+'px '+fonte;centW=ctx.measureText(','+centavos).width;
-        totalW=rsW+16+intW+centW;
+      function fitText(txt,fs,boxW){
+        ctx.font='900 '+fs+'px '+fonte;
+        while(ctx.measureText(txt).width>boxW-8 && fs>14){fs-=2;ctx.font='900 '+fs+'px '+fonte;}
+        return fs;
       }
-      var startX=(W-totalW)/2;
-      ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#ffffff';
-      ctx.font='900 '+rsFs+'px '+fonte;
-      ctx.fillText('R$',startX,baseY);
-      ctx.font='900 '+intFs+'px '+fonte;
-      ctx.fillText(inteiro,startX+rsW+16,baseY);
-      ctx.font='900 '+centFs+'px '+fonte;
-      ctx.fillText(','+centavos,startX+rsW+16+intW,baseY);
+      var fsLeve=fitText('LEVE',54,254);
+      ctx.font='900 '+fsLeve+'px '+fonte;
+      ctx.fillText('LEVE',400+127,328+30.5);
+
+      var fsQtd=fitText(qtdTxt,108,254);
+      ctx.font='900 '+fsQtd+'px '+fonte;
+      ctx.fillText(qtdTxt,400+127,389+52);
+
+      var fsPor=fitText('POR',56,254);
+      ctx.font='900 '+fsPor+'px '+fonte;
+      ctx.fillText('POR',400+127,488+32.5);
+
+      // Preço em branco, sobre o escudo vermelho
+      ctx.fillStyle='#ffffff';
+      var fsRs=fitText('R$',76,125);
+      ctx.font='900 '+fsRs+'px '+fonte;
+      ctx.fillText('R$',250+62.5,607+52);
+
+      var fsInt=fitText(inteiro,220,280);
+      ctx.font='900 '+fsInt+'px '+fonte;
+      ctx.fillText(inteiro,382+140,572+102);
+
+      var fsCent=fitText(','+centavos,91,150);
+      ctx.font='900 '+fsCent+'px '+fonte;
+      ctx.fillText(','+centavos,655+75,609+52.5);
     })();
   }else{
   (function drawPrecoBox(){
@@ -1605,8 +1595,7 @@ async function drawPlaca(){
       // No template Pack a barra vermelha já existe na arte (y≈1266–1410, x≈50–999).
       // Aqui só escrevemos o texto por cima, podendo quebrar em até 2 linhas.
       (function drawBandPack(){
-        var barX=60,barW=934,barY=1266,barH=144;
-        var maxW=barW-60;
+        var barCX=527, barCY=1277+32.5, maxW=702, defFs=39;
         // separa o texto em partes: números/valores em amarelo, resto em branco
         function segmentos(txt){
           var re=/(\d+UN|R\$\s?[\d.,]+)/g;
@@ -1619,7 +1608,7 @@ async function drawPlaca(){
           if(last<txt.length)out.push({t:txt.slice(last),c:'#ffffff'});
           return out;
         }
-        var fSize=34;
+        var fSize=defFs;
         function totalWidth(){
           ctx.font='900 '+fSize+'px '+fonte;
           var w=0;
@@ -1630,9 +1619,9 @@ async function drawPlaca(){
         while(totalWidth()>maxW && fSize>14){fSize-=2;}
         ctx.font='900 '+fSize+'px '+fonte;
         var tw=totalWidth();
-        var startX=barX+(barW-tw)/2;
+        var startX=barCX-tw/2;
         ctx.textAlign='left';ctx.textBaseline='middle';
-        var cy=barY+barH/2;
+        var cy=barCY;
         for(var i=0;i<segs.length;i++){
           ctx.fillStyle=segs[i].c;
           ctx.fillText(segs[i].t,startX,cy);
