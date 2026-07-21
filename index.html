@@ -1294,14 +1294,12 @@ async function drawPlaca(){
 
   // NOME DO PRODUTO — dentro da área branca, abaixo do banner OFERTÃO
   // Intervalo seguro: y=430~630 (não invade o banner e não vai até o preço)
-  // No modo Pack, o template "PACK DO LÍDER" já tem seu próprio layout (coroa + faixa),
-  // então o nome do produto não é desenhado aqui.
-  if(!packOn){
   var nomeClean=produto
     .replace(/\s*\(\d+\s*[A-Z]*\)\s*\{\d+\}/gi,'')
     .replace(/\s*\{.*?\}/g,'')
     .replace(/\s*\(\d+\)/g,'')
     .trim();
+  if(!packOn){
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=corTexto;
   var fs=76;
   while(fs>26){
@@ -1316,6 +1314,23 @@ async function drawPlaca(){
   var nomeCY=525; // centro vertical dentro da área branca
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
+  }else{
+    // No modo Pack, o nome do produto vai compacto na área branca abaixo do escudo,
+    // logo acima do card com a foto do produto.
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=corTexto;
+    var pfs=40;
+    while(pfs>20){
+      ctx.font='900 '+pfs+'px '+fonte;
+      var plines=splitLines(nomeClean,940);
+      if(plines.length<=2 && plines.length*pfs*1.15<=100)break;
+      pfs-=3;
+    }
+    ctx.font='900 '+pfs+'px '+fonte;
+    var pLines=splitLines(nomeClean,940);
+    var plh=pfs*1.15;
+    var pCY=843;
+    var pStartY=pCY-((pLines.length-1)*plh)/2;
+    for(var pi=0;pi<pLines.length;pi++)ctx.fillText(pLines[pi],W/2,pStartY+pi*plh);
   }
 
   // FOTO DO PRODUTO — cartão de fundo branco que se adapta à proporção real da imagem,
@@ -1357,6 +1372,49 @@ async function drawPlaca(){
     if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
     var dw=fW-pad2*2, dh=fH-pad2*2;
     ctx.drawImage(fotoImg,fX+pad2,fY+pad2,dw,dh);
+    ctx.restore();
+  }
+
+  // No modo Pack, a foto do produto entra como um "badge" compacto logo abaixo
+  // do nome, dentro da área branca que sobra antes do arco amarelo do rodapé.
+  if(fotoImg && packOn){
+    var maxW2=360,maxH2=140,areaCX2=W/2,areaTopY2=880,pad3=14,fR2=18;
+    var imgAspect2=fotoImg.width/fotoImg.height;
+    var boxAspect2=maxW2/maxH2;
+    var fW2,fH2;
+    if(imgAspect2>boxAspect2){ fW2=maxW2; fH2=maxW2/imgAspect2; }
+    else{ fH2=maxH2; fW2=maxH2*imgAspect2; }
+    fW2+=pad3*2; fH2+=pad3*2;
+    if(fW2>maxW2+pad3*2)fW2=maxW2+pad3*2;
+    if(fH2>maxH2+pad3*2)fH2=maxH2+pad3*2;
+    var fX2=areaCX2-fW2/2, fY2=areaTopY2+(maxH2-(fH2-pad3*2))/2;
+    function fotoRoundRect2(x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.lineTo(x+w-r,y);
+      ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+      ctx.lineTo(x+w,y+h-r);
+      ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+      ctx.lineTo(x+r,y+h);
+      ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+      ctx.lineTo(x,y+r);
+      ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath();
+    }
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.15)';
+    ctx.shadowBlur=10;
+    ctx.fillStyle='#FFFFFF';
+    fotoRoundRect2(fX2,fY2,fW2,fH2,fR2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    fotoRoundRect2(fX2,fY2,fW2,fH2,fR2);
+    ctx.clip();
+    ctx.imageSmoothingEnabled=true;
+    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+    var dw2=fW2-pad3*2, dh2=fH2-pad3*2;
+    ctx.drawImage(fotoImg,fX2+pad3,fY2+pad3,dw2,dh2);
     ctx.restore();
   }
 
