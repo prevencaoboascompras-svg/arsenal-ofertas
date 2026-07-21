@@ -418,6 +418,8 @@ var products=[];       // lista consolidada com preços
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
 var templateImg=null;
 var templateReady=false;
+var templatePackImg=null;
+var templatePackReady=false;
 var fotoImg=null;
 var fotoToken=0;
 var prodAtualCod='';
@@ -1156,8 +1158,8 @@ function onPackChange(){
   if(qtd>0 && total>0){
     var cada=total/qtd;
     cadaEl.textContent='R$ '+cada.toFixed(2).replace('.',',');
-    // preenche mensagem automaticamente
-    msg.value='LEVE '+qtd+'UN POR R$'+total.toFixed(2).replace('.',',')+' (R$'+cada.toFixed(2).replace('.',',')+' CADA). VÁLIDO ENQUANTO DURAR O ESTOQUE.';
+    // preenche mensagem automaticamente (padrão do template Pack do Líder)
+    msg.value='LEVE '+qtd+'UN POR R$ '+total.toFixed(2).replace('.',',')+' (R$ '+cada.toFixed(2).replace('.',',')+' CADA)';
     // % de desconto baseado no preço original vs "cada"
     if(de>0 && cada<de){
       var pct=((de-cada)/de)*100;
@@ -1202,6 +1204,17 @@ function loadTemplate(){
     img.onload=function(){templateImg=img;templateReady=true;resolve(img);};
     img.onerror=function(){resolve(null);};
     img.src='template-placa.png';
+  });
+}
+
+function loadTemplatePack(){
+  return new Promise(function(resolve){
+    if(templatePackImg&&templatePackReady){resolve(templatePackImg);return;}
+    var img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=function(){templatePackImg=img;templatePackReady=true;resolve(img);};
+    img.onerror=function(){resolve(null);};
+    img.src='template-pack.png';
   });
 }
 
@@ -1257,7 +1270,7 @@ async function drawPlaca(){
   var corUnidade=document.getElementById('pCorUnidade').value||'#FFD600';
   var fonte=fonteAtual;
 
-  var tmpl=await loadTemplate();
+  var tmpl=packOn?(await loadTemplatePack()):(await loadTemplate());
   if(tmpl){
     ctx.drawImage(tmpl,0,0,W,H);
   }else{
@@ -1265,7 +1278,7 @@ async function drawPlaca(){
     ctx.fillStyle='#E8000D';ctx.fillRect(0,0,W,240);
     ctx.fillStyle='#fff';ctx.font='900 90px '+fonte;
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('OFERTÃO DO DIA',W/2,120);
+    ctx.fillText(packOn?'PACK DO LÍDER':'OFERTÃO DO DIA',W/2,120);
   }
 
   function splitLines(text,maxW){
@@ -1281,6 +1294,9 @@ async function drawPlaca(){
 
   // NOME DO PRODUTO — dentro da área branca, abaixo do banner OFERTÃO
   // Intervalo seguro: y=430~630 (não invade o banner e não vai até o preço)
+  // No modo Pack, o template "PACK DO LÍDER" já tem seu próprio layout (coroa + faixa),
+  // então o nome do produto não é desenhado aqui.
+  if(!packOn){
   var nomeClean=produto
     .replace(/\s*\(\d+\s*[A-Z]*\)\s*\{\d+\}/gi,'')
     .replace(/\s*\{.*?\}/g,'')
@@ -1300,10 +1316,11 @@ async function drawPlaca(){
   var nomeCY=525; // centro vertical dentro da área branca
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
+  }
 
   // FOTO DO PRODUTO — cartão de fundo branco que se adapta à proporção real da imagem,
   // sem cortar conteúdo e sem esticar (evita perda de qualidade)
-  if(fotoImg){
+  if(fotoImg && !packOn){
     var maxW=760,maxH=460,areaCX=W/2,areaTopY=605,pad2=18,fR=26;
     var imgAspect=fotoImg.width/fotoImg.height;
     var boxAspect=maxW/maxH;
@@ -1344,7 +1361,7 @@ async function drawPlaca(){
   }
 
   // % DESCONTO — círculo flutuante à esquerda da caixa de preço (não sobrepõe)
-  if(pct){
+  if(pct && !packOn){
     var cx=105,cy=1150,r=55;
     ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=10;
     ctx.fillStyle='#FFD600';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
@@ -1364,6 +1381,60 @@ async function drawPlaca(){
   // Layout do exemplo: "R$" amarelo à esquerda, valor branco grande,
   // "UNID"/quantidade em amarelo no canto superior direito.
   // ═══════════════════════════════════════════════════════════
+  if(packOn){
+    // ═══════════════════════════════════════════════════════════
+    // TEMPLATE "PACK DO LÍDER" — a arte de fundo já traz a coroa,
+    // a faixa vermelha e o escudo. Aqui só escrevemos os textos:
+    // "LEVE / X / POR" dentro da bandeirola amarela, e o valor
+    // "R$ 0,00" grande em branco, sobre o escudo vermelho.
+    // ═══════════════════════════════════════════════════════════
+    (function drawPackPreco(){
+      var qtdTxt=packQtd>0?(packQtd+''):'0';
+      var valTxt=packTotal>0?packTotal.toFixed(2).replace('.',','):'0,00';
+      var partes=valTxt.split(',');
+      var inteiro=partes[0], centavos=partes[1]||'00';
+
+      // Bandeirola amarela (coords do template-pack.png, canvas 1054x1492)
+      var bx=400,bw=253,bTop=316,bBot=560;
+      var bcx=bx+bw/2;
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#1a1a18';
+      ctx.font='900 34px '+fonte;
+      ctx.fillText('LEVE',bcx,bTop+48);
+      ctx.font='900 78px '+fonte;
+      ctx.fillText(qtdTxt,bcx,bTop+150);
+      ctx.font='900 34px '+fonte;
+      ctx.fillText('POR',bcx,bTop+236);
+
+      // Valor grande em branco, sobre o escudo vermelho, abaixo da bandeirola
+      var baseY=700;
+      var rsFs=54, intFs=132, centFs=64;
+      ctx.font='900 '+rsFs+'px '+fonte;
+      var rsW=ctx.measureText('R$').width;
+      ctx.font='900 '+intFs+'px '+fonte;
+      var intW=ctx.measureText(inteiro).width;
+      ctx.font='900 '+centFs+'px '+fonte;
+      var centW=ctx.measureText(','+centavos).width;
+      var totalW=rsW+16+intW+centW;
+      // reduz proporcionalmente se não couber na largura do escudo
+      var maxW=880;
+      if(totalW>maxW){
+        var esc=maxW/totalW;
+        rsFs=Math.round(rsFs*esc);intFs=Math.round(intFs*esc);centFs=Math.round(centFs*esc);
+        ctx.font='900 '+rsFs+'px '+fonte;rsW=ctx.measureText('R$').width;
+        ctx.font='900 '+intFs+'px '+fonte;intW=ctx.measureText(inteiro).width;
+        ctx.font='900 '+centFs+'px '+fonte;centW=ctx.measureText(','+centavos).width;
+        totalW=rsW+16+intW+centW;
+      }
+      var startX=(W-totalW)/2;
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='#ffffff';
+      ctx.font='900 '+rsFs+'px '+fonte;
+      ctx.fillText('R$',startX,baseY);
+      ctx.font='900 '+intFs+'px '+fonte;
+      ctx.fillText(inteiro,startX+rsW+16,baseY);
+      ctx.font='900 '+centFs+'px '+fonte;
+      ctx.fillText(','+centavos,startX+rsW+16+intW,baseY);
+    })();
+  }else{
   (function drawPrecoBox(){
     // Define o valor a exibir e o rótulo (quantidade/unidade) conforme modo
     var valTxt='', labelDir='';
@@ -1468,9 +1539,49 @@ async function drawPlaca(){
     ctx.font='900 '+valFs+'px '+fonte;
     ctx.fillText(valTxt, startX+rsW+12, baseY);
   })();
+  }
 
-  // FAIXA DE MENSAGEM (rodapé) — barra vermelha com texto branco, sempre em uma linha só
+  // FAIXA DE MENSAGEM (rodapé) — barra vermelha com texto branco
   if(showMsg && msgTxt){
+    if(packOn){
+      // No template Pack a barra vermelha já existe na arte (y≈1266–1410, x≈50–999).
+      // Aqui só escrevemos o texto por cima, podendo quebrar em até 2 linhas.
+      (function drawBandPack(){
+        var barX=60,barW=934,barY=1266,barH=144;
+        var maxW=barW-60;
+        // separa o texto em partes: números/valores em amarelo, resto em branco
+        function segmentos(txt){
+          var re=/(\d+UN|R\$\s?[\d.,]+)/g;
+          var out=[],last=0,m;
+          while((m=re.exec(txt))){
+            if(m.index>last)out.push({t:txt.slice(last,m.index),c:'#ffffff'});
+            out.push({t:m[0],c:'#FFD600'});
+            last=m.index+m[0].length;
+          }
+          if(last<txt.length)out.push({t:txt.slice(last),c:'#ffffff'});
+          return out;
+        }
+        var fSize=34;
+        function totalWidth(){
+          ctx.font='900 '+fSize+'px '+fonte;
+          var w=0;
+          for(var i=0;i<segs.length;i++)w+=ctx.measureText(segs[i].t).width;
+          return w;
+        }
+        var segs=segmentos(msgTxt);
+        while(totalWidth()>maxW && fSize>14){fSize-=2;}
+        ctx.font='900 '+fSize+'px '+fonte;
+        var tw=totalWidth();
+        var startX=barX+(barW-tw)/2;
+        ctx.textAlign='left';ctx.textBaseline='middle';
+        var cy=barY+barH/2;
+        for(var i=0;i<segs.length;i++){
+          ctx.fillStyle=segs[i].c;
+          ctx.fillText(segs[i].t,startX,cy);
+          startX+=ctx.measureText(segs[i].t).width;
+        }
+      })();
+    }else{
     var bandX=170,bandW=720;
     (function drawBand(){
       var maxW=bandW-32;
@@ -1506,6 +1617,7 @@ async function drawPlaca(){
       ctx.font='900 '+fSize+'px '+fonte;
       ctx.fillText(msgTxt,W/2,bandY+bandH/2+1);
     })();
+    }
   }
 
   // RODAPÉ - validade e código (só se não houver faixa cobrindo o rodapé)
