@@ -245,7 +245,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         </div>
         <div class="foto-meta">
           <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
-          <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada no Drive, Google Imagens e Open Food Facts.</div>
+          <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada no Drive, Cosmos, Google Imagens e Open Food Facts.</div>
           <div class="foto-search">
             <input type="text" id="pFotoTermo" placeholder="Termo manual. Ex: peça de presunto para fatiar" autocomplete="off">
             <button type="button" class="btn btn-sm btn-green" onclick="buscarFotoPorTermoManual()"><i class="ti ti-search"></i> Pesquisar termo</button>
@@ -778,7 +778,7 @@ function setFotoPreview(img){
 function limparFoto(msg){
   fotoImg=null;
   setFotoPreview(null);
-  setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada no Drive, Google Imagens e Open Food Facts.');
+  setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada no Drive, Cosmos, Google Imagens e Open Food Facts.');
 }
 function proxyImagemUrl(url){
   url=String(url||'').trim();
@@ -946,23 +946,23 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   var nome=String(nomeProduto||'').trim();
   var termo=String(termoManual||'').trim();
   var img=null;
-  limparFoto(cod?'Buscando foto no catálogo Bluesoft Cosmos pelo código de barras...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
+  limparFoto(cod?'Buscando foto no Google Drive pelo código de barras...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
   drawPlaca();
 
   if(cod){
-    img=await buscarFotoCosmos(cod);
-    if(token!==fotoToken)return false;
-    if(img){
-      fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no catálogo Bluesoft Cosmos.','ok');drawPlaca();return true;
-    }
-  }
-
-  if(cod){
-    setFotoStatus('Não achou na Cosmos. Buscando no Google Drive...');
     img=await buscarFotoDrive(cod,'produto');
     if(token!==fotoToken)return false;
     if(img){
       fotoImg=img;fotoOrigemDrive=true;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Drive.','ok');drawPlaca();return true;
+    }
+  }
+
+  if(cod){
+    setFotoStatus('Não achou no Drive. Buscando no catálogo Bluesoft Cosmos...');
+    img=await buscarFotoCosmos(cod);
+    if(token!==fotoToken)return false;
+    if(img){
+      fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no catálogo Bluesoft Cosmos.','ok');drawPlaca();return true;
     }
   }
 
@@ -974,7 +974,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     }
   }
 
-  setFotoStatus('Não achou no Drive'+(termo?' nem pelo termo manual':'')+'. Tentando busca pelo nome do produto...');
+  setFotoStatus('Não achou no Drive/Cosmos'+(termo?' nem pelo termo manual':'')+'. Tentando busca pelo nome do produto no Google...');
   if(nome){
     var achadoNome=await buscarFotoWeb(nome,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
