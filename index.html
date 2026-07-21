@@ -418,14 +418,14 @@ var products=[];       // lista consolidada com preços
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
 // MAP de coordenadas do template Pack (valores em % do canvas 1054x1492)
 var PACK_MAP={
-  leve:{y:17.5,fontSize:3.8},
-  quantidade:{y:23.5,fontSize:11.5},
-  por:{y:30.5,fontSize:3.8},
-  rs:{fontSize:3.6},
-  preco:{y:39.0,fontSize:10.0},
-  centavos:{fontSize:4.4},
-  titulo:{x:4.93,y:47.0,width:90.13,height:7.51,fontSize:2.68,lineHeight:3.08,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
-  imagem:{x:25.00,y:53.5,width:50.00,height:31.00,fit:'contain'},
+  leve:{y:19.0,fontSize:3.5},
+  quantidade:{y:24.8,fontSize:10.5},
+  por:{y:31.0,fontSize:3.5},
+  rs:{fontSize:4.5},
+  preco:{y:43.0,fontSize:12.0},
+  centavos:{fontSize:5.0},
+  titulo:{x:4.93,y:47.0,width:90.13,height:5.5,fontSize:2.6,lineHeight:3.0,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
+  imagem:{x:20.00,y:52.5,width:60.00,height:34.00,fit:'contain'},
   oferta:{x:15.00,y:88.6,width:70.00,height:2.28,fontSize:1.6,weight:800,align:'center'}
 };
 var templateImg=null;
@@ -1466,18 +1466,41 @@ async function drawPlaca(){
       var partes=valTxt.split(',');
       var inteiro=partes[0], centavos=','+(partes[1]||'00');
 
-      // 1. LEVE / QTD / POR (Centralizado na Bandeira Amarela)
+      // 1. LEVE / QTD / POR (Centralizado na Bandeira Amarela, com auto-ajuste
+      //    para nunca estourar a largura da faixa amarela do template)
       ctx.textAlign='center';
       ctx.textBaseline='middle';
       ctx.fillStyle='#1a1a18'; // Coroa texto preto
 
-      ctx.font='900 '+my(PACK_MAP.leve.fontSize)+'px '+fonte;
+      // Largura útil da bandeira amarela (fixa na arte de fundo) com margem interna de segurança
+      var bandeiraW = mx(24) - 28;
+
+      function fitFont(txt,fs,maxW,fsMin){
+        fsMin=fsMin||14;
+        ctx.font='900 '+fs+'px '+fonte;
+        while(ctx.measureText(txt).width>maxW && fs>fsMin){
+          fs-=1;
+          ctx.font='900 '+fs+'px '+fonte;
+        }
+        return fs;
+      }
+
+      // "LEVE" e "POR" sempre no mesmo tamanho — se um dos dois precisar encolher
+      // para caber, os dois encolhem juntos
+      var fsLeveBase=my(PACK_MAP.leve.fontSize), fsPorBase=my(PACK_MAP.por.fontSize);
+      var fsLeveFit=fitFont('LEVE',fsLeveBase,bandeiraW);
+      var fsPorFit=fitFont('POR',fsPorBase,bandeiraW);
+      var fsLevePor=Math.min(fsLeveFit,fsPorFit);
+
+      ctx.font='900 '+fsLevePor+'px '+fonte;
       ctx.fillText('LEVE', W/2, my(PACK_MAP.leve.y));
 
-      ctx.font='900 '+my(PACK_MAP.quantidade.fontSize)+'px '+fonte;
+      // Quantidade (o número) — encolhe de forma independente, se precisar
+      var fsQtd=fitFont(qtdTxt,my(PACK_MAP.quantidade.fontSize),bandeiraW,24);
+      ctx.font='900 '+fsQtd+'px '+fonte;
       ctx.fillText(qtdTxt, W/2, my(PACK_MAP.quantidade.y));
 
-      ctx.font='900 '+my(PACK_MAP.por.fontSize)+'px '+fonte;
+      ctx.font='900 '+fsLevePor+'px '+fonte;
       ctx.fillText('POR', W/2, my(PACK_MAP.por.y));
 
       // 2. PREÇO (Cálculo dinâmico para ficar SEMPRE centralizado no escudo vermelho)
@@ -1498,23 +1521,24 @@ async function drawPlaca(){
       // Descobre onde começar a desenhar para que o bloco todo fique no centro (W/2)
       var totalW = wRs + wPreco + wCents;
       var startX = (W - totalW) / 2;
-      var priceY = my(PACK_MAP.preco.y); // Linha de base do preço
+      var priceY = my(PACK_MAP.preco.y); // Linha de base do preço (rebaixado)
+      var topAlignY = priceY - (fsPreco * 0.38); // Altura padronizada para o R$ e Centavos
 
       ctx.fillStyle='#ffffff';
       ctx.textAlign='left';
-      ctx.textBaseline='alphabetic'; // Alinha pela base das letras para R$ e o Número ficarem pareados
 
-      // Desenha o "R$ "
+      // "R$" alinhado na mesma altura superior do ",00"
+      ctx.textBaseline='alphabetic';
       ctx.font='900 '+fsRs+'px '+fonte;
-      ctx.fillText('R$ ', startX, priceY);
+      ctx.fillText('R$ ', startX, topAlignY);
 
-      // Desenha o valor Inteiro (ex: 10)
+      // Valor principal (Inteiro)
       ctx.font='900 '+fsPreco+'px '+fonte;
       ctx.fillText(inteiro, startX + wRs, priceY);
 
-      // Desenha os centavos alinhados na parte de cima do número grande
+      // Centavos ",00"
       ctx.font='900 '+fsCents+'px '+fonte;
-      ctx.fillText(centavos, startX + wRs + wPreco, priceY - (fsPreco * 0.38));
+      ctx.fillText(centavos, startX + wRs + wPreco, topAlignY);
     })();
   }else{
   (function drawPrecoBox(){
