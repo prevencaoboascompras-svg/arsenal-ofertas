@@ -418,16 +418,15 @@ var products=[];       // lista consolidada com preços
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
 // MAP de coordenadas do template Pack (valores em % do canvas 1054x1492)
 var PACK_MAP={
-  header:{x:27.04,y:11.66,width:46.02,height:4.83,fontSize:2.82,weight:900},
-  leve:{x:38.43,y:16.2889,width:22.77,height:4.02,fontSize:3.89,weight:900},
-  quantidade:{x:38.43,y:20.6419,width:22.77,height:7.71,fontSize:8.58,weight:900},
-  por:{x:38.43,y:27.1489,width:22.77,height:4.02,fontSize:4.02,weight:900},
-  rs:{x:32.8273,y:33.1770,fontSize:4.1555,weight:900},
-  preco:{x:40.3226,y:31.2332,fontSize:12.3324,weight:900},
-  centavos:{x:60.5313,y:33.8478,fontSize:5.4960,weight:900},
-  titulo:{x:4.9336,y:46.1126,width:90.1328,height:7.51,fontSize:2.4799,lineHeight:2.8150,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
-  imagem:{x:25.3321,y:53.0831,width:49.3359,height:32.8418,fit:'contain'},
-  oferta:{x:21.06,y:88.14,width:57.87,height:2.28,fontSize:1.54,weight:800,align:'center'}
+  leve:{y:17.5,fontSize:3.8},
+  quantidade:{y:23.5,fontSize:11.5},
+  por:{y:30.5,fontSize:3.8},
+  rs:{fontSize:4.5},
+  preco:{y:40.5,fontSize:12.5},
+  centavos:{fontSize:5.5},
+  titulo:{x:4.93,y:47.0,width:90.13,height:7.51,fontSize:2.68,lineHeight:3.08,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
+  imagem:{x:25.00,y:53.5,width:50.00,height:31.00,fit:'contain'},
+  oferta:{x:15.00,y:88.6,width:70.00,height:2.28,fontSize:1.6,weight:800,align:'center'}
 };
 var templateImg=null;
 var templateReady=false;
@@ -1465,48 +1464,57 @@ async function drawPlaca(){
       var qtdTxt=packQtd>0?(packQtd+''):'0';
       var valTxt=packTotal>0?packTotal.toFixed(2).replace('.',','):'0,00';
       var partes=valTxt.split(',');
-      var inteiro=partes[0], centavos=partes[1]||'00';
+      var inteiro=partes[0], centavos=','+(partes[1]||'00');
 
-      function fitText(txt,fs,boxW){
-        ctx.font='900 '+fs+'px '+fonte;
-        while(ctx.measureText(txt).width>boxW-8 && fs>12){fs-=2;ctx.font='900 '+fs+'px '+fonte;}
-        return fs;
-      }
-      function centroCaixa(cfg){
-        return {cx:mx(cfg.x)+mx(cfg.width)/2, cy:my(cfg.y)+my(cfg.height)/2, w:mx(cfg.width)};
-      }
+      // 1. LEVE / QTD / POR (Centralizado na Bandeira Amarela)
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.fillStyle='#1a1a18'; // Coroa texto preto
 
-      // "PACK DO LÍDER" já vem pronto na arte de fundo — não desenhamos por cima
-      // (PACK_MAP.header fica guardado só como referência de posição, sem uso aqui).
+      ctx.font='900 '+my(PACK_MAP.leve.fontSize)+'px '+fonte;
+      ctx.fillText('LEVE', W/2, my(PACK_MAP.leve.y));
 
-      // LEVE / quantidade / POR — dentro da bandeirola amarela
-      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#1a1a18';
-      var lb=centroCaixa(PACK_MAP.leve);
-      var fsLeve=fitText('LEVE',my(PACK_MAP.leve.fontSize),lb.w);
-      ctx.font='900 '+fsLeve+'px '+fonte;
-      ctx.fillText('LEVE',lb.cx,lb.cy);
+      ctx.font='900 '+my(PACK_MAP.quantidade.fontSize)+'px '+fonte;
+      ctx.fillText(qtdTxt, W/2, my(PACK_MAP.quantidade.y));
 
-      var qb=centroCaixa(PACK_MAP.quantidade);
-      var fsQtd=fitText(qtdTxt,my(PACK_MAP.quantidade.fontSize),qb.w);
-      ctx.font='900 '+fsQtd+'px '+fonte;
-      ctx.fillText(qtdTxt,qb.cx,qb.cy);
+      ctx.font='900 '+my(PACK_MAP.por.fontSize)+'px '+fonte;
+      ctx.fillText('POR', W/2, my(PACK_MAP.por.y));
 
-      var pb=centroCaixa(PACK_MAP.por);
-      var fsPor=fitText('POR',my(PACK_MAP.por.fontSize),pb.w);
-      ctx.font='900 '+fsPor+'px '+fonte;
-      ctx.fillText('POR',pb.cx,pb.cy);
+      // 2. PREÇO (Cálculo dinâmico para ficar SEMPRE centralizado no escudo vermelho)
+      var fsRs = my(PACK_MAP.rs.fontSize);
+      var fsPreco = my(PACK_MAP.preco.fontSize);
+      var fsCents = my(PACK_MAP.centavos.fontSize);
 
-      // Preço em branco, sobre o escudo vermelho (rs/preco/centavos são âncoras top-left)
+      // Mede a largura de cada pedaço do preço
+      ctx.font='900 '+fsRs+'px '+fonte;
+      var wRs = ctx.measureText('R$ ').width;
+
+      ctx.font='900 '+fsPreco+'px '+fonte;
+      var wPreco = ctx.measureText(inteiro).width;
+
+      ctx.font='900 '+fsCents+'px '+fonte;
+      var wCents = ctx.measureText(centavos).width;
+
+      // Descobre onde começar a desenhar para que o bloco todo fique no centro (W/2)
+      var totalW = wRs + wPreco + wCents;
+      var startX = (W - totalW) / 2;
+      var priceY = my(PACK_MAP.preco.y); // Linha de base do preço
+
       ctx.fillStyle='#ffffff';
-      ctx.textAlign='left';ctx.textBaseline='top';
-      ctx.font='900 '+my(PACK_MAP.rs.fontSize)+'px '+fonte;
-      ctx.fillText('R$',mx(PACK_MAP.rs.x),my(PACK_MAP.rs.y));
+      ctx.textAlign='left';
+      ctx.textBaseline='alphabetic'; // Alinha pela base das letras para R$ e o Número ficarem pareados
 
-      ctx.font='900 '+my(PACK_MAP.preco.fontSize)+'px '+fonte;
-      ctx.fillText(inteiro,mx(PACK_MAP.preco.x),my(PACK_MAP.preco.y));
+      // Desenha o "R$ "
+      ctx.font='900 '+fsRs+'px '+fonte;
+      ctx.fillText('R$ ', startX, priceY);
 
-      ctx.font='900 '+my(PACK_MAP.centavos.fontSize)+'px '+fonte;
-      ctx.fillText(','+centavos,mx(PACK_MAP.centavos.x),my(PACK_MAP.centavos.y));
+      // Desenha o valor Inteiro (ex: 10)
+      ctx.font='900 '+fsPreco+'px '+fonte;
+      ctx.fillText(inteiro, startX + wRs, priceY);
+
+      // Desenha os centavos alinhados na parte de cima do número grande
+      ctx.font='900 '+fsCents+'px '+fonte;
+      ctx.fillText(centavos, startX + wRs + wPreco, priceY - (fsPreco * 0.38));
     })();
   }else{
   (function drawPrecoBox(){
