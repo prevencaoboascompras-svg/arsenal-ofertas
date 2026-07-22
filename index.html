@@ -81,7 +81,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .foto-actions{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:640px){.foto-panel{align-items:stretch}.foto-search{grid-template-columns:1fr}.foto-preview{width:56px;height:56px}}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.pct-badge{font-size:12px;font-weight:700;color:var(--green);background:rgba(29,158,117,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
+.pct-badge{font-size:12px;font-weight:700;color:#f7941d;background:rgba(247,148,29,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
 .canvas-wrap{background:var(--bg2);border-radius:var(--rl);padding:10px;display:flex;flex-direction:column;align-items:center;gap:8px}
 #placaCanvas{max-width:100%;max-height:calc(100vh - 130px);width:auto;height:auto;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);background:#fff}
 .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
@@ -395,7 +395,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <button class="btn btn-sm" onclick="imprimirSelecionados(1)">1 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(2)">2 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(4)">4 por folha</button>
-      <button class="btn btn-green btn-sm" onclick="gerarEncarteDoDia()"><i class="ti ti-news"></i> Gerar Encarte do Dia</button>
     </div>
   </div>
 </div>
@@ -1285,15 +1284,21 @@ async function drawPlaca(){
   var corUnidade=document.getElementById('pCorUnidade').value||'#FFD600';
   var fonte=fonteAtual;
 
-  var tmpl=packOn?(await loadTemplatePack()):(await loadTemplate());
-  if(tmpl){
-    ctx.drawImage(tmpl,0,0,W,H);
+  if(packOn){
+    var tmpl=await loadTemplatePack();
+    if(tmpl){
+      ctx.drawImage(tmpl,0,0,W,H);
+    }else{
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#E8000D';ctx.fillRect(0,0,W,240);
+      ctx.fillStyle='#fff';ctx.font='900 90px '+fonte;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('PACK DO LÍDER',W/2,120);
+    }
   }else{
+    // Layout simplificado do "encarte do dia": fundo branco liso,
+    // sem header nem rodapé — só descrição, foto e valor.
     ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#E8000D';ctx.fillRect(0,0,W,240);
-    ctx.fillStyle='#fff';ctx.font='900 90px '+fonte;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(packOn?'PACK DO LÍDER':'OFERTÃO DO DIA',W/2,120);
   }
 
   function splitLines(text,maxW){
@@ -1326,7 +1331,7 @@ async function drawPlaca(){
   ctx.font='900 '+fs+'px '+fonte;
   var nLines=splitLines(nomeClean,960);
   var lh=fs*1.10;
-  var nomeCY=525; // centro vertical dentro da área branca
+  var nomeCY=150; // centro vertical no topo (sem header/banner)
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
   }else{
@@ -1354,7 +1359,7 @@ async function drawPlaca(){
   // FOTO DO PRODUTO — cartão de fundo branco que se adapta à proporção real da imagem,
   // sem cortar conteúdo e sem esticar (evita perda de qualidade)
   if(fotoImg && !packOn){
-    var maxW=760,maxH=460,areaCX=W/2,areaTopY=605,pad2=18,fR=26;
+    var maxW=880,maxH=650,areaCX=W/2,areaTopY=320,pad2=18,fR=26;
     var imgAspect=fotoImg.width/fotoImg.height;
     var boxAspect=maxW/maxH;
     var fW,fH;
@@ -1433,21 +1438,8 @@ async function drawPlaca(){
     ctx.restore();
   }
 
-  // % DESCONTO — círculo flutuante à esquerda da caixa de preço (não sobrepõe)
-  if(pct && !packOn){
-    var cx=105,cy=1150,r=55;
-    ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=10;
-    ctx.fillStyle='#FFD600';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#E8000D';ctx.beginPath();ctx.arc(cx,cy,r-8,0,Math.PI*2);ctx.fill();
-    ctx.shadowBlur=0;ctx.shadowColor='transparent';
-    ctx.fillStyle='#FFD600';ctx.textAlign='center';ctx.textBaseline='middle';
-    var pctFs=36;
-    ctx.font='900 '+pctFs+'px '+fonte;
-    while(ctx.measureText(pct+'%').width>85&&pctFs>18){pctFs-=2;ctx.font='900 '+pctFs+'px '+fonte;}
-    ctx.fillText(pct+'%',cx,cy-8);
-    ctx.fillStyle='#ffffff';ctx.font='900 18px '+fonte;
-    ctx.fillText('OFF',cx,cy+18);
-  }
+  // % DESCONTO — mantido apenas no modo Pack; no "encarte do dia" o layout
+  // é só descrição + foto + valor, sem selo de desconto.
 
   // ═══════════════════════════════════════════════════════════
   // CAIXA VERMELHA DO PREÇO (parte inferior)
@@ -1579,7 +1571,7 @@ async function drawPlaca(){
     var boxX=(W-boxW)/2, boxY=1065;
 
     ctx.shadowColor='rgba(0,0,0,0.35)';ctx.shadowBlur=14;
-    ctx.fillStyle='#E8000D';
+    ctx.fillStyle=packOn?'#E8000D':'#f7941d';
     ctx.beginPath();
     ctx.moveTo(boxX+boxR,boxY);
     ctx.lineTo(boxX+boxW-boxR,boxY);
@@ -1625,21 +1617,15 @@ async function drawPlaca(){
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.font='900 '+lblFs+'px '+fonte;
       ctx.fillText(labelDir,lblX+lblW/2,lblY+lblH/2+1);
-    }else{
-      // ── Rótulo direito em amarelo dentro da caixa (UNID) ──
-      ctx.fillStyle='#FFD600';
-      ctx.textAlign='right';ctx.textBaseline='top';
-      var labelFs = (labelDir.length>6 ? 22 : 26);
-      ctx.font='900 '+labelFs+'px '+fonte;
-      while(ctx.measureText(labelDir).width>boxW-60 && labelFs>18){labelFs-=2;ctx.font='900 '+labelFs+'px '+fonte;}
-      ctx.fillText(labelDir, boxX+boxW-22, boxY+16);
     }
+    // No layout simplificado ("encarte do dia") não desenhamos rótulo de
+    // unidade dentro do badge — só descrição, foto e valor.
 
     // ── R$ (amarelo) + valor (branco) centralizados na caixa ──
     var startX=boxX+(boxW-totalW)/2;
-    var baseY=boxY+boxH/2+valFs*0.34+(packOn?6:24);
+    var baseY=boxY+boxH/2+valFs*0.34+(packOn?6:0);
     ctx.textAlign='left';ctx.textBaseline='alphabetic';
-    ctx.fillStyle='#FFD600';
+    ctx.fillStyle=packOn?'#FFD600':'rgba(255,255,255,.85)';
     ctx.font='900 '+rsFs+'px '+fonte;
     ctx.fillText('R$', startX, baseY-valFs*0.05);
     ctx.fillStyle='#FFFFFF';
@@ -1648,8 +1634,9 @@ async function drawPlaca(){
   })();
   }
 
-  // FAIXA DE MENSAGEM (rodapé) — barra vermelha com texto branco
-  if(showMsg && msgTxt){
+  // FAIXA DE MENSAGEM (rodapé) — só no modo Pack; no "encarte do dia" o
+  // layout é simplificado (sem rodapé).
+  if(showMsg && msgTxt && packOn){
     if(packOn){
       // No template Pack a barra vermelha já existe na arte (y≈1266–1410, x≈50–999).
       // Aqui só escrevemos o texto por cima, podendo quebrar em até 2 linhas.
@@ -1728,9 +1715,10 @@ async function drawPlaca(){
     }
   }
 
-  // RODAPÉ - validade e código (só se não houver faixa cobrindo o rodapé)
+  // RODAPÉ - validade e código (mantido só no modo Pack; o "encarte do dia"
+  // é simplificado: só descrição, foto e valor)
   var faixaAtiva=(showMsg && msgTxt);
-  if(!faixaAtiva){
+  if(packOn && !faixaAtiva){
     if(validade){
       ctx.fillStyle='#000000';
       ctx.font='normal 20px '+fonte;
@@ -1977,75 +1965,6 @@ async function imprimirSelecionados(qtd){
   });
   await Promise.all(promessas);
   setTimeout(function(){window.print();},100);
-}
-
-// ============================================================
-// ENCARTE DO DIA — página consolidada com as placas marcadas,
-// data (dia da semana + dd/mm) dinâmica no header e no rodapé
-// ============================================================
-var DIAS_SEMANA=['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
-
-function dadosDataHoje(){
-  var d=new Date();
-  var dia=DIAS_SEMANA[d.getDay()];
-  var dd=String(d.getDate()).padStart(2,'0');
-  var mm=String(d.getMonth()+1).padStart(2,'0');
-  var yyyy=d.getFullYear();
-  return{dia:dia,dataCurta:dd+'/'+mm,dataCompleta:dd+'/'+mm+'/'+yyyy};
-}
-
-function gerarEncarteDoDia(){
-  var selecionados=encartesCache.filter(function(it){return encartesSelecionados[it.id];});
-  if(!selecionados.length){mostrarToast('Selecione ao menos uma placa na lista.','warn');return;}
-
-  var dt=dadosDataHoje();
-
-  var cardsHtml=selecionados.map(function(it){
-    var precoTxt=it.por?('R$ '+escapeHtml(it.por)):'';
-    return ''+
-      '<div class="ed-card">'+
-        '<img src="'+escapeHtml(it.img||'')+'" alt="'+escapeHtml(it.produto||'')+'">'+
-      '</div>';
-  }).join('');
-
-  var html=''+
-  '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'+
-  '<title>Encarte do Dia — '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</title>'+
-  '<style>'+
-  '*{box-sizing:border-box;margin:0;padding:0}'+
-  'body{font-family:Arial,Helvetica,sans-serif;background:#eeede8;padding:14px}'+
-  '.ed-page{max-width:1080px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
-  '.ed-header{background:linear-gradient(135deg,#e02a2a,#c00e0e);color:#fff;padding:26px 20px;text-align:center}'+
-  '.ed-header .dia{font-size:44px;font-weight:900;letter-spacing:1px;color:#fedb01;text-shadow:2px 2px 0 #7a0000}'+
-  '.ed-header .sub{font-size:20px;font-weight:800;letter-spacing:4px;margin-top:2px}'+
-  '.ed-header .data{font-size:15px;font-weight:700;margin-top:8px;opacity:.95}'+
-  '.ed-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;background:#fedb01}'+
-  '@media(max-width:640px){.ed-grid{grid-template-columns:repeat(2,1fr)}}'+
-  '.ed-card{background:#fff;border-radius:8px;overflow:hidden;aspect-ratio:1054/1492;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15)}'+
-  '.ed-card img{width:100%;height:100%;object-fit:contain}'+
-  '.ed-footer{background:#e02a2a;color:#fff;text-align:center;padding:12px 16px;font-size:13px;font-weight:600}'+
-  '.ed-footer b{color:#fedb01}'+
-  '.ed-toolbar{max-width:1080px;margin:0 auto 10px;display:flex;justify-content:flex-end;gap:8px}'+
-  '.ed-toolbar button{border:0;background:#1D9E75;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;cursor:pointer}'+
-  '@media print{.ed-toolbar{display:none}body{background:#fff;padding:0}.ed-page{box-shadow:none;border-radius:0}}'+
-  '</style></head><body>'+
-  '<div class="ed-toolbar"><button onclick="window.print()">Imprimir</button></div>'+
-  '<div class="ed-page">'+
-    '<div class="ed-header">'+
-      '<div class="dia">'+escapeHtml(dt.dia)+'</div>'+
-      '<div class="sub">DA ECONOMIA</div>'+
-      '<div class="data">Ofertas válidas para '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</div>'+
-    '</div>'+
-    '<div class="ed-grid">'+cardsHtml+'</div>'+
-    '<div class="ed-footer">OFERTAS VÁLIDAS PARA <b>'+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</b> OU ENQUANTO DURAREM OS ESTOQUES</div>'+
-  '</div>'+
-  '</body></html>';
-
-  var win=window.open('','_blank');
-  if(!win){mostrarToast('O navegador bloqueou a nova janela. Permita pop-ups para gerar o encarte.','warn');return;}
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
 }
 
 async function copiarPlaca(){
