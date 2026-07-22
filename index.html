@@ -81,7 +81,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .foto-actions{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:640px){.foto-panel{align-items:stretch}.foto-search{grid-template-columns:1fr}.foto-preview{width:56px;height:56px}}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.pct-badge{font-size:12px;font-weight:700;color:#f7941d;background:rgba(247,148,29,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
+.pct-badge{font-size:12px;font-weight:700;color:var(--green);background:rgba(29,158,117,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
 .canvas-wrap{background:var(--bg2);border-radius:var(--rl);padding:10px;display:flex;flex-direction:column;align-items:center;gap:8px}
 #placaCanvas{max-width:100%;max-height:calc(100vh - 130px);width:auto;height:auto;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);background:#fff}
 .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
@@ -108,7 +108,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .enc-card{position:relative;border:1px solid var(--bd);border-radius:var(--r);background:var(--bg2);padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:border-color .15s}
 .enc-card:hover{border-color:var(--bds)}
 .enc-card.checked{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.18)}
+.enc-card.editing{border-color:var(--amber);box-shadow:0 0 0 2px rgba(186,117,23,.28)}
 .enc-card input[type=checkbox]{position:absolute;top:6px;left:6px;width:17px;height:17px;cursor:pointer;accent-color:var(--green);z-index:2}
+.enc-card-tools{position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:2}
+.enc-tool-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--bds);background:var(--bg);color:var(--tx);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px}
+.enc-tool-btn:hover{background:var(--bg2)}
+.enc-tool-btn.del:hover{background:var(--red);border-color:var(--red);color:#fff}
+.enc-tool-btn.edit:hover{background:var(--blue);border-color:var(--blue);color:#fff}
 .enc-thumb{width:100%;aspect-ratio:1054/1492;background:#fff;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--bd)}
 .enc-thumb img{max-width:100%;max-height:100%;object-fit:contain}
 .enc-nome{font-size:12px;font-weight:700;line-height:1.25;max-height:2.5em;overflow:hidden}
@@ -374,6 +380,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         </label>
         <button class="btn btn-green btn-sm" onclick="imprimirPlacaA4()"><i class="ti ti-printer"></i> Imprimir</button>
         <button class="btn btn-sm" id="btnSalvarNuvem" onclick="salvarEncarteNuvem()"><i class="ti ti-cloud-upload"></i> Salvar na nuvem</button>
+        <button class="btn btn-sm" id="btnCancelarEdicao" style="display:none" onclick="cancelarEdicaoEncarte()"><i class="ti ti-x"></i> Cancelar edição</button>
       </div>
     </div>
   </div>
@@ -395,6 +402,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <button class="btn btn-sm" onclick="imprimirSelecionados(1)">1 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(2)">2 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(4)">4 por folha</button>
+      <button class="btn btn-green btn-sm" onclick="gerarEncarteDoDia()"><i class="ti ti-news"></i> Gerar Encarte do Dia</button>
     </div>
   </div>
 </div>
@@ -1284,21 +1292,15 @@ async function drawPlaca(){
   var corUnidade=document.getElementById('pCorUnidade').value||'#FFD600';
   var fonte=fonteAtual;
 
-  if(packOn){
-    var tmpl=await loadTemplatePack();
-    if(tmpl){
-      ctx.drawImage(tmpl,0,0,W,H);
-    }else{
-      ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-      ctx.fillStyle='#E8000D';ctx.fillRect(0,0,W,240);
-      ctx.fillStyle='#fff';ctx.font='900 90px '+fonte;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('PACK DO LÍDER',W/2,120);
-    }
+  var tmpl=packOn?(await loadTemplatePack()):(await loadTemplate());
+  if(tmpl){
+    ctx.drawImage(tmpl,0,0,W,H);
   }else{
-    // Layout simplificado do "encarte do dia": fundo branco liso,
-    // sem header nem rodapé — só descrição, foto e valor.
     ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#E8000D';ctx.fillRect(0,0,W,240);
+    ctx.fillStyle='#fff';ctx.font='900 90px '+fonte;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(packOn?'PACK DO LÍDER':'OFERTÃO DO DIA',W/2,120);
   }
 
   function splitLines(text,maxW){
@@ -1331,7 +1333,7 @@ async function drawPlaca(){
   ctx.font='900 '+fs+'px '+fonte;
   var nLines=splitLines(nomeClean,960);
   var lh=fs*1.10;
-  var nomeCY=150; // centro vertical no topo (sem header/banner)
+  var nomeCY=525; // centro vertical dentro da área branca
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
   }else{
@@ -1359,7 +1361,7 @@ async function drawPlaca(){
   // FOTO DO PRODUTO — cartão de fundo branco que se adapta à proporção real da imagem,
   // sem cortar conteúdo e sem esticar (evita perda de qualidade)
   if(fotoImg && !packOn){
-    var maxW=880,maxH=650,areaCX=W/2,areaTopY=320,pad2=18,fR=26;
+    var maxW=760,maxH=460,areaCX=W/2,areaTopY=605,pad2=18,fR=26;
     var imgAspect=fotoImg.width/fotoImg.height;
     var boxAspect=maxW/maxH;
     var fW,fH;
@@ -1438,8 +1440,21 @@ async function drawPlaca(){
     ctx.restore();
   }
 
-  // % DESCONTO — mantido apenas no modo Pack; no "encarte do dia" o layout
-  // é só descrição + foto + valor, sem selo de desconto.
+  // % DESCONTO — círculo flutuante à esquerda da caixa de preço (não sobrepõe)
+  if(pct && !packOn){
+    var cx=105,cy=1150,r=55;
+    ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=10;
+    ctx.fillStyle='#FFD600';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#E8000D';ctx.beginPath();ctx.arc(cx,cy,r-8,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+    ctx.fillStyle='#FFD600';ctx.textAlign='center';ctx.textBaseline='middle';
+    var pctFs=36;
+    ctx.font='900 '+pctFs+'px '+fonte;
+    while(ctx.measureText(pct+'%').width>85&&pctFs>18){pctFs-=2;ctx.font='900 '+pctFs+'px '+fonte;}
+    ctx.fillText(pct+'%',cx,cy-8);
+    ctx.fillStyle='#ffffff';ctx.font='900 18px '+fonte;
+    ctx.fillText('OFF',cx,cy+18);
+  }
 
   // ═══════════════════════════════════════════════════════════
   // CAIXA VERMELHA DO PREÇO (parte inferior)
@@ -1571,7 +1586,7 @@ async function drawPlaca(){
     var boxX=(W-boxW)/2, boxY=1065;
 
     ctx.shadowColor='rgba(0,0,0,0.35)';ctx.shadowBlur=14;
-    ctx.fillStyle=packOn?'#E8000D':'#f7941d';
+    ctx.fillStyle='#E8000D';
     ctx.beginPath();
     ctx.moveTo(boxX+boxR,boxY);
     ctx.lineTo(boxX+boxW-boxR,boxY);
@@ -1617,15 +1632,21 @@ async function drawPlaca(){
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.font='900 '+lblFs+'px '+fonte;
       ctx.fillText(labelDir,lblX+lblW/2,lblY+lblH/2+1);
+    }else{
+      // ── Rótulo direito em amarelo dentro da caixa (UNID) ──
+      ctx.fillStyle='#FFD600';
+      ctx.textAlign='right';ctx.textBaseline='top';
+      var labelFs = (labelDir.length>6 ? 22 : 26);
+      ctx.font='900 '+labelFs+'px '+fonte;
+      while(ctx.measureText(labelDir).width>boxW-60 && labelFs>18){labelFs-=2;ctx.font='900 '+labelFs+'px '+fonte;}
+      ctx.fillText(labelDir, boxX+boxW-22, boxY+16);
     }
-    // No layout simplificado ("encarte do dia") não desenhamos rótulo de
-    // unidade dentro do badge — só descrição, foto e valor.
 
     // ── R$ (amarelo) + valor (branco) centralizados na caixa ──
     var startX=boxX+(boxW-totalW)/2;
-    var baseY=boxY+boxH/2+valFs*0.34+(packOn?6:0);
+    var baseY=boxY+boxH/2+valFs*0.34+(packOn?6:24);
     ctx.textAlign='left';ctx.textBaseline='alphabetic';
-    ctx.fillStyle=packOn?'#FFD600':'rgba(255,255,255,.85)';
+    ctx.fillStyle='#FFD600';
     ctx.font='900 '+rsFs+'px '+fonte;
     ctx.fillText('R$', startX, baseY-valFs*0.05);
     ctx.fillStyle='#FFFFFF';
@@ -1634,9 +1655,8 @@ async function drawPlaca(){
   })();
   }
 
-  // FAIXA DE MENSAGEM (rodapé) — só no modo Pack; no "encarte do dia" o
-  // layout é simplificado (sem rodapé).
-  if(showMsg && msgTxt && packOn){
+  // FAIXA DE MENSAGEM (rodapé) — barra vermelha com texto branco
+  if(showMsg && msgTxt){
     if(packOn){
       // No template Pack a barra vermelha já existe na arte (y≈1266–1410, x≈50–999).
       // Aqui só escrevemos o texto por cima, podendo quebrar em até 2 linhas.
@@ -1715,10 +1735,9 @@ async function drawPlaca(){
     }
   }
 
-  // RODAPÉ - validade e código (mantido só no modo Pack; o "encarte do dia"
-  // é simplificado: só descrição, foto e valor)
+  // RODAPÉ - validade e código (só se não houver faixa cobrindo o rodapé)
   var faixaAtiva=(showMsg && msgTxt);
-  if(packOn && !faixaAtiva){
+  if(!faixaAtiva){
     if(validade){
       ctx.fillStyle='#000000';
       ctx.font='normal 20px '+fonte;
@@ -1846,27 +1865,47 @@ async function salvarEncarteNuvem(){
   var cod=(document.getElementById('pCod').value||'').trim();
   var por=(document.getElementById('pPor').value||'').trim();
   var de=(document.getElementById('pDe').value||'').trim();
+  var unidade=(document.getElementById('pShowUnidade').checked?(document.getElementById('pUnidade').value||''):'').trim();
 
   btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Salvando...';
   try{
     var dataUrl=cv.toDataURL('image/png');
-    var novoItem={
-      id:gerarIdEncarte(),
-      produto:produto,
-      codigo:cod,
-      de:de,
-      por:por,
-      data:new Date().toISOString(),
-      img:dataUrl
-    };
-    // busca a lista atual (o backend faz bulk-replace, então
-    // precisamos reenviar a lista inteira com o item novo incluído)
+    var fotoSrc=fotoImg?fotoImg.src:'';
     var atual=await _gasGet('buscarEncartes');
     var lista=(atual&&atual.ok&&Array.isArray(atual.dados))?atual.dados:[];
-    lista.push(novoItem);
+    if(editingEncarteId){
+      var idx=lista.findIndex(function(x){return x.id===editingEncarteId;});
+      var itemAtualizado={
+        id:editingEncarteId,
+        produto:produto,
+        codigo:cod,
+        de:de,
+        por:por,
+        unidade:unidade,
+        data:new Date().toISOString(),
+        img:dataUrl,
+        foto:fotoSrc
+      };
+      if(idx>=0)lista[idx]=itemAtualizado;else lista.push(itemAtualizado);
+    }else{
+      lista.push({
+        id:gerarIdEncarte(),
+        produto:produto,
+        codigo:cod,
+        de:de,
+        por:por,
+        unidade:unidade,
+        data:new Date().toISOString(),
+        img:dataUrl,
+        foto:fotoSrc
+      });
+    }
     var res=await _gasPost('salvarEncartes',{dados:lista});
     if(res&&res.ok){
-      mostrarToast('Placa salva na nuvem.','ok');
+      mostrarToast(editingEncarteId?'Placa atualizada na nuvem.':'Placa salva na nuvem.','ok');
+      editingEncarteId=null;
+      var btnCancel=document.getElementById('btnCancelarEdicao');
+      if(btnCancel)btnCancel.style.display='none';
       carregarEncartes();
     }else{
       mostrarToast('Não consegui salvar na nuvem: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
@@ -1908,15 +1947,74 @@ function renderEncartes(){
   listEl.innerHTML=encartesCache.map(function(it){
     var marcado=!!encartesSelecionados[it.id];
     var precoTxt=it.por?('R$ '+it.por):'';
+    var editando=(editingEncarteId===it.id);
     return ''+
-      '<div class="enc-card'+(marcado?' checked':'')+'" data-id="'+escapeHtml(it.id)+'" onclick="toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
+      '<div class="enc-card'+(marcado?' checked':'')+(editando?' editing':'')+'" data-id="'+escapeHtml(it.id)+'" onclick="toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
         '<input type="checkbox" '+(marcado?'checked':'')+' onclick="event.stopPropagation();toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
+        '<div class="enc-card-tools">'+
+          '<button type="button" class="enc-tool-btn edit" title="Editar (preço, unidade, etc.)" onclick="event.stopPropagation();editarEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-pencil"></i></button>'+
+          '<button type="button" class="enc-tool-btn del" title="Excluir" onclick="event.stopPropagation();excluirEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-trash"></i></button>'+
+        '</div>'+
         '<div class="enc-thumb"><img src="'+escapeHtml(it.img||'')+'" loading="lazy" alt=""></div>'+
         '<div class="enc-nome">'+escapeHtml(it.produto||'(sem nome)')+'</div>'+
         '<div class="enc-meta"><span>'+escapeHtml(it.codigo||'')+'</span><span style="color:var(--green);font-weight:700">'+escapeHtml(precoTxt)+'</span></div>'+
       '</div>';
   }).join('');
   atualizarContagemSelecao();
+}
+
+var editingEncarteId=null;
+
+function editarEncarte(id){
+  var it=encartesCache.find(function(x){return x.id===id;});
+  if(!it){mostrarToast('Placa não encontrada.','err');return;}
+  editingEncarteId=id;
+  document.getElementById('pCod').value=it.codigo||'';
+  document.getElementById('pDescOverride').value=it.produto||'';
+  document.getElementById('pDe').value=it.de||'';
+  document.getElementById('pPor').value=it.por||'';
+  onPrecoChange();
+  drawPlaca();
+  var btn=document.getElementById('btnSalvarNuvem');
+  if(btn)btn.innerHTML='<i class="ti ti-cloud-upload"></i> Salvar edição';
+  var btnCancel=document.getElementById('btnCancelarEdicao');
+  if(btnCancel)btnCancel.style.display='inline-flex';
+  mostrarToast('Editando "'+(it.produto||'placa')+'". Ajuste os campos e clique em "Salvar edição".','ok');
+  window.scrollTo({top:0,behavior:'smooth'});
+  renderEncartes();
+}
+
+function cancelarEdicaoEncarte(){
+  editingEncarteId=null;
+  var btn=document.getElementById('btnSalvarNuvem');
+  if(btn)btn.innerHTML='<i class="ti ti-cloud-upload"></i> Salvar na nuvem';
+  var btnCancel=document.getElementById('btnCancelarEdicao');
+  if(btnCancel)btnCancel.style.display='none';
+  renderEncartes();
+}
+
+async function excluirEncarte(id){
+  var it=encartesCache.find(function(x){return x.id===id;});
+  if(!it)return;
+  if(!confirm('Excluir a placa "'+(it.produto||'sem nome')+'" da nuvem? Essa ação não pode ser desfeita.'))return;
+  var cfg=loadCfg();
+  if(!cfg.url){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
+  try{
+    var atual=await _gasGet('buscarEncartes');
+    var lista=(atual&&atual.ok&&Array.isArray(atual.dados))?atual.dados:[];
+    lista=lista.filter(function(x){return x.id!==id;});
+    var res=await _gasPost('salvarEncartes',{dados:lista});
+    if(res&&res.ok){
+      mostrarToast('Placa excluída.','ok');
+      delete encartesSelecionados[id];
+      if(editingEncarteId===id)cancelarEdicaoEncarte();
+      carregarEncartes();
+    }else{
+      mostrarToast('Não consegui excluir: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
+    }
+  }catch(e){
+    mostrarToast('Erro ao excluir: '+e.message,'err');
+  }
 }
 
 function toggleEncarteCard(e,id){
@@ -1965,6 +2063,104 @@ async function imprimirSelecionados(qtd){
   });
   await Promise.all(promessas);
   setTimeout(function(){window.print();},100);
+}
+
+// ============================================================
+// ENCARTE DO DIA — página consolidada com as placas marcadas,
+// data (dia da semana + dd/mm) dinâmica no header e no rodapé
+// ============================================================
+var DIAS_SEMANA=['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
+
+function dadosDataHoje(){
+  var d=new Date();
+  var dia=DIAS_SEMANA[d.getDay()];
+  var dd=String(d.getDate()).padStart(2,'0');
+  var mm=String(d.getMonth()+1).padStart(2,'0');
+  var yyyy=d.getFullYear();
+  return{dia:dia,dataCurta:dd+'/'+mm,dataCompleta:dd+'/'+mm+'/'+yyyy};
+}
+
+function gerarEncarteDoDia(){
+  var selecionados=encartesCache.filter(function(it){return encartesSelecionados[it.id];});
+  if(!selecionados.length){mostrarToast('Selecione ao menos uma placa na lista.','warn');return;}
+
+  var dt=dadosDataHoje();
+
+  var cardsHtml=selecionados.map(function(it){
+    var fotoSrc=it.foto||it.img||'';
+    var precoStr=String(it.por||'').replace(',','.').trim();
+    var precoNum=parseFloat(precoStr);
+    var precoInt='0',precoDec='00';
+    if(!isNaN(precoNum)){
+      precoInt=String(Math.floor(precoNum));
+      precoDec=(precoNum-Math.floor(precoNum)).toFixed(2).substring(2);
+    }else if(it.por){
+      var partes=String(it.por).split(/[.,]/);
+      precoInt=partes[0]||'0';precoDec=partes[1]||'00';
+    }
+    var unidadeTxt=it.unidade?escapeHtml(it.unidade):'UNID';
+    return ''+
+      '<div class="ed-card">'+
+        '<div class="ed-foto"><img src="'+escapeHtml(fotoSrc)+'" alt="'+escapeHtml(it.produto||'')+'"></div>'+
+        '<div class="ed-desc">'+escapeHtml((it.produto||'').toUpperCase())+'</div>'+
+        '<div class="ed-badge">'+
+          '<div class="ed-badge-label">no<br>Clube<br>Boas<br>Compras</div>'+
+          '<div class="ed-badge-price">'+
+            '<span class="ed-price-int">'+escapeHtml(precoInt)+'</span>'+
+            '<span class="ed-price-dec">,'+escapeHtml(precoDec)+'</span>'+
+          '</div>'+
+          '<div class="ed-badge-unit">'+unidadeTxt+'</div>'+
+        '</div>'+
+      '</div>';
+  }).join('');
+
+  var html=''+
+  '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'+
+  '<title>Encarte do Dia — '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</title>'+
+  '<style>'+
+  '*{box-sizing:border-box;margin:0;padding:0}'+
+  'body{font-family:Arial,Helvetica,sans-serif;background:#eeede8;padding:14px}'+
+  '.ed-page{max-width:1080px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
+  '.ed-header{background:linear-gradient(135deg,#e02a2a,#c00e0e);color:#fff;padding:26px 20px;text-align:center}'+
+  '.ed-header .dia{font-size:44px;font-weight:900;letter-spacing:1px;color:#fedb01;text-shadow:2px 2px 0 #7a0000}'+
+  '.ed-header .sub{font-size:20px;font-weight:800;letter-spacing:4px;margin-top:2px}'+
+  '.ed-header .data{font-size:15px;font-weight:700;margin-top:8px;opacity:.95}'+
+  '.ed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:16px;background:#fedb01}'+
+  '@media(max-width:900px){.ed-grid{grid-template-columns:repeat(3,1fr)}}'+
+  '@media(max-width:640px){.ed-grid{grid-template-columns:repeat(2,1fr)}}'+
+  '.ed-card{background:#fff;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;box-shadow:0 2px 6px rgba(0,0,0,.15)}'+
+  '.ed-foto{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;padding:8px}'+
+  '.ed-foto img{width:100%;height:100%;object-fit:contain}'+
+  '.ed-desc{font-size:11px;font-weight:800;text-align:center;color:#1a1a18;line-height:1.2;padding:4px 6px;min-height:2.4em;display:flex;align-items:center;justify-content:center}'+
+  '.ed-badge{background:#f7941d;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px;padding:6px 8px;position:relative}'+
+  '.ed-badge-label{font-size:8.5px;font-weight:700;color:#fff;line-height:1.15;text-transform:uppercase;opacity:.95}'+
+  '.ed-badge-price{display:flex;align-items:flex-start;justify-content:center;line-height:1}'+
+  '.ed-price-int{font-size:34px;font-weight:900;color:#fff}'+
+  '.ed-price-dec{font-size:15px;font-weight:800;color:#fff;margin-top:2px}'+
+  '.ed-badge-unit{font-size:10px;font-weight:800;color:#fff;text-transform:uppercase;align-self:flex-end}'+
+  '.ed-footer{background:#e02a2a;color:#fff;text-align:center;padding:12px 16px;font-size:13px;font-weight:600}'+
+  '.ed-footer b{color:#fedb01}'+
+  '.ed-toolbar{max-width:1080px;margin:0 auto 10px;display:flex;justify-content:flex-end;gap:8px}'+
+  '.ed-toolbar button{border:0;background:#1D9E75;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;cursor:pointer}'+
+  '@media print{.ed-toolbar{display:none}body{background:#fff;padding:0}.ed-page{box-shadow:none;border-radius:0}}'+
+  '</style></head><body>'+
+  '<div class="ed-toolbar"><button onclick="window.print()">Imprimir</button></div>'+
+  '<div class="ed-page">'+
+    '<div class="ed-header">'+
+      '<div class="dia">'+escapeHtml(dt.dia)+'</div>'+
+      '<div class="sub">DA ECONOMIA</div>'+
+      '<div class="data">Ofertas válidas para '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</div>'+
+    '</div>'+
+    '<div class="ed-grid">'+cardsHtml+'</div>'+
+    '<div class="ed-footer">OFERTAS VÁLIDAS PARA <b>'+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</b> OU ENQUANTO DURAREM OS ESTOQUES</div>'+
+  '</div>'+
+  '</body></html>';
+
+  var win=window.open('','_blank');
+  if(!win){mostrarToast('O navegador bloqueou a nova janela. Permita pop-ups para gerar o encarte.','warn');return;}
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }
 
 async function copiarPlaca(){
