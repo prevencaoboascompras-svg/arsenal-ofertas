@@ -2084,7 +2084,7 @@ async function editarEncarte(id){
   var cod=normalizarCodigo(it.codigo);
   var prod=buscarPorCodigo(cod)||{};
   var descricaoBanco=banco[cod]||prod.nome||it.produto||'';
-  var unidade=normalizarUnidadeBanco(bancoUnidade[cod]||prod.unidade||it.unidadeBanco||it.unidadePromocao||it.unidade||'');
+  var unidade=normalizarUnidadeBanco(it.unidadePromocao||it.unidade||bancoUnidade[cod]||prod.unidade||it.unidadeBanco||'');
   var precoPromo=it.precoPromocional||it.por||'';
   var packOn=it.tipoPromocao==='PACK';
 
@@ -2247,7 +2247,7 @@ async function gerarImagemPlacaItem(it){
   var cod=normalizarCodigo(it.codigo);
   var prod=buscarPorCodigo(cod)||{};
   var descricao=(banco[cod]||prod.nome||it.produto||it.produtoDigitado||'PRODUTO').trim();
-  var unidade=normalizarUnidadeBanco(bancoUnidade[cod]||prod.unidade||it.unidadeBanco||it.unidadePromocao||it.unidade||'');
+  var unidade=normalizarUnidadeBanco(it.unidadePromocao||it.unidade||bancoUnidade[cod]||prod.unidade||it.unidadeBanco||'');
   var precoPromo=String(it.precoPromocional||it.por||'').trim();
   var packOn=it.tipoPromocao==='PACK';
 
