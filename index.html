@@ -2393,8 +2393,8 @@ function prepararItemEncarte(it){
   var produtoBanco=buscarPorCodigo(cod)||{};
   var descricao=(banco[cod]||produtoBanco.nome||it.produto||it.produtoDigitado||'PRODUTO').trim();
   var unidadeBanco=normalizarUnidadeBanco(bancoUnidade[cod]||produtoBanco.unidade||it.unidadeBanco||'');
-  var unidadeFallback=normalizarUnidadeBanco(it.unidadePromocao||it.unidade||'');
-  var unidade=unidadeBanco||unidadeFallback||'UNID';
+  var unidadePromo=normalizarUnidadeBanco(it.unidadePromocao||it.unidade||'');
+  var unidade=unidadePromo||unidadeBanco||'UNID';
   var precoPromo=String(it.precoPromocional||it.por||'').trim();
   return {
     id:it.id,
