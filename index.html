@@ -2455,9 +2455,11 @@ async function gerarEncarteDoDia(){
           '<div class="ed-badge-label">no<br>Clube<br>Boas<br>Compras</div>'+
           '<div class="ed-badge-price">'+
             '<span class="ed-price-int">'+escapeHtml(precoInt)+'</span>'+
-            '<span class="ed-price-dec">,'+escapeHtml(precoDec)+'</span>'+
+            '<span class="ed-price-decunit">'+
+              '<span class="ed-price-dec">,'+escapeHtml(precoDec)+'</span>'+
+              '<span class="ed-badge-unit">'+escapeHtml(it.unidade)+'</span>'+
+            '</span>'+
           '</div>'+
-          '<div class="ed-badge-unit">'+escapeHtml(it.unidade)+'</div>'+
         '</div>'+
       '</div>';
   }
@@ -2514,15 +2516,17 @@ async function gerarEncarteDoDia(){
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
   '.ed-desc{background:#fede00;border-radius:8px;font-size:clamp(7px,1vw,11px);font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:4% 6%;min-height:2.1em;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;margin:-8% 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
-  '.ed-badge{background:#fd6301;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3px;padding:8% 5% 5%;position:relative;z-index:1;margin-top:-6%;border-radius:0 0 8px 8px;flex-shrink:0}'+
+  '.ed-badge{background:#fd6301;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:3%;padding:8% 5% 5%;position:relative;z-index:1;margin-top:-6%;border-radius:0 0 8px 8px;flex-shrink:0}'+
   '.ed-badge-label{font-size:clamp(5px,.65vw,7.5px);font-weight:700;color:#fff;line-height:1.1;text-transform:uppercase;opacity:.95}'+
-  '.ed-badge-price{display:flex;align-items:flex-start;justify-content:center;line-height:1}'+
-  '.ed-price-int{font-size:clamp(18px,3.4vw,34px);font-weight:900;color:#fff}'+
-  '.ed-price-dec{font-size:clamp(9px,1.43vw,16px);font-weight:800;color:#fff;margin-top:1px}'+
-  '.ed-badge-unit{font-size:clamp(6px,.85vw,9px);font-weight:800;color:#fff;text-transform:uppercase;align-self:flex-start;margin-top:1px}'+
+  '.ed-badge-price{display:flex;align-items:center;justify-content:center;line-height:1}'+
+  '.ed-price-int{font-size:clamp(24px,4.6vw,46px);font-weight:900;color:#fff}'+
+  '.ed-price-decunit{display:flex;flex-direction:column;align-items:flex-start;margin-left:2px}'+
+  '.ed-price-dec{font-size:clamp(12px,1.95vw,22px);font-weight:800;color:#fff;line-height:1}'+
+  '.ed-badge-unit{font-size:clamp(6px,.85vw,9px);font-weight:800;color:#fff;text-transform:uppercase;line-height:1;margin-top:2px}'+
   '.ed-toolbar{max-width:1080px;margin:0 auto 10px;display:flex;justify-content:flex-end;gap:8px;align-items:center}'+
   '.ed-toolbar .info{margin-right:auto;font-size:12px;color:#555}'+
   '.ed-toolbar button{border:0;background:#1D9E75;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;cursor:pointer}'+
+  '*{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}'+
   '@media print{.ed-toolbar{display:none}body{background:#fff;padding:0}.ed-page{box-shadow:none;border-radius:0;page-break-after:always}}'+
   '</style></head><body>'+
   '<div class="ed-toolbar"><div class="info">Preço: promoção salva · Descrição/unidade/foto: buscadas pelo código · '+paginas.length+' página(s)</div><button id="btnBaixarEncartePng" onclick="baixarEncartePNG()">⬇ Baixar PNG</button><button onclick="window.print()">Imprimir</button></div>'+
