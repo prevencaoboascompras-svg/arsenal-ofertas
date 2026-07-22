@@ -1925,8 +1925,6 @@ async function salvarEncarteNuvem(){
     return;
   }
 
-  await drawPlaca();
-  var cv=document.getElementById('placaCanvas');
   var produtoDigitado=(document.getElementById('pDescOverride').value||'').trim();
   var produtoBanco=(banco[cod]||(buscarPorCodigo(cod)||{}).nome||produtoDigitado||'PRODUTO').trim();
   var de=(document.getElementById('pDe').value||'').trim();
@@ -1936,14 +1934,16 @@ async function salvarEncarteNuvem(){
 
   btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Adicionando...';
   try{
-    // A imagem da placa fica somente como miniatura da lista. O encarte final é reconstruído por código.
-    var dataUrl=cv.toDataURL('image/png');
-    var fotoSrc=fotoImg?fotoImg.src:'';
+    // Lista leve: guarda só os dados do produto (código + valor promocional).
+    // Nem a foto nem a arte da placa são salvas aqui — a foto é buscada ao vivo
+    // por EAN (banco de imagens do Drive / Cosmos / web) na hora de montar o
+    // encarte ou de exibir a miniatura, e o preço usado é sempre este valor
+    // promocional salvo agora.
     var atual=await _gasGet('buscarEncartes');
     var lista=(atual&&atual.ok&&Array.isArray(atual.dados))?atual.dados:[];
     var registro={
       id:editingEncarteId||gerarIdEncarte(),
-      versaoRegistro:2,
+      versaoRegistro:3,
       codigo:cod,
       produto:produtoBanco,
       produtoDigitado:produtoDigitado,
@@ -1956,9 +1956,7 @@ async function salvarEncarteNuvem(){
       validade:validade,
       tipoPromocao:packOn?'PACK':'UNITARIA',
       packQtd:packOn?(parseInt(document.getElementById('pPackQtd').value,10)||0):0,
-      data:new Date().toISOString(),
-      img:dataUrl,
-      foto:fotoSrc
+      data:new Date().toISOString()
     };
 
     if(editingEncarteId){
@@ -1970,7 +1968,7 @@ async function salvarEncarteNuvem(){
 
     var res=await _gasPost('salvarEncartes',{dados:lista});
     if(res&&res.ok){
-      // Mantém o banco de imagens do Drive alimentado pelo mesmo código do item.
+      // Alimenta o banco de imagens do Drive em segundo plano (não bloqueia a lista).
       salvarFotoAtualNoDrive(false);
       mostrarToast(editingEncarteId?'Promoção atualizada na lista.':'Promoção adicionada à lista.','ok');
       editingEncarteId=null;
@@ -2019,6 +2017,11 @@ function renderEncartes(){
     var precoSalvo=it.precoPromocional||it.por||'';
     var precoTxt=precoSalvo?('R$ '+precoSalvo):'';
     var editando=(editingEncarteId===it.id);
+    var cod=normalizarCodigo(it.codigo);
+    var fotoCache=encartesFotoCache[cod];
+    var thumbHtml=fotoCache
+      ?'<img src="'+escapeHtml(fotoCache)+'" loading="lazy" alt="">'
+      :'<i class="ti ti-photo" style="opacity:.3;font-size:22px"></i>';
     return ''+
       '<div class="enc-card'+(marcado?' checked':'')+(editando?' editing':'')+'" data-id="'+escapeHtml(it.id)+'" onclick="toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
         '<input type="checkbox" '+(marcado?'checked':'')+' onclick="event.stopPropagation();toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
@@ -2026,12 +2029,45 @@ function renderEncartes(){
           '<button type="button" class="enc-tool-btn edit" title="Editar promoção" onclick="event.stopPropagation();editarEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-pencil"></i></button>'+
           '<button type="button" class="enc-tool-btn del" title="Excluir" onclick="event.stopPropagation();excluirEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-trash"></i></button>'+
         '</div>'+
-        '<div class="enc-thumb"><img src="'+escapeHtml(it.img||'')+'" loading="lazy" alt=""></div>'+
+        '<div class="enc-thumb" data-cod="'+escapeHtml(cod)+'">'+thumbHtml+'</div>'+
         '<div class="enc-nome">'+escapeHtml(it.produto||'(sem nome)')+'</div>'+
         '<div class="enc-meta"><span>'+escapeHtml(it.codigo||'')+'</span><span style="color:var(--green);font-weight:700">'+escapeHtml(precoTxt)+'</span></div>'+
       '</div>';
   }).join('');
   atualizarContagemSelecao();
+  carregarThumbsPendentes();
+}
+
+// Cache em memória (não persistido) das fotos já buscadas ao vivo por EAN,
+// para não refazer a busca toda vez que a lista é re-renderizada.
+var encartesFotoCache={};
+
+async function carregarThumbsPendentes(){
+  var pendentes=[];
+  var vistos={};
+  encartesCache.forEach(function(it){
+    var cod=normalizarCodigo(it.codigo);
+    if(cod&&!encartesFotoCache[cod]&&!vistos[cod]){vistos[cod]=true;pendentes.push(it);}
+  });
+  if(!pendentes.length)return;
+  await mapComLimite(pendentes,4,async function(it){
+    var cod=normalizarCodigo(it.codigo);
+    if(encartesFotoCache[cod])return;
+    var src='';
+    try{
+      var foto=await buscarFotoItemEncarte(cod,it.produto,'');
+      src=foto.src||'';
+    }catch(e){}
+    encartesFotoCache[cod]=src;
+    if(src){
+      var thumbs=document.querySelectorAll('.enc-thumb[data-cod]');
+      for(var i=0;i<thumbs.length;i++){
+        if(thumbs[i].getAttribute('data-cod')===cod){
+          thumbs[i].innerHTML='<img src="'+escapeHtml(src)+'" loading="lazy" alt="">';
+        }
+      }
+    }
+  });
 }
 
 var editingEncarteId=null;
@@ -2134,6 +2170,58 @@ function atualizarContagemSelecao(){
   if(el)el.textContent=n;
 }
 
+// Reconstrói a arte de uma placa individual a partir do registro leve da lista:
+// usa o código do item para buscar descrição/unidade no banco e a foto ao vivo,
+// e usa sempre o valor promocional salvo. Não mexe na placa que está sendo
+// editada na tela — restaura tudo ao final.
+async function gerarImagemPlacaItem(it){
+  var cod=normalizarCodigo(it.codigo);
+  var prod=buscarPorCodigo(cod)||{};
+  var descricao=(banco[cod]||prod.nome||it.produto||it.produtoDigitado||'PRODUTO').trim();
+  var unidade=normalizarUnidadeBanco(bancoUnidade[cod]||prod.unidade||it.unidadeBanco||it.unidadePromocao||it.unidade||'');
+  var precoPromo=String(it.precoPromocional||it.por||'').trim();
+  var packOn=it.tipoPromocao==='PACK';
+
+  var elCod=document.getElementById('pCod'),elDesc=document.getElementById('pDescOverride'),
+      elDe=document.getElementById('pDe'),elPor=document.getElementById('pPor'),
+      elPackOn=document.getElementById('pPackOn'),elPackQtd=document.getElementById('pPackQtd'),
+      elPackTotal=document.getElementById('pPackTotal'),elValidade=document.getElementById('pValidade'),
+      elUnidade=document.getElementById('pUnidade');
+
+  var backup={
+    cod:elCod.value,desc:elDesc.value,de:elDe.value,por:elPor.value,
+    packOn:elPackOn.checked,packQtd:elPackQtd.value,packTotal:elPackTotal.value,
+    validade:elValidade.value,unidade:elUnidade.value,
+    fotoImg:fotoImg,fotoOrigemDrive:fotoOrigemDrive,prodAtualCod:prodAtualCod
+  };
+
+  try{
+    elCod.value=cod;
+    elDesc.value=descricao;
+    elDe.value=it.de||'';
+    elPackOn.checked=packOn;
+    elPackQtd.value=it.packQtd||0;
+    elPor.value=packOn?'':precoPromo;
+    elPackTotal.value=packOn?precoPromo:'';
+    elValidade.value=it.validade||'';
+    elUnidade.value=unidade;
+    prodAtualCod=cod;
+
+    var foto=await buscarFotoItemEncarte(cod,descricao,'');
+    fotoImg=foto.src?await carregarImagemUrl(foto.src):null;
+    fotoOrigemDrive=(foto.origem==='Google Drive');
+
+    await drawPlaca();
+    return document.getElementById('placaCanvas').toDataURL('image/png');
+  }finally{
+    elCod.value=backup.cod;elDesc.value=backup.desc;elDe.value=backup.de;elPor.value=backup.por;
+    elPackOn.checked=backup.packOn;elPackQtd.value=backup.packQtd;elPackTotal.value=backup.packTotal;
+    elValidade.value=backup.validade;elUnidade.value=backup.unidade;
+    fotoImg=backup.fotoImg;fotoOrigemDrive=backup.fotoOrigemDrive;prodAtualCod=backup.prodAtualCod;
+    drawPlaca();
+  }
+}
+
 async function imprimirSelecionados(qtd){
   var selecionados=encartesCache.filter(function(it){return encartesSelecionados[it.id];});
   if(!selecionados.length){mostrarToast('Selecione ao menos uma placa na lista.','warn');return;}
@@ -2142,13 +2230,16 @@ async function imprimirSelecionados(qtd){
   if(qtd===2){cols=1;rows=2;}
   else if(qtd===4){cols=2;rows=2;}
 
+  mostrarToast('Montando placas para impressão...','ok');
+  var imagens=await mapComLimite(selecionados,2,function(it){return gerarImagemPlacaItem(it);});
+
   var area=document.getElementById('printArea');
   var html='';
-  for(var p=0;p<selecionados.length;p+=qtd){
-    var grupo=selecionados.slice(p,p+qtd);
+  for(var p=0;p<imagens.length;p+=qtd){
+    var grupo=imagens.slice(p,p+qtd);
     html+='<div class="print-page" style="grid-template-columns:repeat('+cols+',1fr);grid-template-rows:repeat('+rows+',1fr)">';
-    grupo.forEach(function(it){
-      html+='<div class="print-cell'+(comLinha&&qtd>1?' bordered':'')+'"><img src="'+escapeHtml(it.img||'')+'" alt=""></div>';
+    grupo.forEach(function(src){
+      html+='<div class="print-cell'+(comLinha&&qtd>1?' bordered':'')+'"><img src="'+escapeHtml(src||'')+'" alt=""></div>';
     });
     html+='</div>';
   }
