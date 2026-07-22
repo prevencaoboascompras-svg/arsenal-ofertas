@@ -2440,8 +2440,9 @@ async function gerarEncarteDoDia(){
       precoInt=String(Math.floor(precoNum));
       precoDec=(precoNum-Math.floor(precoNum)).toFixed(2).substring(2);
     }
-    var fotoHtml=it.foto
-      ?'<img src="'+escapeHtml(it.foto)+'" alt="'+escapeHtml(it.descricao)+'">'
+    var fotoSrcSegura=it.foto?(/^data:/i.test(it.foto)?it.foto:proxyImagemUrl(it.foto)):'';
+    var fotoHtml=fotoSrcSegura
+      ?'<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'
       :'<div class="ed-sem-foto"><span>SEM FOTO</span><small>Cód. '+escapeHtml(it.codigo||'não informado')+'</small></div>';
     var packHtml=it.tipoPromocao==='PACK'&&it.packQtd
       ?'<div class="ed-pack">LEVE '+escapeHtml(it.packQtd)+'</div>'
@@ -2490,6 +2491,9 @@ async function gerarEncarteDoDia(){
       '</div>';
   }).join('');
 
+  var diaSlug=dt.dia.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var dataSlug=dt.dataCurta.replace(/\//g,'-');
+
   var html=''+
   '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'+
   '<title>Encarte do Dia — '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</title>'+
@@ -2497,8 +2501,8 @@ async function gerarEncarteDoDia(){
   '*{box-sizing:border-box;margin:0;padding:0}'+
   'body{font-family:Arial,Helvetica,sans-serif;background:#eeede8;padding:14px}'+
   '.ed-page{position:relative;max-width:1080px;margin:0 auto 20px;aspect-ratio:1080/1350;background-repeat:no-repeat;background-size:100% 100%;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
-  '.ed-header-img-wrap{position:absolute;top:0;left:0;width:100%;height:28.08%;display:flex;align-items:center;justify-content:center;padding:1% 4%;overflow:visible;z-index:2}'+
-  '.ed-header-img-wrap img{max-width:100%;max-height:156%;object-fit:contain}'+
+  '.ed-header-img-wrap{position:absolute;top:0;left:0;width:100%;height:25.27%;display:flex;align-items:center;justify-content:center;padding:1% 4%;overflow:visible;z-index:2}'+
+  '.ed-header-img-wrap img{max-width:100%;max-height:140.4%;object-fit:contain}'+
   '.ed-linha1{position:absolute;top:21.6%;left:1%;width:98%;height:21.8%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
   '.ed-linha2{position:absolute;top:43.4%;left:1%;width:98%;height:24.5%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
   '.ed-linha3{position:absolute;top:68%;left:1%;width:98%;height:19.6%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
@@ -2521,8 +2525,32 @@ async function gerarEncarteDoDia(){
   '.ed-toolbar button{border:0;background:#1D9E75;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;cursor:pointer}'+
   '@media print{.ed-toolbar{display:none}body{background:#fff;padding:0}.ed-page{box-shadow:none;border-radius:0;page-break-after:always}}'+
   '</style></head><body>'+
-  '<div class="ed-toolbar"><div class="info">Preço: promoção salva · Descrição/unidade/foto: buscadas pelo código · '+paginas.length+' página(s)</div><button onclick="window.print()">Imprimir</button></div>'+
+  '<div class="ed-toolbar"><div class="info">Preço: promoção salva · Descrição/unidade/foto: buscadas pelo código · '+paginas.length+' página(s)</div><button id="btnBaixarEncartePng" onclick="baixarEncartePNG()">⬇ Baixar PNG</button><button onclick="window.print()">Imprimir</button></div>'+
   paginasHtml+
+  '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>'+
+  '<script>'+
+  'async function baixarEncartePNG(){'+
+    'var paginas=document.querySelectorAll(".ed-page");'+
+    'var btn=document.getElementById("btnBaixarEncartePng");'+
+    'if(btn){btn.disabled=true;btn.textContent="Gerando PNG...";}'+
+    'try{'+
+      'for(var i=0;i<paginas.length;i++){'+
+        'var canvas=await html2canvas(paginas[i],{useCORS:true,backgroundColor:"#ffffff",scale:2});'+
+        'await new Promise(function(res){'+
+          'canvas.toBlob(function(blob){'+
+            'var a=document.createElement("a");'+
+            'a.download="encarte-'+diaSlug+'-'+dataSlug+(paginas.length>1?'-pagina-"+(i+1)+"':'')+'".png";'+
+            'a.href=URL.createObjectURL(blob);'+
+            'document.body.appendChild(a);a.click();document.body.removeChild(a);'+
+            'setTimeout(function(){URL.revokeObjectURL(a.href);},1500);'+
+            'res();'+
+          '},"image/png");'+
+        '});'+
+      '}'+
+    '}catch(e){alert("Erro ao gerar o PNG: "+e.message+"\\n\\nSe alguma foto de produto veio de um site externo sem suporte a CORS, ela pode ter bloqueado a captura dessa página.");}'+
+    'if(btn){btn.disabled=false;btn.innerHTML="⬇ Baixar PNG";}'+
+  '}'+
+  '<\/script>'+
   '</body></html>';
 
   var frame=document.getElementById('edModalFrame');
@@ -2548,6 +2576,7 @@ function abrirModalEncarte(){
       '<div class="ed-modal-bar">'+
         '<span class="ed-modal-title"><i class="ti ti-news"></i> Encarte do Dia</span>'+
         '<span style="flex:1"></span>'+
+        '<button class="btn btn-sm" onclick="baixarEncartePNGModal()"><i class="ti ti-download"></i> Baixar PNG</button>'+
         '<button class="btn btn-sm" onclick="imprimirEncarteModal()"><i class="ti ti-printer"></i> Imprimir</button>'+
         '<button class="btn btn-sm" onclick="fecharModalEncarte()"><i class="ti ti-x"></i> Fechar</button>'+
       '</div>'+
@@ -2575,6 +2604,16 @@ function imprimirEncarteModal(){
   if(frame&&frame.contentWindow){
     try{frame.contentWindow.focus();frame.contentWindow.print();}
     catch(e){mostrarToast('Não consegui abrir a impressão: '+e.message,'err');}
+  }
+}
+
+function baixarEncartePNGModal(){
+  var frame=document.getElementById('edModalFrame');
+  if(frame&&frame.contentWindow&&typeof frame.contentWindow.baixarEncartePNG==='function'){
+    mostrarToast('Gerando PNG do encarte...','ok');
+    frame.contentWindow.baixarEncartePNG();
+  }else{
+    mostrarToast('Gere o encarte primeiro.','warn');
   }
 }
 
