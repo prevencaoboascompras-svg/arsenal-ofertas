@@ -2539,7 +2539,7 @@ async function gerarEncarteDoDia(){
         'await new Promise(function(res){'+
           'canvas.toBlob(function(blob){'+
             'var a=document.createElement("a");'+
-            'a.download="encarte-'+diaSlug+'-'+dataSlug+(paginas.length>1?'-pagina-"+(i+1)+"':'')+'".png";'+
+            'a.download="encarte-'+diaSlug+'-'+dataSlug+(paginas.length>1?'-pagina-"+(i+1)+"':'')+'.png";'+
             'a.href=URL.createObjectURL(blob);'+
             'document.body.appendChild(a);a.click();document.body.removeChild(a);'+
             'setTimeout(function(){URL.revokeObjectURL(a.href);},1500);'+
