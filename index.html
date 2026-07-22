@@ -297,6 +297,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <option value="PCT">PCT</option>
             <option value="CX">CX</option>
             <option value="DZ">DZ</option>
+            <option value="BDJ">BDJ</option>
+            <option value="FD">FD</option>
             <option value="">(nenhuma)</option>
           </select>
         </div>
@@ -379,7 +381,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <input type="checkbox" id="pPrintLinhaCorte" checked style="width:14px;height:14px;accent-color:var(--green)"> Linha de corte
         </label>
         <button class="btn btn-green btn-sm" onclick="imprimirPlacaA4()"><i class="ti ti-printer"></i> Imprimir</button>
-        <button class="btn btn-sm" id="btnSalvarNuvem" onclick="salvarEncarteNuvem()"><i class="ti ti-cloud-upload"></i> Salvar na nuvem</button>
+        <button class="btn btn-sm" id="btnSalvarNuvem" onclick="salvarEncarteNuvem()"><i class="ti ti-list-details"></i> Adicionar à lista</button>
         <button class="btn btn-sm" id="btnCancelarEdicao" style="display:none" onclick="cancelarEdicaoEncarte()"><i class="ti ti-x"></i> Cancelar edição</button>
       </div>
     </div>
@@ -387,7 +389,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
   <div class="panel" style="margin-top:14px">
     <div class="ph-row">
-      <h2><i class="ti ti-layout-grid"></i> Placas salvas na nuvem (aba "Encartes")</h2>
+      <h2><i class="ti ti-layout-grid"></i> Lista de placas geradas / promoções</h2>
       <div class="actions">
         <span class="hint" id="encartesInfo" style="color:var(--tx2);font-size:12px"></span>
         <button class="btn btn-sm" onclick="carregarEncartes()"><i class="ti ti-refresh"></i> Atualizar lista</button>
@@ -395,10 +397,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(false)"><i class="ti ti-square"></i> Limpar seleção</button>
       </div>
     </div>
+    <div style="font-size:11px;color:var(--tx2);margin:2px 0 8px">Ao gerar o encarte, o sistema usa o <b>código do item</b> para buscar descrição, unidade e foto. O preço utilizado é sempre o <b>valor promocional salvo</b>, nunca o preço atual do banco.</div>
     <div id="encartesList" class="encartes-grid"></div>
     <hr class="divider" style="width:100%">
     <div class="print-qtd-row">
-      <span class="lbl"><i class="ti ti-printer"></i> Imprimir <b id="encartesSelCount">0</b> selecionada(s):</span>
+      <span class="lbl"><i class="ti ti-checklist"></i> <b id="encartesSelCount">0</b> promoção(ões) selecionada(s):</span>
       <button class="btn btn-sm" onclick="imprimirSelecionados(1)">1 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(2)">2 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(4)">4 por folha</button>
@@ -420,9 +423,10 @@ var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk
 var DRIVE_FOLDER_ID='1Qhsc63GHVcACTzYTp392O_S3iMd8vmpS';
 var GCSE_API_KEY='AIzaSyClxbl8yzMpHdahpB38Fc66NcqtDWxjdvw';
 var GCSE_CX='a74b49ecb1fd546fb';
-var banco={};          // cod -> nome
-var bancoPreco={};     // cod -> preco venda (da planilha de validades)
-var products=[];       // lista consolidada com preços
+var banco={};          // cod -> nome oficial do banco
+var bancoPreco={};     // cod -> preco de venda do banco (somente referência)
+var bancoUnidade={};   // cod -> unidade/medida do banco
+var products=[];       // lista consolidada com preços e unidade
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
 // MAP de coordenadas do template Pack (valores em % do canvas 1054x1492)
 var PACK_MAP={
@@ -543,17 +547,20 @@ async function loadBanco(cfg){
   var rows=rawRows(table);
   banco={};
   bancoPreco={};
-  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1;
+  bancoUnidade={};
+  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciUnidade=-1;
   function isCod(t){return /\bEAN\b|\bGTIN\b|\bPLU\b|COD[\s._\-]?BARRA|BARRAS?\b|C[OÓ]D(IGO)?/.test(t);}
   function isNome(t){return /DESC(RI)?|NOME|PRODUTO|ITEM\b/.test(t);}
   function isPreco(t){return /PRE[CÇ]O|VALOR|VENDA|VLR|PR\.?\s*VENDA|P\.?\s*VENDA/.test(t);}
+  function isUnidade(t){return /(^|\b)(UNIDADE|UNID|UND|MEDIDA|UM|U\.M\.)(\b|$)/.test(t);}
 
   if(table.cols&&table.cols.length){
     var colTexts=table.cols.map(function(c){return String(c.label||'').toUpperCase();});
     var ci2=colTexts.findIndex(isCod);
     var ni2=colTexts.findIndex(isNome);
     var pi2=colTexts.findIndex(isPreco);
-    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;}
+    var ui2=colTexts.findIndex(isUnidade);
+    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciUnidade=ui2;}
   }
   if(ciCod<0||ciNome<0){
     for(var i=0;i<Math.min(5,rows.length);i++){
@@ -562,7 +569,8 @@ async function loadBanco(cfg){
       var ci=rowTexts.findIndex(isCod);
       var ni=rowTexts.findIndex(isNome);
       var pi=rowTexts.findIndex(isPreco);
-      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;break;}
+      var ui=rowTexts.findIndex(isUnidade);
+      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciUnidade=ui;break;}
     }
   }
   if(ciCod<0||ciNome<0){hIdx=0;ciCod=0;ciNome=1;}
@@ -575,6 +583,10 @@ async function loadBanco(cfg){
     if(cod&&ciPreco>=0){
       var precoBanco=cellNum(cells[ciPreco]);
       if(precoBanco>0)bancoPreco[cod]=precoBanco;
+    }
+    if(cod&&ciUnidade>=0){
+      var unidadeBanco=normalizarUnidadeBanco(cellStr(cells[ciUnidade]));
+      if(unidadeBanco)bancoUnidade[cod]=unidadeBanco;
     }
   }
 }
@@ -610,7 +622,8 @@ async function loadPrecos(cfg){
   var ci={
     produto:colIdx(['PRODUTO','DESCRI']),
     venda:colIdx(['VALOR VENDA','VENDA','PRECO','PREÇO']),
-    codBarra:colIdx(['COD.BARRAS','COD. BARRAS','COD BARRAS','BARRAS','EAN','GTIN','COD'])
+    codBarra:colIdx(['COD.BARRAS','COD. BARRAS','COD BARRAS','BARRAS','EAN','GTIN','COD']),
+    unidade:colIdx(['UNIDADE','UNID','UND','MEDIDA','U.M.','UM'])
   };
 
   products=[];
@@ -625,10 +638,12 @@ async function loadPrecos(cfg){
       if(rawCod)cod=rawCod;
     }
     var preco=ci.venda>=0?cellNum(cells[ci.venda]):0;
+    var unidade=ci.unidade>=0?normalizarUnidadeBanco(cellStr(cells[ci.unidade])):'';
     if(cod&&preco>0)bancoPreco[cod]=preco;
-    products.push({cod:cod,nome:nome,preco:preco});
+    if(cod&&unidade)bancoUnidade[cod]=unidade;
+    products.push({cod:cod,nome:nome,preco:preco,unidade:unidade});
   }
-  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,products:products,ts:Date.now()}));}catch(e){}
+  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,products:products,ts:Date.now()}));}catch(e){}
 }
 
 async function syncAll(){
@@ -656,6 +671,20 @@ async function syncAll(){
 // BUSCA DE PRODUTO POR CÓDIGO, EAN OU PALAVRA-CHAVE
 // ============================================================
 function normalizarCodigo(c){return String(c||'').trim().replace(/[^0-9]/g,'');}
+function normalizarUnidadeBanco(v){
+  var raw=String(v||'').trim().toUpperCase();
+  if(!raw)return '';
+  var s=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
+  if(/^(KG|KILO|QUILO|QUILOGRAMA|QUILOGRAMAS)$/.test(s))return 'KG';
+  if(/^(UN|UND|UNID|UNIDADE|UNIDADES|CADA)$/.test(s))return 'UNID';
+  if(/^(LT|L|LITRO|LITROS)$/.test(s))return 'LT';
+  if(/^(PCT|PACOTE|PACOTES)$/.test(s))return 'PCT';
+  if(/^(CX|CAIXA|CAIXAS)$/.test(s))return 'CX';
+  if(/^(DZ|DUZIA|DUZIAS)$/.test(s))return 'DZ';
+  if(/^(BDJ|BANDEJA|BANDEJAS)$/.test(s))return 'BDJ';
+  if(/^(FARDO|FD)$/.test(s))return 'FD';
+  return raw.substring(0,10);
+}
 function normalizarTexto(s){
   return String(s||'')
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -667,20 +696,22 @@ function temBaseProdutos(){return Object.keys(banco).length||Object.keys(bancoPr
 
 function consolidarProdutos(){
   var map={};
-  function add(cod,nome,preco){
+  function add(cod,nome,preco,unidade){
     cod=normalizarCodigo(cod);
     nome=String(nome||'').replace(/^,\s*/,'').trim();
     preco=Number(preco)||0;
+    unidade=normalizarUnidadeBanco(unidade);
     if(!cod&&!nome)return;
     var key=cod||normalizarTexto(nome);
     if(!key)return;
-    if(!map[key])map[key]={cod:cod,nome:nome,preco:0};
+    if(!map[key])map[key]={cod:cod,nome:nome,preco:0,unidade:''};
     if(cod&&!map[key].cod)map[key].cod=cod;
     if(nome&&(!map[key].nome||map[key].nome.length<nome.length))map[key].nome=nome;
     if(preco>0)map[key].preco=preco;
+    if(unidade&&!map[key].unidade)map[key].unidade=unidade;
   }
-  Object.keys(banco).forEach(function(cod){add(cod,banco[cod],bancoPreco[cod]||0);});
-  products.forEach(function(p){add(p.cod,p.nome,p.preco||bancoPreco[normalizarCodigo(p.cod)]||0);});
+  Object.keys(banco).forEach(function(cod){add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'');});
+  products.forEach(function(p){add(p.cod,p.nome,p.preco||bancoPreco[normalizarCodigo(p.cod)]||0,p.unidade||bancoUnidade[normalizarCodigo(p.cod)]||'');});
   return Object.keys(map).map(function(k){return map[k];}).filter(function(p){return p.nome||p.cod;});
 }
 
@@ -689,18 +720,20 @@ function buscarPorCodigo(cod){
   if(!c)return null;
   var nome=banco[c]||'';
   var preco=bancoPreco[c]||0;
-  // fallback: pega nome/preco a partir do array products (planilha principal)
-  if(!nome||!preco){
+  var unidade=bancoUnidade[c]||'';
+  // fallback: pega nome/preco/unidade a partir do array products (planilha principal)
+  if(!nome||!preco||!unidade){
     for(var i=0;i<products.length;i++){
       if(normalizarCodigo(products[i].cod)===c){
         if(!nome&&products[i].nome)nome=products[i].nome;
         if(!preco&&products[i].preco)preco=products[i].preco;
+        if(!unidade&&products[i].unidade)unidade=normalizarUnidadeBanco(products[i].unidade);
         break;
       }
     }
   }
-  if(!nome&&!preco)return null;
-  return {cod:c,nome:nome,preco:preco};
+  if(!nome&&!preco&&!unidade)return null;
+  return {cod:c,nome:nome,preco:preco,unidade:unidade};
 }
 
 function buscarProdutos(termo,limite){
@@ -733,7 +766,7 @@ function buscarProdutos(termo,limite){
     }
     if(score>0){
       if(p.preco>0)score+=8;
-      resultados.push({cod:p.cod,nome:p.nome,preco:p.preco,score:score});
+      resultados.push({cod:p.cod,nome:p.nome,preco:p.preco,unidade:p.unidade||'',score:score});
     }
   }
 
@@ -1120,8 +1153,15 @@ function preencherProduto(prod){
   info.innerHTML=''+
     '<div><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+escapeHtml(prod.cod||'(sem código)')+'</div></div>'+
     '<div><span class="pi-label">Descrição</span><div class="pi-value">'+escapeHtml(prod.nome||'(sem descrição)')+'</div></div>'+
+    '<div><span class="pi-label">Unidade do banco</span><div class="pi-value">'+escapeHtml(normalizarUnidadeBanco(prod.unidade)||'--')+'</div></div>'+
     '<div><span class="pi-label">Valor de venda</span><div class="pi-price">'+precoTxt+'</div></div>';
   document.getElementById('pDescOverride').value=prod.nome||'';
+  if(prod.unidade){
+    var unidadeBanco=normalizarUnidadeBanco(prod.unidade);
+    var selUnidade=document.getElementById('pUnidade');
+    var optExiste=Array.prototype.some.call(selUnidade.options,function(o){return o.value===unidadeBanco;});
+    if(optExiste)selUnidade.value=unidadeBanco;
+  }
   var termoFoto=document.getElementById('pFotoTermo');
   if(termoFoto)termoFoto.placeholder='Termo manual. Ex: '+(prod.nome||'peça de presunto para fatiar');
   if(prod.preco){
@@ -1859,61 +1899,80 @@ async function salvarEncarteNuvem(){
   var btn=document.getElementById('btnSalvarNuvem');
   var cfg=loadCfg();
   if(!cfg.url){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
+
+  var cod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
+  var packOn=!!(document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked);
+  var precoPromo=(packOn?document.getElementById('pPackTotal').value:document.getElementById('pPor').value||'').trim();
+  if(!cod){
+    mostrarToast('Selecione um produto com código/EAN antes de adicionar à lista.','warn');
+    document.getElementById('pCod').focus();
+    return;
+  }
+  if(parseDec(precoPromo)<=0){
+    mostrarToast('Informe o valor promocional antes de adicionar à lista.','warn');
+    (packOn?document.getElementById('pPackTotal'):document.getElementById('pPor')).focus();
+    return;
+  }
+
   await drawPlaca();
   var cv=document.getElementById('placaCanvas');
-  var produto=(document.getElementById('pDescOverride').value||'').trim()||'PRODUTO';
-  var cod=(document.getElementById('pCod').value||'').trim();
-  var por=(document.getElementById('pPor').value||'').trim();
+  var produtoDigitado=(document.getElementById('pDescOverride').value||'').trim();
+  var produtoBanco=(banco[cod]||(buscarPorCodigo(cod)||{}).nome||produtoDigitado||'PRODUTO').trim();
   var de=(document.getElementById('pDe').value||'').trim();
-  var unidade=(document.getElementById('pShowUnidade').checked?(document.getElementById('pUnidade').value||''):'').trim();
+  var unidadePromocao=(document.getElementById('pShowUnidade').checked?(document.getElementById('pUnidade').value||''):'').trim();
+  var unidadeBanco=normalizarUnidadeBanco(bancoUnidade[cod]||(buscarPorCodigo(cod)||{}).unidade||'');
+  var validade=(document.getElementById('pValidade').value||'').trim();
 
-  btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Salvando...';
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Adicionando...';
   try{
+    // A imagem da placa fica somente como miniatura da lista. O encarte final é reconstruído por código.
     var dataUrl=cv.toDataURL('image/png');
     var fotoSrc=fotoImg?fotoImg.src:'';
     var atual=await _gasGet('buscarEncartes');
     var lista=(atual&&atual.ok&&Array.isArray(atual.dados))?atual.dados:[];
+    var registro={
+      id:editingEncarteId||gerarIdEncarte(),
+      versaoRegistro:2,
+      codigo:cod,
+      produto:produtoBanco,
+      produtoDigitado:produtoDigitado,
+      de:de,
+      por:precoPromo,
+      precoPromocional:precoPromo,
+      unidade:unidadePromocao||unidadeBanco,
+      unidadePromocao:unidadePromocao,
+      unidadeBanco:unidadeBanco,
+      validade:validade,
+      tipoPromocao:packOn?'PACK':'UNITARIA',
+      packQtd:packOn?(parseInt(document.getElementById('pPackQtd').value,10)||0):0,
+      data:new Date().toISOString(),
+      img:dataUrl,
+      foto:fotoSrc
+    };
+
     if(editingEncarteId){
       var idx=lista.findIndex(function(x){return x.id===editingEncarteId;});
-      var itemAtualizado={
-        id:editingEncarteId,
-        produto:produto,
-        codigo:cod,
-        de:de,
-        por:por,
-        unidade:unidade,
-        data:new Date().toISOString(),
-        img:dataUrl,
-        foto:fotoSrc
-      };
-      if(idx>=0)lista[idx]=itemAtualizado;else lista.push(itemAtualizado);
+      if(idx>=0)lista[idx]=registro;else lista.push(registro);
     }else{
-      lista.push({
-        id:gerarIdEncarte(),
-        produto:produto,
-        codigo:cod,
-        de:de,
-        por:por,
-        unidade:unidade,
-        data:new Date().toISOString(),
-        img:dataUrl,
-        foto:fotoSrc
-      });
+      lista.push(registro);
     }
+
     var res=await _gasPost('salvarEncartes',{dados:lista});
     if(res&&res.ok){
-      mostrarToast(editingEncarteId?'Placa atualizada na nuvem.':'Placa salva na nuvem.','ok');
+      // Mantém o banco de imagens do Drive alimentado pelo mesmo código do item.
+      salvarFotoAtualNoDrive(false);
+      mostrarToast(editingEncarteId?'Promoção atualizada na lista.':'Promoção adicionada à lista.','ok');
       editingEncarteId=null;
       var btnCancel=document.getElementById('btnCancelarEdicao');
       if(btnCancel)btnCancel.style.display='none';
       carregarEncartes();
     }else{
-      mostrarToast('Não consegui salvar na nuvem: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
+      mostrarToast('Não consegui salvar a promoção: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
     }
   }catch(e){
-    mostrarToast('Erro ao salvar na nuvem: '+e.message,'err');
+    mostrarToast('Erro ao adicionar à lista: '+e.message,'err');
   }finally{
-    btn.disabled=false;btn.innerHTML='<i class="ti ti-cloud-upload"></i> Salvar na nuvem';
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-list-details"></i> Adicionar à lista';
   }
 }
 
@@ -1929,7 +1988,7 @@ async function carregarEncartes(){
     var lista=(res.dados||[]).slice();
     lista.reverse(); // mais recentes primeiro
     encartesCache=lista;
-    infoEl.textContent=lista.length+' placa(s) salva(s)';
+    infoEl.textContent=lista.length+' promoção(ões) na lista';
     renderEncartes();
   }catch(e){
     infoEl.textContent='';
@@ -1940,19 +1999,20 @@ async function carregarEncartes(){
 function renderEncartes(){
   var listEl=document.getElementById('encartesList');
   if(!encartesCache.length){
-    listEl.innerHTML='<div class="enc-empty">Nenhuma placa salva ainda. Crie uma placa e clique em "Salvar na nuvem".</div>';
+    listEl.innerHTML='<div class="enc-empty">Nenhuma promoção na lista. Gere uma placa e clique em "Adicionar à lista".</div>';
     atualizarContagemSelecao();
     return;
   }
   listEl.innerHTML=encartesCache.map(function(it){
     var marcado=!!encartesSelecionados[it.id];
-    var precoTxt=it.por?('R$ '+it.por):'';
+    var precoSalvo=it.precoPromocional||it.por||'';
+    var precoTxt=precoSalvo?('R$ '+precoSalvo):'';
     var editando=(editingEncarteId===it.id);
     return ''+
       '<div class="enc-card'+(marcado?' checked':'')+(editando?' editing':'')+'" data-id="'+escapeHtml(it.id)+'" onclick="toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
         '<input type="checkbox" '+(marcado?'checked':'')+' onclick="event.stopPropagation();toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
         '<div class="enc-card-tools">'+
-          '<button type="button" class="enc-tool-btn edit" title="Editar (preço, unidade, etc.)" onclick="event.stopPropagation();editarEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-pencil"></i></button>'+
+          '<button type="button" class="enc-tool-btn edit" title="Editar promoção" onclick="event.stopPropagation();editarEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-pencil"></i></button>'+
           '<button type="button" class="enc-tool-btn del" title="Excluir" onclick="event.stopPropagation();excluirEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-trash"></i></button>'+
         '</div>'+
         '<div class="enc-thumb"><img src="'+escapeHtml(it.img||'')+'" loading="lazy" alt=""></div>'+
@@ -1965,29 +2025,57 @@ function renderEncartes(){
 
 var editingEncarteId=null;
 
-function editarEncarte(id){
+async function editarEncarte(id){
   var it=encartesCache.find(function(x){return x.id===id;});
-  if(!it){mostrarToast('Placa não encontrada.','err');return;}
+  if(!it){mostrarToast('Promoção não encontrada.','err');return;}
   editingEncarteId=id;
-  document.getElementById('pCod').value=it.codigo||'';
-  document.getElementById('pDescOverride').value=it.produto||'';
+
+  var cod=normalizarCodigo(it.codigo);
+  var prod=buscarPorCodigo(cod)||{};
+  var descricaoBanco=banco[cod]||prod.nome||it.produto||'';
+  var unidade=normalizarUnidadeBanco(bancoUnidade[cod]||prod.unidade||it.unidadeBanco||it.unidadePromocao||it.unidade||'');
+  var precoPromo=it.precoPromocional||it.por||'';
+  var packOn=it.tipoPromocao==='PACK';
+
+  prodAtualCod=cod;
+  document.getElementById('pCod').value=cod||it.codigo||'';
+  document.getElementById('pDescOverride').value=descricaoBanco;
   document.getElementById('pDe').value=it.de||'';
-  document.getElementById('pPor').value=it.por||'';
-  onPrecoChange();
-  drawPlaca();
+  document.getElementById('pValidade').value=it.validade||'';
+
+  var selUnidade=document.getElementById('pUnidade');
+  if(unidade){
+    var existe=Array.prototype.some.call(selUnidade.options,function(o){return o.value===unidade;});
+    if(existe)selUnidade.value=unidade;
+  }
+
+  document.getElementById('pPackOn').checked=packOn;
+  togglePack();
+  if(packOn){
+    document.getElementById('pPackQtd').value=it.packQtd||3;
+    document.getElementById('pPackTotal').value=precoPromo;
+    document.getElementById('pPor').value='';
+    onPackChange();
+  }else{
+    document.getElementById('pPor').value=precoPromo;
+    onPrecoChange();
+  }
+
   var btn=document.getElementById('btnSalvarNuvem');
-  if(btn)btn.innerHTML='<i class="ti ti-cloud-upload"></i> Salvar edição';
+  if(btn)btn.innerHTML='<i class="ti ti-device-floppy"></i> Salvar edição';
   var btnCancel=document.getElementById('btnCancelarEdicao');
   if(btnCancel)btnCancel.style.display='inline-flex';
-  mostrarToast('Editando "'+(it.produto||'placa')+'". Ajuste os campos e clique em "Salvar edição".','ok');
+  mostrarToast('Editando "'+(descricaoBanco||'promoção')+'". Ajuste os campos e clique em "Salvar edição".','ok');
   window.scrollTo({top:0,behavior:'smooth'});
   renderEncartes();
+  drawPlaca();
+  if(cod)await buscarFotoCompleta(cod,descricaoBanco);
 }
 
 function cancelarEdicaoEncarte(){
   editingEncarteId=null;
   var btn=document.getElementById('btnSalvarNuvem');
-  if(btn)btn.innerHTML='<i class="ti ti-cloud-upload"></i> Salvar na nuvem';
+  if(btn)btn.innerHTML='<i class="ti ti-list-details"></i> Adicionar à lista';
   var btnCancel=document.getElementById('btnCancelarEdicao');
   if(btnCancel)btnCancel.style.display='none';
   renderEncartes();
@@ -1996,7 +2084,7 @@ function cancelarEdicaoEncarte(){
 async function excluirEncarte(id){
   var it=encartesCache.find(function(x){return x.id===id;});
   if(!it)return;
-  if(!confirm('Excluir a placa "'+(it.produto||'sem nome')+'" da nuvem? Essa ação não pode ser desfeita.'))return;
+  if(!confirm('Excluir a promoção "'+(it.produto||'sem nome')+'" da lista? Essa ação não pode ser desfeita.'))return;
   var cfg=loadCfg();
   if(!cfg.url){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
   try{
@@ -2005,7 +2093,7 @@ async function excluirEncarte(id){
     lista=lista.filter(function(x){return x.id!==id;});
     var res=await _gasPost('salvarEncartes',{dados:lista});
     if(res&&res.ok){
-      mostrarToast('Placa excluída.','ok');
+      mostrarToast('Promoção excluída da lista.','ok');
       delete encartesSelecionados[id];
       if(editingEncarteId===id)cancelarEdicaoEncarte();
       carregarEncartes();
@@ -2080,36 +2168,129 @@ function dadosDataHoje(){
   return{dia:dia,dataCurta:dd+'/'+mm,dataCompleta:dd+'/'+mm+'/'+yyyy};
 }
 
-function gerarEncarteDoDia(){
+async function buscarFotoItemEncarte(codigo,nome,fallbackFoto){
+  var cod=normalizarCodigo(codigo);
+  var img=null;
+
+  if(cod){
+    img=await buscarFotoDrive(cod,'produto');
+    if(img)return {src:img.src,origem:'Google Drive'};
+
+    img=await buscarFotoCosmos(cod);
+    if(img)return {src:img.src,origem:'Bluesoft Cosmos'};
+  }
+
+  if(nome){
+    var achadoNome=await buscarFotoWeb(nome);
+    if(achadoNome&&achadoNome.img)return {src:achadoNome.img.src,origem:achadoNome.fonte};
+  }
+
+  if(cod){
+    var achadoCod=await buscarFotoWeb(cod);
+    if(achadoCod&&achadoCod.img)return {src:achadoCod.img.src,origem:achadoCod.fonte};
+  }
+
+  img=await buscarFotoOpenFoodFacts(cod,nome);
+  if(img)return {src:img.src,origem:'Open Food Facts'};
+
+  // Compatibilidade com promoções antigas: usa a foto do produto salva, nunca a imagem da placa.
+  if(fallbackFoto){
+    img=await carregarImagemUrl(fallbackFoto);
+    if(img)return {src:img.src,origem:'foto salva da promoção'};
+  }
+  return {src:'',origem:'não encontrada'};
+}
+
+async function mapComLimite(lista,limite,fn){
+  var resultados=new Array(lista.length);
+  var proximo=0;
+  async function worker(){
+    while(true){
+      var idx=proximo++;
+      if(idx>=lista.length)return;
+      resultados[idx]=await fn(lista[idx],idx);
+    }
+  }
+  var workers=[];
+  for(var i=0;i<Math.min(limite,lista.length);i++)workers.push(worker());
+  await Promise.all(workers);
+  return resultados;
+}
+
+function prepararItemEncarte(it){
+  var cod=normalizarCodigo(it.codigo);
+  var produtoBanco=buscarPorCodigo(cod)||{};
+  var descricao=(banco[cod]||produtoBanco.nome||it.produto||it.produtoDigitado||'PRODUTO').trim();
+  var unidadeBanco=normalizarUnidadeBanco(bancoUnidade[cod]||produtoBanco.unidade||it.unidadeBanco||'');
+  var unidadeFallback=normalizarUnidadeBanco(it.unidadePromocao||it.unidade||'');
+  var unidade=unidadeBanco||unidadeFallback||'UNID';
+  var precoPromo=String(it.precoPromocional||it.por||'').trim();
+  return {
+    id:it.id,
+    codigo:cod,
+    descricao:descricao,
+    unidade:unidade,
+    precoPromocional:precoPromo,
+    tipoPromocao:it.tipoPromocao||'UNITARIA',
+    packQtd:it.packQtd||0,
+    fallbackFoto:it.foto||'',
+    semDescricaoBanco:!banco[cod]&&!produtoBanco.nome,
+    semUnidadeBanco:!unidadeBanco
+  };
+}
+
+async function gerarEncarteDoDia(){
   var selecionados=encartesCache.filter(function(it){return encartesSelecionados[it.id];});
-  if(!selecionados.length){mostrarToast('Selecione ao menos uma placa na lista.','warn');return;}
+  if(!selecionados.length){mostrarToast('Selecione ao menos uma promoção na lista.','warn');return;}
+
+  var win=window.open('','_blank');
+  if(!win){mostrarToast('O navegador bloqueou a nova janela. Permita pop-ups para gerar o encarte.','warn');return;}
+
+  win.document.open();
+  win.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Gerando encarte...</title><style>body{font-family:Arial,sans-serif;background:#f3f3f3;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}.box{background:#fff;border-radius:14px;padding:30px;box-shadow:0 8px 30px rgba(0,0,0,.16);text-align:center;max-width:520px}.spin{width:34px;height:34px;border:4px solid #eee;border-top-color:#c00;border-radius:50%;animation:s .8s linear infinite;margin:0 auto 16px}@keyframes s{to{transform:rotate(360deg)}}h2{color:#b91c1c;margin:0 0 8px}p{color:#555;line-height:1.5}</style></head><body><div class="box"><div class="spin"></div><h2>Montando o encarte do dia</h2><p id="status">Lendo os códigos das promoções...</p></div></body></html>');
+  win.document.close();
+
+  var statusEl=win.document.getElementById('status');
+  var preparados=selecionados.map(prepararItemEncarte);
+  var concluidos=0;
+  var itens=await mapComLimite(preparados,3,async function(item){
+    var foto=await buscarFotoItemEncarte(item.codigo,item.descricao,item.fallbackFoto);
+    item.foto=foto.src;
+    item.origemFoto=foto.origem;
+    concluidos++;
+    if(statusEl)statusEl.textContent='Buscando descrição, unidade e foto por código: '+concluidos+' de '+preparados.length;
+    return item;
+  });
 
   var dt=dadosDataHoje();
+  var semDescricao=itens.filter(function(x){return x.semDescricaoBanco;}).length;
+  var semUnidade=itens.filter(function(x){return x.semUnidadeBanco;}).length;
+  var semFoto=itens.filter(function(x){return !x.foto;}).length;
 
-  var cardsHtml=selecionados.map(function(it){
-    var fotoSrc=it.foto||it.img||'';
-    var precoStr=String(it.por||'').replace(',','.').trim();
-    var precoNum=parseFloat(precoStr);
+  var cardsHtml=itens.map(function(it){
+    var precoNum=parseDec(it.precoPromocional);
     var precoInt='0',precoDec='00';
-    if(!isNaN(precoNum)){
+    if(precoNum>0){
       precoInt=String(Math.floor(precoNum));
       precoDec=(precoNum-Math.floor(precoNum)).toFixed(2).substring(2);
-    }else if(it.por){
-      var partes=String(it.por).split(/[.,]/);
-      precoInt=partes[0]||'0';precoDec=partes[1]||'00';
     }
-    var unidadeTxt=it.unidade?escapeHtml(it.unidade):'UNID';
+    var fotoHtml=it.foto
+      ?'<img src="'+escapeHtml(it.foto)+'" alt="'+escapeHtml(it.descricao)+'">'
+      :'<div class="ed-sem-foto"><span>SEM FOTO</span><small>Cód. '+escapeHtml(it.codigo||'não informado')+'</small></div>';
+    var packHtml=it.tipoPromocao==='PACK'&&it.packQtd
+      ?'<div class="ed-pack">LEVE '+escapeHtml(it.packQtd)+'</div>'
+      :'';
     return ''+
-      '<div class="ed-card">'+
-        '<div class="ed-foto"><img src="'+escapeHtml(fotoSrc)+'" alt="'+escapeHtml(it.produto||'')+'"></div>'+
-        '<div class="ed-desc">'+escapeHtml((it.produto||'').toUpperCase())+'</div>'+
+      '<div class="ed-card" data-codigo="'+escapeHtml(it.codigo)+'">'+
+        '<div class="ed-foto">'+fotoHtml+'</div>'+packHtml+
+        '<div class="ed-desc">'+escapeHtml(it.descricao.toUpperCase())+'</div>'+
         '<div class="ed-badge">'+
           '<div class="ed-badge-label">no<br>Clube<br>Boas<br>Compras</div>'+
           '<div class="ed-badge-price">'+
             '<span class="ed-price-int">'+escapeHtml(precoInt)+'</span>'+
             '<span class="ed-price-dec">,'+escapeHtml(precoDec)+'</span>'+
           '</div>'+
-          '<div class="ed-badge-unit">'+unidadeTxt+'</div>'+
+          '<div class="ed-badge-unit">'+escapeHtml(it.unidade)+'</div>'+
         '</div>'+
       '</div>';
   }).join('');
@@ -2128,9 +2309,12 @@ function gerarEncarteDoDia(){
   '.ed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:16px;background:#fedb01}'+
   '@media(max-width:900px){.ed-grid{grid-template-columns:repeat(3,1fr)}}'+
   '@media(max-width:640px){.ed-grid{grid-template-columns:repeat(2,1fr)}}'+
-  '.ed-card{background:#fff;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;box-shadow:0 2px 6px rgba(0,0,0,.15)}'+
+  '.ed-card{background:#fff;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;box-shadow:0 2px 6px rgba(0,0,0,.15);position:relative}'+
   '.ed-foto{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;padding:8px}'+
   '.ed-foto img{width:100%;height:100%;object-fit:contain}'+
+  '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed #ddd;color:#999;border-radius:8px;gap:6px}'+
+  '.ed-sem-foto span{font-size:14px;font-weight:900}.ed-sem-foto small{font-size:9px}'+
+  '.ed-pack{position:absolute;top:8px;left:8px;background:#c00;color:#fff;font-size:10px;font-weight:900;padding:5px 8px;border-radius:12px;box-shadow:0 2px 5px rgba(0,0,0,.25)}'+
   '.ed-desc{font-size:11px;font-weight:800;text-align:center;color:#1a1a18;line-height:1.2;padding:4px 6px;min-height:2.4em;display:flex;align-items:center;justify-content:center}'+
   '.ed-badge{background:#f7941d;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px;padding:6px 8px;position:relative}'+
   '.ed-badge-label{font-size:8.5px;font-weight:700;color:#fff;line-height:1.15;text-transform:uppercase;opacity:.95}'+
@@ -2140,11 +2324,12 @@ function gerarEncarteDoDia(){
   '.ed-badge-unit{font-size:10px;font-weight:800;color:#fff;text-transform:uppercase;align-self:flex-end}'+
   '.ed-footer{background:#e02a2a;color:#fff;text-align:center;padding:12px 16px;font-size:13px;font-weight:600}'+
   '.ed-footer b{color:#fedb01}'+
-  '.ed-toolbar{max-width:1080px;margin:0 auto 10px;display:flex;justify-content:flex-end;gap:8px}'+
+  '.ed-toolbar{max-width:1080px;margin:0 auto 10px;display:flex;justify-content:flex-end;gap:8px;align-items:center}'+
+  '.ed-toolbar .info{margin-right:auto;font-size:12px;color:#555}'+
   '.ed-toolbar button{border:0;background:#1D9E75;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;cursor:pointer}'+
   '@media print{.ed-toolbar{display:none}body{background:#fff;padding:0}.ed-page{box-shadow:none;border-radius:0}}'+
   '</style></head><body>'+
-  '<div class="ed-toolbar"><button onclick="window.print()">Imprimir</button></div>'+
+  '<div class="ed-toolbar"><div class="info">Preço: promoção salva · Descrição/unidade/foto: buscadas pelo código</div><button onclick="window.print()">Imprimir</button></div>'+
   '<div class="ed-page">'+
     '<div class="ed-header">'+
       '<div class="dia">'+escapeHtml(dt.dia)+'</div>'+
@@ -2156,11 +2341,16 @@ function gerarEncarteDoDia(){
   '</div>'+
   '</body></html>';
 
-  var win=window.open('','_blank');
-  if(!win){mostrarToast('O navegador bloqueou a nova janela. Permita pop-ups para gerar o encarte.','warn');return;}
   win.document.open();
   win.document.write(html);
   win.document.close();
+
+  var avisos=[];
+  if(semDescricao)avisos.push(semDescricao+' sem descrição no banco');
+  if(semUnidade)avisos.push(semUnidade+' sem unidade no banco');
+  if(semFoto)avisos.push(semFoto+' sem foto automática');
+  if(avisos.length)mostrarToast('Encarte gerado. Atenção: '+avisos.join(', ')+'.','warn');
+  else mostrarToast('Encarte gerado com dados reconstruídos pelo código.','ok');
 }
 
 async function copiarPlaca(){
@@ -2229,6 +2419,7 @@ function selecionarProduto(prod){
 }
 
 document.getElementById('pCod').addEventListener('input',function(e){
+  prodAtualCod='';
   clearTimeout(buscaTimer);
   var v=e.target.value.trim();
   if(!v){esconderSugestoes();return;}
@@ -2292,7 +2483,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   // recupera cache local
   try{
     var s=localStorage.getItem(PROD_KEY);
-    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(Array.isArray(c.products))products=c.products;}
+    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(Array.isArray(c.products))products=c.products;}
   }catch(e){}
   var cfg=loadCfg();
   if(cfg.id){
