@@ -114,6 +114,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .enc-tool-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--bds);background:var(--bg);color:var(--tx);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px}
 .enc-tool-btn:hover{background:var(--bg2)}
 .enc-tool-btn.del:hover{background:var(--red);border-color:var(--red);color:#fff}
+.enc-tool-btn.del.confirm{background:var(--red);border-color:var(--red);color:#fff}
 .enc-tool-btn.edit:hover{background:var(--blue);border-color:var(--blue);color:#fff}
 
 .ed-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:none;flex-direction:column}
@@ -392,7 +393,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <input type="checkbox" id="pPrintLinhaCorte" checked style="width:14px;height:14px;accent-color:var(--green)"> Linha de corte
         </label>
         <button class="btn btn-green btn-sm" onclick="imprimirPlacaA4()"><i class="ti ti-printer"></i> Imprimir</button>
-        <button class="btn btn-sm" id="btnSalvarNuvem" onclick="salvarEncarteNuvem()"><i class="ti ti-list-details"></i> Adicionar à lista</button>
+        <button class="btn btn-sm" id="btnSalvarNuvem" style="display:none" onclick="adicionarNaListaAuto()"><i class="ti ti-device-floppy"></i> Salvar edição</button>
         <button class="btn btn-sm" id="btnCancelarEdicao" style="display:none" onclick="cancelarEdicaoEncarte()"><i class="ti ti-x"></i> Cancelar edição</button>
       </div>
     </div>
@@ -406,6 +407,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button class="btn btn-sm" onclick="carregarEncartes()"><i class="ti ti-refresh"></i> Atualizar lista</button>
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(true)"><i class="ti ti-checkbox"></i> Selecionar tudo</button>
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(false)"><i class="ti ti-square"></i> Limpar seleção</button>
+        <button class="btn btn-sm" id="btnLimparLista" onclick="limparListaClick(event)" style="color:var(--red)"><i class="ti ti-trash"></i> Limpar lista toda</button>
       </div>
     </div>
     <div style="font-size:11px;color:var(--tx2);margin:2px 0 8px">Ao gerar o encarte, o sistema usa o <b>código do item</b> para buscar descrição, unidade e foto. O preço utilizado é sempre o <b>valor promocional salvo</b>, nunca o preço atual do banco.</div>
@@ -1858,10 +1860,11 @@ async function downloadPlaca(){
     a.href=URL.createObjectURL(blob);
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
-    mostrarToast('Placa baixada.','ok');
   },'image/png');
   // alimenta o banco de imagens de produtos no Drive em paralelo, sem travar o download
   salvarFotoAtualNoDrive(false);
+  // entra/atualiza automaticamente na lista de promoções, sem travar o download
+  adicionarNaListaAuto();
 }
 
 var printQtdAtual=1;
@@ -1906,24 +1909,24 @@ function gerarIdEncarte(){
   return 'enc_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 }
 
-async function salvarEncarteNuvem(){
-  var btn=document.getElementById('btnSalvarNuvem');
+// Chamada automaticamente pelo "Baixar PNG" (e pelo botão "Salvar edição",
+// quando está editando um item já existente da lista). Não bloqueia o
+// download: se faltar código ou valor, só avisa e não entra na lista.
+async function adicionarNaListaAuto(){
   var cfg=loadCfg();
-  if(!cfg.url){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
+  if(!cfg.url)return; // sem Sheets configurado: só baixa o PNG mesmo
 
   var cod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
   var packOn=!!(document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked);
   var precoPromo=(packOn?document.getElementById('pPackTotal').value:document.getElementById('pPor').value||'').trim();
-  if(!cod){
-    mostrarToast('Selecione um produto com código/EAN antes de adicionar à lista.','warn');
-    document.getElementById('pCod').focus();
+  if(!cod||parseDec(precoPromo)<=0){
+    mostrarToast('Baixado. Para entrar na lista, informe código/EAN e valor.','warn');
     return;
   }
-  if(parseDec(precoPromo)<=0){
-    mostrarToast('Informe o valor promocional antes de adicionar à lista.','warn');
-    (packOn?document.getElementById('pPackTotal'):document.getElementById('pPor')).focus();
-    return;
-  }
+
+  var estavaEditando=!!editingEncarteId;
+  var btn=document.getElementById('btnSalvarNuvem');
+  if(btn&&estavaEditando){btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Salvando...';}
 
   var produtoDigitado=(document.getElementById('pDescOverride').value||'').trim();
   var produtoBanco=(banco[cod]||(buscarPorCodigo(cod)||{}).nome||produtoDigitado||'PRODUTO').trim();
@@ -1932,13 +1935,11 @@ async function salvarEncarteNuvem(){
   var unidadeBanco=normalizarUnidadeBanco(bancoUnidade[cod]||(buscarPorCodigo(cod)||{}).unidade||'');
   var validade=(document.getElementById('pValidade').value||'').trim();
 
-  btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Adicionando...';
   try{
-    // Lista leve: guarda só os dados do produto (código + valor promocional).
-    // Nem a foto nem a arte da placa são salvas aqui — a foto é buscada ao vivo
-    // por EAN (banco de imagens do Drive / Cosmos / web) na hora de montar o
-    // encarte ou de exibir a miniatura, e o preço usado é sempre este valor
-    // promocional salvo agora.
+    // Lista leve: guarda só os dados do produto (código, descrição, unidade
+    // e valor promocional). Nem a foto nem a arte da placa são salvas aqui —
+    // a foto é buscada ao vivo por EAN (Drive/Cosmos/web) na hora de exibir
+    // a miniatura ou montar o encarte, e o preço usado é sempre este valor.
     var atual=await _gasGet('buscarEncartes');
     var lista=(atual&&atual.ok&&Array.isArray(atual.dados))?atual.dados:[];
     var registro={
@@ -1970,18 +1971,21 @@ async function salvarEncarteNuvem(){
     if(res&&res.ok){
       // Alimenta o banco de imagens do Drive em segundo plano (não bloqueia a lista).
       salvarFotoAtualNoDrive(false);
-      mostrarToast(editingEncarteId?'Promoção atualizada na lista.':'Promoção adicionada à lista.','ok');
-      editingEncarteId=null;
-      var btnCancel=document.getElementById('btnCancelarEdicao');
-      if(btnCancel)btnCancel.style.display='none';
+      mostrarToast(estavaEditando?'Promoção atualizada na lista.':'Adicionado à lista de promoções.','ok');
+      if(estavaEditando){
+        editingEncarteId=null;
+        var btnCancel=document.getElementById('btnCancelarEdicao');
+        if(btnCancel)btnCancel.style.display='none';
+        if(btn)btn.style.display='none';
+      }
       carregarEncartes();
     }else{
-      mostrarToast('Não consegui salvar a promoção: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
+      mostrarToast('Baixado, mas não consegui atualizar a lista: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
     }
   }catch(e){
-    mostrarToast('Erro ao adicionar à lista: '+e.message,'err');
+    mostrarToast('Baixado, mas houve erro ao atualizar a lista: '+e.message,'err');
   }finally{
-    btn.disabled=false;btn.innerHTML='<i class="ti ti-list-details"></i> Adicionar à lista';
+    if(btn&&estavaEditando){btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i> Salvar edição';}
   }
 }
 
@@ -2008,7 +2012,7 @@ async function carregarEncartes(){
 function renderEncartes(){
   var listEl=document.getElementById('encartesList');
   if(!encartesCache.length){
-    listEl.innerHTML='<div class="enc-empty">Nenhuma promoção na lista. Gere uma placa e clique em "Adicionar à lista".</div>';
+    listEl.innerHTML='<div class="enc-empty">Nenhuma promoção na lista. Gere uma placa (com código e valor preenchidos) e clique em "Baixar PNG" — ela entra na lista automaticamente.</div>';
     atualizarContagemSelecao();
     return;
   }
@@ -2027,11 +2031,11 @@ function renderEncartes(){
         '<input type="checkbox" '+(marcado?'checked':'')+' onclick="event.stopPropagation();toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
         '<div class="enc-card-tools">'+
           '<button type="button" class="enc-tool-btn edit" title="Editar promoção" onclick="event.stopPropagation();editarEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-pencil"></i></button>'+
-          '<button type="button" class="enc-tool-btn del" title="Excluir" onclick="event.stopPropagation();excluirEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-trash"></i></button>'+
+          '<button type="button" class="enc-tool-btn del" title="Excluir" onclick="excluirEncarteClick(event,\''+escapeHtml(it.id)+'\')"><i class="ti ti-trash"></i></button>'+
         '</div>'+
         '<div class="enc-thumb" data-cod="'+escapeHtml(cod)+'">'+thumbHtml+'</div>'+
         '<div class="enc-nome">'+escapeHtml(it.produto||'(sem nome)')+'</div>'+
-        '<div class="enc-meta"><span>'+escapeHtml(it.codigo||'')+'</span><span style="color:var(--green);font-weight:700">'+escapeHtml(precoTxt)+'</span></div>'+
+        '<div class="enc-meta"><span>'+escapeHtml(it.codigo||'')+(it.unidade?' · '+escapeHtml(it.unidade):'')+'</span><span style="color:var(--green);font-weight:700">'+escapeHtml(precoTxt)+'</span></div>'+
       '</div>';
   }).join('');
   atualizarContagemSelecao();
@@ -2109,7 +2113,7 @@ async function editarEncarte(id){
   }
 
   var btn=document.getElementById('btnSalvarNuvem');
-  if(btn)btn.innerHTML='<i class="ti ti-device-floppy"></i> Salvar edição';
+  if(btn){btn.style.display='inline-flex';btn.innerHTML='<i class="ti ti-device-floppy"></i> Salvar edição';}
   var btnCancel=document.getElementById('btnCancelarEdicao');
   if(btnCancel)btnCancel.style.display='inline-flex';
   mostrarToast('Editando "'+(descricaoBanco||'promoção')+'". Ajuste os campos e clique em "Salvar edição".','ok');
@@ -2122,16 +2126,40 @@ async function editarEncarte(id){
 function cancelarEdicaoEncarte(){
   editingEncarteId=null;
   var btn=document.getElementById('btnSalvarNuvem');
-  if(btn)btn.innerHTML='<i class="ti ti-list-details"></i> Adicionar à lista';
+  if(btn)btn.style.display='none';
   var btnCancel=document.getElementById('btnCancelarEdicao');
   if(btnCancel)btnCancel.style.display='none';
   renderEncartes();
 }
 
+// Confirmação por duplo clique no próprio botão (em vez de confirm() nativo,
+// que em algumas visualizações embutidas fica bloqueado e nunca aparece,
+// fazendo o botão de excluir parecer que "não funciona").
+var pendenteExclusao={};
+
+function excluirEncarteClick(e,id){
+  e.stopPropagation();
+  var btn=e.currentTarget;
+  if(pendenteExclusao[id]){
+    clearTimeout(pendenteExclusao[id]);
+    delete pendenteExclusao[id];
+    excluirEncarte(id);
+    return;
+  }
+  btn.classList.add('confirm');
+  btn.innerHTML='<i class="ti ti-check"></i>';
+  btn.title='Clique de novo para confirmar a exclusão';
+  pendenteExclusao[id]=setTimeout(function(){
+    delete pendenteExclusao[id];
+    btn.classList.remove('confirm');
+    btn.innerHTML='<i class="ti ti-trash"></i>';
+    btn.title='Excluir';
+  },3000);
+}
+
 async function excluirEncarte(id){
   var it=encartesCache.find(function(x){return x.id===id;});
   if(!it)return;
-  if(!confirm('Excluir a promoção "'+(it.produto||'sem nome')+'" da lista? Essa ação não pode ser desfeita.'))return;
   var cfg=loadCfg();
   if(!cfg.url){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
   try{
@@ -2149,6 +2177,47 @@ async function excluirEncarte(id){
     }
   }catch(e){
     mostrarToast('Erro ao excluir: '+e.message,'err');
+  }
+}
+
+// Limpa a lista inteira (todas as promoções salvas), com confirmação em
+// dois cliques no próprio botão "Limpar lista toda".
+var pendenteLimparLista=null;
+function limparListaClick(e){
+  e.stopPropagation();
+  var btn=document.getElementById('btnLimparLista');
+  if(pendenteLimparLista){
+    clearTimeout(pendenteLimparLista);
+    pendenteLimparLista=null;
+    limparListaEncartes();
+    return;
+  }
+  btn.innerHTML='<i class="ti ti-alert-triangle"></i> Confirmar limpar tudo?';
+  pendenteLimparLista=setTimeout(function(){
+    pendenteLimparLista=null;
+    btn.innerHTML='<i class="ti ti-trash"></i> Limpar lista toda';
+  },3000);
+}
+
+async function limparListaEncartes(){
+  var btn=document.getElementById('btnLimparLista');
+  var cfg=loadCfg();
+  if(!cfg.url){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Limpando...';}
+  try{
+    var res=await _gasPost('salvarEncartes',{dados:[]});
+    if(res&&res.ok){
+      mostrarToast('Lista de promoções limpa.','ok');
+      encartesSelecionados={};
+      if(editingEncarteId)cancelarEdicaoEncarte();
+      carregarEncartes();
+    }else{
+      mostrarToast('Não consegui limpar a lista: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
+    }
+  }catch(e){
+    mostrarToast('Erro ao limpar a lista: '+e.message,'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-trash"></i> Limpar lista toda';}
   }
 }
 
