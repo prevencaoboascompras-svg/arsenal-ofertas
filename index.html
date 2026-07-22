@@ -2267,7 +2267,7 @@ async function gerarEncarteDoDia(){
   var semUnidade=itens.filter(function(x){return x.semUnidadeBanco;}).length;
   var semFoto=itens.filter(function(x){return !x.foto;}).length;
 
-  var cardsHtml=itens.map(function(it){
+  function montarCard(it){
     var precoNum=parseDec(it.precoPromocional);
     var precoInt='0',precoDec='00';
     if(precoNum>0){
@@ -2293,6 +2293,35 @@ async function gerarEncarteDoDia(){
           '<div class="ed-badge-unit">'+escapeHtml(it.unidade)+'</div>'+
         '</div>'+
       '</div>';
+  }
+
+  // O template-encarte-semanal.png já traz o cabeçalho, as duas faixas
+  // amarelas e o rodapé prontos — aqui encaixamos a arte do dia da semana
+  // no topo e até 12 placas por página (4 colunas x 3 linhas: as duas
+  // faixas amarelas + a área do meio, entre elas).
+  var POR_PAGINA=12;
+  var paginas=[];
+  for(var pgI=0;pgI<itens.length;pgI+=POR_PAGINA){
+    paginas.push(itens.slice(pgI,pgI+POR_PAGINA));
+  }
+  if(!paginas.length)paginas.push([]);
+
+  var tplUrl=new URL('template-encarte-semanal.png',location.href).href;
+  var ARQ_DIA=['domingo.png','segunda.png','terca.png','quarta.png','quinta.png','sexta.png','sabado.png'];
+  var headerUrl=new URL(ARQ_DIA[new Date().getDay()],location.href).href;
+
+  var paginasHtml=paginas.map(function(grupo){
+    var linha1=grupo.slice(0,4).map(montarCard).join('');
+    var linha2=grupo.slice(4,8).map(montarCard).join('');
+    var linha3=grupo.slice(8,12).map(montarCard).join('');
+    return ''+
+      '<div class="ed-page" style="background-image:url(\''+tplUrl+'\')">'+
+        '<div class="ed-header-img-wrap"><img src="'+headerUrl+'" alt="'+escapeHtml(dt.dia)+' da economia"></div>'+
+        '<div class="ed-linha1">'+linha1+'</div>'+
+        '<div class="ed-linha2">'+linha2+'</div>'+
+        '<div class="ed-linha3">'+linha3+'</div>'+
+        '<div class="ed-footer-overlay">OFERTAS VÁLIDAS PARA '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+' OU ENQUANTO DURAREM OS ESTOQUES</div>'+
+      '</div>';
   }).join('');
 
   var html=''+
@@ -2301,44 +2330,33 @@ async function gerarEncarteDoDia(){
   '<style>'+
   '*{box-sizing:border-box;margin:0;padding:0}'+
   'body{font-family:Arial,Helvetica,sans-serif;background:#eeede8;padding:14px}'+
-  '.ed-page{max-width:1080px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
-  '.ed-header{background:linear-gradient(135deg,#e02a2a,#c00e0e);color:#fff;padding:26px 20px;text-align:center}'+
-  '.ed-header .dia{font-size:44px;font-weight:900;letter-spacing:1px;color:#fedb01;text-shadow:2px 2px 0 #7a0000}'+
-  '.ed-header .sub{font-size:20px;font-weight:800;letter-spacing:4px;margin-top:2px}'+
-  '.ed-header .data{font-size:15px;font-weight:700;margin-top:8px;opacity:.95}'+
-  '.ed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:16px;background:#fedb01}'+
-  '@media(max-width:900px){.ed-grid{grid-template-columns:repeat(3,1fr)}}'+
-  '@media(max-width:640px){.ed-grid{grid-template-columns:repeat(2,1fr)}}'+
-  '.ed-card{background:#fff;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;box-shadow:0 2px 6px rgba(0,0,0,.15);position:relative}'+
-  '.ed-foto{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;padding:8px}'+
-  '.ed-foto img{width:100%;height:100%;object-fit:contain}'+
-  '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed #ddd;color:#999;border-radius:8px;gap:6px}'+
-  '.ed-sem-foto span{font-size:14px;font-weight:900}.ed-sem-foto small{font-size:9px}'+
-  '.ed-pack{position:absolute;top:8px;left:8px;background:#c00;color:#fff;font-size:10px;font-weight:900;padding:5px 8px;border-radius:12px;box-shadow:0 2px 5px rgba(0,0,0,.25)}'+
-  '.ed-desc{font-size:11px;font-weight:800;text-align:center;color:#1a1a18;line-height:1.2;padding:4px 6px;min-height:2.4em;display:flex;align-items:center;justify-content:center}'+
-  '.ed-badge{background:#f7941d;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px;padding:6px 8px;position:relative}'+
-  '.ed-badge-label{font-size:8.5px;font-weight:700;color:#fff;line-height:1.15;text-transform:uppercase;opacity:.95}'+
+  '.ed-page{position:relative;max-width:1080px;margin:0 auto 20px;aspect-ratio:1080/1350;background-repeat:no-repeat;background-size:100% 100%;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
+  '.ed-header-img-wrap{position:absolute;top:0;left:0;width:100%;height:21.6%;display:flex;align-items:center;justify-content:center;padding:1% 4%}'+
+  '.ed-header-img-wrap img{max-width:62%;max-height:92%;object-fit:contain}'+
+  '.ed-linha1{position:absolute;top:21.6%;left:1%;width:98%;height:21.8%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
+  '.ed-linha2{position:absolute;top:43.4%;left:1%;width:98%;height:24.5%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
+  '.ed-linha3{position:absolute;top:68%;left:1%;width:98%;height:19.6%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
+  '.ed-footer-overlay{position:absolute;top:87.9%;left:2.5%;width:95%;height:6.4%;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:clamp(8px,1.15vw,13px);padding:0 2%}'+
+  '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:100%;min-height:0}'+
+  '.ed-foto{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:transparent;padding:2px}'+
+  '.ed-foto img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 3px 5px rgba(0,0,0,.18))}'+
+  '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
+  '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
+  '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
+  '.ed-desc{background:#fff;border-radius:8px;font-size:clamp(7px,1vw,11px);font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:4% 6%;min-height:2.1em;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;margin:-8% 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
+  '.ed-badge{background:#f7941d;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3px;padding:8% 5% 5%;position:relative;z-index:1;margin-top:-6%;border-radius:0 0 8px 8px;flex-shrink:0}'+
+  '.ed-badge-label{font-size:clamp(5px,.65vw,7.5px);font-weight:700;color:#fff;line-height:1.1;text-transform:uppercase;opacity:.95}'+
   '.ed-badge-price{display:flex;align-items:flex-start;justify-content:center;line-height:1}'+
-  '.ed-price-int{font-size:34px;font-weight:900;color:#fff}'+
-  '.ed-price-dec{font-size:15px;font-weight:800;color:#fff;margin-top:2px}'+
-  '.ed-badge-unit{font-size:10px;font-weight:800;color:#fff;text-transform:uppercase;align-self:flex-end}'+
-  '.ed-footer{background:#e02a2a;color:#fff;text-align:center;padding:12px 16px;font-size:13px;font-weight:600}'+
-  '.ed-footer b{color:#fedb01}'+
+  '.ed-price-int{font-size:clamp(14px,2.6vw,26px);font-weight:900;color:#fff}'+
+  '.ed-price-dec{font-size:clamp(7px,1.1vw,12px);font-weight:800;color:#fff;margin-top:1px}'+
+  '.ed-badge-unit{font-size:clamp(6px,.85vw,9px);font-weight:800;color:#fff;text-transform:uppercase;align-self:flex-start;margin-top:1px}'+
   '.ed-toolbar{max-width:1080px;margin:0 auto 10px;display:flex;justify-content:flex-end;gap:8px;align-items:center}'+
   '.ed-toolbar .info{margin-right:auto;font-size:12px;color:#555}'+
   '.ed-toolbar button{border:0;background:#1D9E75;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;cursor:pointer}'+
-  '@media print{.ed-toolbar{display:none}body{background:#fff;padding:0}.ed-page{box-shadow:none;border-radius:0}}'+
+  '@media print{.ed-toolbar{display:none}body{background:#fff;padding:0}.ed-page{box-shadow:none;border-radius:0;page-break-after:always}}'+
   '</style></head><body>'+
-  '<div class="ed-toolbar"><div class="info">Preço: promoção salva · Descrição/unidade/foto: buscadas pelo código</div><button onclick="window.print()">Imprimir</button></div>'+
-  '<div class="ed-page">'+
-    '<div class="ed-header">'+
-      '<div class="dia">'+escapeHtml(dt.dia)+'</div>'+
-      '<div class="sub">DA ECONOMIA</div>'+
-      '<div class="data">Ofertas válidas para '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</div>'+
-    '</div>'+
-    '<div class="ed-grid">'+cardsHtml+'</div>'+
-    '<div class="ed-footer">OFERTAS VÁLIDAS PARA <b>'+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+'</b> OU ENQUANTO DURAREM OS ESTOQUES</div>'+
-  '</div>'+
+  '<div class="ed-toolbar"><div class="info">Preço: promoção salva · Descrição/unidade/foto: buscadas pelo código · '+paginas.length+' página(s)</div><button onclick="window.print()">Imprimir</button></div>'+
+  paginasHtml+
   '</body></html>';
 
   win.document.open();
