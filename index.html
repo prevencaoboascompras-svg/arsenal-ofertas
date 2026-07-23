@@ -1385,7 +1385,11 @@ async function drawPlaca(){
   function mx(pct){return pct/100*W;}
   function my(pct){return pct/100*H;}
 
+  var unirOn=document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked;
   var produto=(document.getElementById('pDescOverride').value||'NOME DO PRODUTO').trim();
+  if(unirOn && unirNomeB){
+    produto=produto+' OU '+unirNomeB;
+  }
   var de=document.getElementById('pDe').value.replace(/R\$\s*/i,'').trim();
   var por=document.getElementById('pPor').value.replace(/R\$\s*/i,'').trim();
   var deN=parseDec(de),porN=parseDec(por);
@@ -1492,31 +1496,30 @@ async function drawPlaca(){
 
   // FOTO DO PRODUTO — cartão de fundo branco que se adapta à proporção real da imagem,
   // sem cortar conteúdo e sem esticar (evita perda de qualidade)
-  if(fotoImg && !packOn){
-    var maxW=760,maxH=460,areaCX=W/2,areaTopY=605,pad2=18,fR=26;
-    var imgAspect=fotoImg.width/fotoImg.height;
+  function fotoRoundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.lineTo(x+w-r,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r);
+    ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+  function desenharFotoEmCaixa(img,maxW,maxH,areaCX,areaTopY,pad2,fR){
+    var imgAspect=img.width/img.height;
     var boxAspect=maxW/maxH;
     var fW,fH;
     if(imgAspect>boxAspect){ fW=maxW; fH=maxW/imgAspect; }
     else{ fH=maxH; fW=maxH*imgAspect; }
-    fW=Math.max(fW,300); fH=Math.max(fH,300);
+    fW=Math.max(fW,300*(maxW/760)); fH=Math.max(fH,300*(maxH/460));
     fW+=pad2*2; fH+=pad2*2;
     if(fW>maxW+pad2*2){fW=maxW+pad2*2;}
     if(fH>maxH+pad2*2){fH=maxH+pad2*2;}
     var fX=areaCX-fW/2, fY=areaTopY+(maxH-(fH-pad2*2))/2;
-    function fotoRoundRect(x,y,w,h,r){
-      ctx.beginPath();
-      ctx.moveTo(x+r,y);
-      ctx.lineTo(x+w-r,y);
-      ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-      ctx.lineTo(x+w,y+h-r);
-      ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-      ctx.lineTo(x+r,y+h);
-      ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-      ctx.lineTo(x,y+r);
-      ctx.quadraticCurveTo(x,y,x+r,y);
-      ctx.closePath();
-    }
     ctx.save();
     ctx.shadowColor='rgba(0,0,0,0.12)';
     ctx.shadowBlur=14;
@@ -1525,11 +1528,24 @@ async function drawPlaca(){
     ctx.fill();
     ctx.restore();
     ctx.save();
+    fotoRoundRect(fX,fY,fW,fH,fR);
+    ctx.clip();
     ctx.imageSmoothingEnabled=true;
     if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
     var dw=fW-pad2*2, dh=fH-pad2*2;
-    ctx.drawImage(fotoImg,fX+pad2,fY+pad2,dw,dh);
+    ctx.drawImage(img,fX+pad2,fY+pad2,dw,dh);
     ctx.restore();
+  }
+  if(fotoImg && !packOn){
+    if(unirOn && fotoImgB){
+      // duas fotos lado a lado, cada uma ocupando metade da área com um respiro no meio
+      var gap=24;
+      var halfW=(760-gap)/2;
+      desenharFotoEmCaixa(fotoImg,halfW,460,W/2-halfW/2-gap/2,605,16,24);
+      desenharFotoEmCaixa(fotoImgB,halfW,460,W/2+halfW/2+gap/2,605,16,24);
+    }else{
+      desenharFotoEmCaixa(fotoImg,760,460,W/2,605,18,26);
+    }
   }
 
   // No modo Pack — coordenadas do template atual (PACK_MAP.imagem), "object-fit: contain".
