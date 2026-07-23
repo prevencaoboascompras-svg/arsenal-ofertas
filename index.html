@@ -111,6 +111,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .enc-card.editing{border-color:var(--amber);box-shadow:0 0 0 2px rgba(186,117,23,.28)}
 .enc-card input[type=checkbox]{position:absolute;top:6px;left:6px;width:17px;height:17px;cursor:pointer;accent-color:var(--green);z-index:2}
 .enc-card-tools{position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:2}
+.enc-ordem-badge{position:absolute;top:4px;left:28px;min-width:20px;height:20px;padding:0 4px;border-radius:10px;background:var(--green);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1}
+.enc-card.checked{cursor:grab}
+.enc-card.dragging{opacity:.4}
+.enc-card.drag-over{outline:2px dashed var(--green);outline-offset:2px}
 .enc-tool-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--bds);background:var(--bg);color:var(--tx);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px}
 .enc-tool-btn:hover{background:var(--bg2)}
 .enc-tool-btn.del:hover{background:var(--red);border-color:var(--red);color:#fff}
@@ -2018,6 +2022,7 @@ function renderEncartes(){
   }
   listEl.innerHTML=encartesCache.map(function(it){
     var marcado=!!encartesSelecionados[it.id];
+    var ordem=marcado?encartesSelecionados[it.id]:0;
     var precoSalvo=it.precoPromocional||it.por||'';
     var precoTxt=precoSalvo?('R$ '+precoSalvo):'';
     var editando=(editingEncarteId===it.id);
@@ -2026,9 +2031,13 @@ function renderEncartes(){
     var thumbHtml=fotoCache
       ?'<img src="'+escapeHtml(fotoCache)+'" loading="lazy" alt="">'
       :'<i class="ti ti-photo" style="opacity:.3;font-size:22px"></i>';
+    var badgeHtml=marcado?'<div class="enc-ordem-badge" title="Posição '+ordem+' no encarte">'+ordem+'</div>':'';
     return ''+
-      '<div class="enc-card'+(marcado?' checked':'')+(editando?' editing':'')+'" data-id="'+escapeHtml(it.id)+'" onclick="toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
+      '<div class="enc-card'+(marcado?' checked':'')+(editando?' editing':'')+'" data-id="'+escapeHtml(it.id)+'" draggable="'+(marcado?'true':'false')+'" '+
+        'ondragstart="dragEncarteStart(event,\''+escapeHtml(it.id)+'\')" ondragover="dragEncarteOver(event)" ondragleave="dragEncarteLeave(event)" ondrop="dragEncarteDrop(event,\''+escapeHtml(it.id)+'\')" ondragend="dragEncarteEnd(event)" '+
+        'onclick="toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
         '<input type="checkbox" '+(marcado?'checked':'')+' onclick="event.stopPropagation();toggleEncarteCard(event,\''+escapeHtml(it.id)+'\')">'+
+        badgeHtml+
         '<div class="enc-card-tools">'+
           '<button type="button" class="enc-tool-btn edit" title="Editar promoção" onclick="event.stopPropagation();editarEncarte(\''+escapeHtml(it.id)+'\')"><i class="ti ti-pencil"></i></button>'+
           '<button type="button" class="enc-tool-btn del" title="Excluir" onclick="excluirEncarteClick(event,\''+escapeHtml(it.id)+'\')"><i class="ti ti-trash"></i></button>'+
@@ -2221,16 +2230,88 @@ async function limparListaEncartes(){
   }
 }
 
+// encartesSelecionados guarda id -> posição (1,2,3...), na ordem em que
+// cada placa foi marcada. Essa posição é usada para ordenar as placas no
+// Encarte do Dia e na impressão (12 placas cabem por página).
+function renumerarSelecaoEncartes(){
+  var ids=Object.keys(encartesSelecionados).sort(function(a,b){
+    return encartesSelecionados[a]-encartesSelecionados[b];
+  });
+  ids.forEach(function(id,i){encartesSelecionados[id]=i+1;});
+}
+
 function toggleEncarteCard(e,id){
-  if(encartesSelecionados[id])delete encartesSelecionados[id];
-  else encartesSelecionados[id]=true;
+  if(encartesSelecionados[id]){
+    delete encartesSelecionados[id];
+    renumerarSelecaoEncartes();
+  }else{
+    encartesSelecionados[id]=Object.keys(encartesSelecionados).length+1;
+  }
   renderEncartes();
 }
 
 function selecionarTodosEncartes(v){
   encartesSelecionados={};
-  if(v)encartesCache.forEach(function(it){encartesSelecionados[it.id]=true;});
+  if(v)encartesCache.forEach(function(it,i){encartesSelecionados[it.id]=i+1;});
   renderEncartes();
+}
+
+// Arrastar e soltar para reordenar as placas já selecionadas (funciona
+// mesmo depois de usar "Selecionar todos"). Só é possível arrastar cards
+// marcados; soltar sobre outro card marcado troca as posições.
+var arrastandoEncarteId=null;
+
+function dragEncarteStart(e,id){
+  if(!encartesSelecionados[id]){e.preventDefault();return;}
+  arrastandoEncarteId=id;
+  if(e.dataTransfer){
+    e.dataTransfer.effectAllowed='move';
+    try{e.dataTransfer.setData('text/plain',id);}catch(err){}
+  }
+  e.currentTarget.classList.add('dragging');
+}
+
+function dragEncarteOver(e){
+  if(!arrastandoEncarteId)return;
+  e.preventDefault();
+  if(e.dataTransfer)e.dataTransfer.dropEffect='move';
+  if(e.currentTarget.getAttribute('data-id')!==arrastandoEncarteId){
+    e.currentTarget.classList.add('drag-over');
+  }
+}
+
+function dragEncarteLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dragEncarteDrop(e,idAlvo){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  var idOrigem=arrastandoEncarteId;
+  arrastandoEncarteId=null;
+  if(!idOrigem||idOrigem===idAlvo||!encartesSelecionados[idOrigem])return;
+
+  var ids=Object.keys(encartesSelecionados).sort(function(a,b){
+    return encartesSelecionados[a]-encartesSelecionados[b];
+  });
+  ids=ids.filter(function(x){return x!==idOrigem;});
+  var idxAlvo=ids.indexOf(idAlvo);
+  if(idxAlvo===-1){
+    // Alvo ainda não estava selecionado: ele entra na seleção e a placa
+    // arrastada é posicionada logo antes dele.
+    ids.unshift(idAlvo);
+    idxAlvo=0;
+  }
+  ids.splice(idxAlvo,0,idOrigem);
+  ids.forEach(function(id,i){encartesSelecionados[id]=i+1;});
+  renderEncartes();
+}
+
+function dragEncarteEnd(){
+  arrastandoEncarteId=null;
+  document.querySelectorAll('.enc-card.dragging,.enc-card.drag-over').forEach(function(el){
+    el.classList.remove('dragging','drag-over');
+  });
 }
 
 function atualizarContagemSelecao(){
@@ -2291,8 +2372,13 @@ async function gerarImagemPlacaItem(it){
   }
 }
 
+function ordenarPorSelecao(lista){
+  return lista.filter(function(it){return encartesSelecionados[it.id];})
+    .sort(function(a,b){return encartesSelecionados[a.id]-encartesSelecionados[b.id];});
+}
+
 async function imprimirSelecionados(qtd){
-  var selecionados=encartesCache.filter(function(it){return encartesSelecionados[it.id];});
+  var selecionados=ordenarPorSelecao(encartesCache);
   if(!selecionados.length){mostrarToast('Selecione ao menos uma placa na lista.','warn');return;}
   var comLinha=document.getElementById('pPrintLinhaCorte').checked;
   var cols=1,rows=1;
@@ -2411,7 +2497,7 @@ function prepararItemEncarte(it){
 }
 
 async function gerarEncarteDoDia(){
-  var selecionados=encartesCache.filter(function(it){return encartesSelecionados[it.id];});
+  var selecionados=ordenarPorSelecao(encartesCache);
   if(!selecionados.length){mostrarToast('Selecione ao menos uma promoção na lista.','warn');return;}
 
   abrirModalEncarte();
