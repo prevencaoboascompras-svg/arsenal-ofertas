@@ -357,6 +357,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <div style="font-size:11px;color:var(--tx2)">No modo Pack, o "Por" da placa é substituído pelo valor do pack.</div>
       </div>
 
+      <div class="opts" style="margin-bottom:8px">
+        <label style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pUnirOn" onchange="toggleUnir();drawPlaca()"> <i class="ti ti-git-merge" style="color:var(--green)"></i> Unir com outro produto (mesmo preço)</label>
+      </div>
+      <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
+        <div class="f-row">
+          <label for="pCod2">Código interno, EAN ou produto (2º item)</label>
+          <input type="text" id="pCod2" placeholder="Digite o código do segundo produto" autocomplete="off" oninput="onCod2Change()">
+        </div>
+        <div class="foto-status" id="unirStatus">Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).</div>
+        <div style="font-size:11px;color:var(--tx2)">A descrição da placa vira "1º produto OU 2º produto" e as duas fotos aparecem lado a lado. O preço usado continua sendo o do produto principal.</div>
+      </div>
+
       <div class="f-row">
         <label for="pMsg">Mensagem do rodapé (faixa vermelha)</label>
         <input type="text" id="pMsg" placeholder="Ex: LEVE 3UN POR R$9,99 (R$3,33 CADA). VÁLIDO ENQUANTO DURAR O ESTOQUE." oninput="drawPlaca()">
@@ -464,6 +476,9 @@ var templatePackReady=false;
 var fotoImg=null;
 var fotoToken=0;
 var prodAtualCod='';
+var fotoImgB=null;
+var unirNomeB='';
+var unirTokenB=0;
 var fotoOrigemDrive=false;
 
 function loadCfg(){
@@ -1250,11 +1265,68 @@ function onPackChange(){
   }
 }
 
+function toggleUnir(){
+  var on=document.getElementById('pUnirOn').checked;
+  document.getElementById('unirFields').style.display=on?'block':'none';
+  if(!on){
+    ++unirTokenB;
+    fotoImgB=null;
+    unirNomeB='';
+    document.getElementById('pCod2').value='';
+    document.getElementById('unirStatus').textContent='Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).';
+    drawPlaca();
+  }
+}
+
+var unirBuscaTimer=null;
+function onCod2Change(){
+  clearTimeout(unirBuscaTimer);
+  var cod2=document.getElementById('pCod2').value.trim();
+  if(!cod2){
+    ++unirTokenB;
+    fotoImgB=null;unirNomeB='';
+    document.getElementById('unirStatus').textContent='Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).';
+    drawPlaca();
+    return;
+  }
+  unirBuscaTimer=setTimeout(buscarProdutoB,350);
+}
+
+async function buscarProdutoB(){
+  var token=++unirTokenB;
+  var cod2=document.getElementById('pCod2').value.trim();
+  var codNorm=normalizarCodigo(cod2);
+  var statusEl=document.getElementById('unirStatus');
+  var prodB=buscarPorCodigo(codNorm)||{};
+  var nome=(prodB.nome||cod2).trim();
+  unirNomeB=nome;
+  if(statusEl)statusEl.textContent='Buscando foto do 2º produto ('+nome+')...';
+  fotoImgB=null;
+  drawPlaca();
+  try{
+    var foto=await buscarFotoItemEncarte(codNorm,nome,'');
+    if(token!==unirTokenB)return;
+    if(foto&&foto.src){
+      fotoImgB=await carregarImagemUrl(foto.src);
+      if(token!==unirTokenB)return;
+      if(statusEl)statusEl.textContent='Encontrado: "'+nome+'" — foto via '+foto.origem+'.';
+    }else{
+      if(statusEl)statusEl.textContent='Nome "'+nome+'" carregado, mas não encontrei foto automaticamente. A placa usará só a foto do 1º produto.';
+    }
+  }catch(e){
+    if(token!==unirTokenB)return;
+    if(statusEl)statusEl.textContent='Erro ao buscar o 2º produto: '+e.message;
+  }
+  drawPlaca();
+}
+
 function limparCampos(){
   esconderSugestoes();
   ++fotoToken;
+  ++unirTokenB;
   prodAtualCod='';
   fotoOrigemDrive=false;
+  fotoImgB=null;unirNomeB='';
   document.getElementById('pCod').value='';
   document.getElementById('pDescOverride').value='';
   document.getElementById('pDe').value='';
@@ -1263,6 +1335,9 @@ function limparCampos(){
   var ft=document.getElementById('pFotoTermo');if(ft)ft.value='';
   var fu=document.getElementById('pFotoUrl');if(fu)fu.value='';
   var pf=document.getElementById('pFoto');if(pf)pf.value='';
+  var c2=document.getElementById('pCod2');if(c2)c2.value='';
+  var unirOn=document.getElementById('pUnirOn');
+  if(unirOn){unirOn.checked=false;document.getElementById('unirFields').style.display='none';}
   limparFoto();
   document.getElementById('prodInfo').innerHTML='<div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>';
   onPrecoChange();
