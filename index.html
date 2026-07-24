@@ -482,6 +482,8 @@ var fotoToken=0;
 var prodAtualCod='';
 var fotoImgB=null;
 var fotoImgBRecortada=null; // versão de fotoImgB com o fundo branco removido (canvas), usada na sobreposição
+var fotoImgARecortada=null;       // versão de fotoImg (produto 1) com fundo removido, cacheada por referência
+var fotoImgARecortadaFonte=null;  // guarda qual fotoImg gerou o cache acima, pra saber quando recalcular
 var unirNomeB='';
 var unirDescManual=false; // true assim que o usuário edita manualmente o campo pDescFinal
 var unirTokenB=0;
@@ -1615,31 +1617,52 @@ async function drawPlaca(){
   }
   if(fotoImg && !packOn){
     if(unirOn && fotoImgB){
-      // Produto 1 com o cartão branco normal, um pouco deslocado pra esquerda
-      // pra abrir espaço pro produto 2 se sobrepor.
-      var boxA=560;
-      desenharFotoEmCaixa(fotoImg,boxA,460,W/2-70,605,18,26);
-
-      // Produto 2 é desenhado por cima SEM cartão branco próprio — usamos a
-      // versão com fundo removido (fotoImgBRecortada) pra só o objeto
-      // aparecer, sobrepondo o canto direito do produto 1 e dando a
-      // ilusão de estar mais perto/na frente.
+      // Modo "unir": nenhum dos dois produtos tem cartão branco próprio.
+      // Os dois objetos são recortados (fundo removido) e desenhados
+      // lado a lado, próximos, direto sobre o fundo da placa.
+      if(fotoImgARecortadaFonte!==fotoImg){
+        fotoImgARecortada=removerFundoBranco(fotoImg);
+        fotoImgARecortadaFonte=fotoImg;
+      }
+      var imgA=fotoImgARecortada||fotoImg;
       var imgB=fotoImgBRecortada||fotoImgB;
+
       var areaTopY=605, areaH=460;
+      var maxWA=360, maxHA=420;
       var maxWB=340, maxHB=380;
+
+      var aspA=imgA.width/imgA.height;
+      var fWA,fHA;
+      if(aspA>maxWA/maxHA){fWA=maxWA;fHA=maxWA/aspA;}
+      else{fHA=maxHA;fWA=maxHA*aspA;}
+
       var aspB=imgB.width/imgB.height;
       var fWB,fHB;
       if(aspB>maxWB/maxHB){fWB=maxWB;fHB=maxWB/aspB;}
       else{fHB=maxHB;fWB=maxHB*aspB;}
-      var cxB=W/2+250;
-      var byB=areaTopY+areaH-fHB-14; // alinhado pela base, como se estivesse à frente
+
+      // Os dois se encostam no centro da área, alinhados pela base,
+      // como se estivessem apoiados lado a lado.
+      var gap=-18; // sobreposição leve entre as bordas pra ficarem "colados"
+      var totalW=fWA+fWB+gap;
+      var startX=W/2-totalW/2;
+      var cxA=startX+fWA/2;
+      var cxB=startX+fWA+gap+fWB/2;
+      var byA=areaTopY+areaH-fHA-14;
+      var byB=areaTopY+areaH-fHB-14;
+
       ctx.save();
       ctx.shadowColor='rgba(0,0,0,0.30)';
-      ctx.shadowBlur=20;
-      ctx.shadowOffsetX=-6;
+      ctx.shadowBlur=18;
+      ctx.shadowOffsetX=0;
       ctx.shadowOffsetY=8;
       ctx.imageSmoothingEnabled=true;
       if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+      ctx.drawImage(imgA,cxA-fWA/2,byA,fWA,fHA);
+      // Produto B por cima, um pouco mais à frente (sombra mais forte pra
+      // reforçar profundidade e a ilusão de estar mais perto da câmera).
+      ctx.shadowBlur=20;
+      ctx.shadowOffsetX=-6;
       ctx.drawImage(imgB,cxB-fWB/2,byB,fWB,fHB);
       ctx.restore();
     }else{
@@ -2753,6 +2776,17 @@ async function gerarEncarteDoDia(){
           if(imgBTmp){
             var recortadaTmp=removerFundoBranco(imgBTmp);
             if(recortadaTmp&&recortadaTmp.toDataURL)item.fotoB=recortadaTmp.toDataURL('image/png');
+          }
+        }catch(e){/* se falhar, mantém a foto original com fundo branco */}
+      }
+      // Produto 1 também tem o fundo removido aqui, pra ficar igual à placa
+      // individual: os dois objetos ficam próximos, sem cartão branco.
+      if(item.foto){
+        try{
+          var imgATmp=await carregarImagemUrl(proxyImagemUrl(item.foto));
+          if(imgATmp){
+            var recortadaATmp=removerFundoBranco(imgATmp);
+            if(recortadaATmp&&recortadaATmp.toDataURL)item.foto=recortadaATmp.toDataURL('image/png');
           }
         }catch(e){/* se falhar, mantém a foto original com fundo branco */}
       }
