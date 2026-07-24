@@ -481,6 +481,7 @@ var fotoImg=null;
 var fotoToken=0;
 var prodAtualCod='';
 var fotoImgB=null;
+var fotoImgBRecortada=null; // versão de fotoImgB com o fundo branco removido (canvas), usada na sobreposição
 var unirNomeB='';
 var unirDescManual=false; // true assim que o usuário edita manualmente o campo pDescFinal
 var unirTokenB=0;
@@ -888,6 +889,39 @@ function proxyImagemUrl(url){
   if(/\/\/images\.weserv\.nl\//i.test(url))return url;
   return 'https://images.weserv.nl/?url='+encodeURIComponent(url.replace(/^https?:\/\//i,''))+'&output=png';
 }
+// Remove o fundo branco de uma foto de produto, deixando só o objeto com
+// fundo transparente (com uma borda suavizada). Usado para sobrepor a foto
+// do 2º produto sobre a do 1º sem criar um retângulo branco por cima.
+// Se a imagem estiver bloqueada por CORS (canvas "tainted"), devolve a
+// imagem original sem recorte em vez de travar.
+function removerFundoBranco(img,limiarAlto,limiarBaixo){
+  limiarAlto=limiarAlto||244;
+  limiarBaixo=limiarBaixo||205;
+  try{
+    var c=document.createElement('canvas');
+    c.width=img.naturalWidth||img.width;
+    c.height=img.naturalHeight||img.height;
+    if(!c.width||!c.height)return img;
+    var cx=c.getContext('2d');
+    cx.drawImage(img,0,0,c.width,c.height);
+    var id=cx.getImageData(0,0,c.width,c.height);
+    var d=id.data;
+    for(var i=0;i<d.length;i+=4){
+      var r=d[i],g=d[i+1],b=d[i+2];
+      var minc=Math.min(r,g,b);
+      if(minc>=limiarAlto){
+        d[i+3]=0;
+      }else if(minc>limiarBaixo){
+        var t=(minc-limiarBaixo)/(limiarAlto-limiarBaixo);
+        d[i+3]=Math.round(d[i+3]*(1-t));
+      }
+    }
+    cx.putImageData(id,0,0);
+    return c;
+  }catch(e){
+    return img;
+  }
+}
 function carregarImagemUrl(url,semProxy){
   return new Promise(function(resolve){
     if(!url){resolve(null);return;}
@@ -1293,7 +1327,7 @@ function toggleUnir(){
     }
   }else{
     ++unirTokenB;
-    fotoImgB=null;
+    fotoImgB=null;fotoImgBRecortada=null;
     unirNomeB='';
     unirDescManual=false;
     document.getElementById('pCod2').value='';
@@ -1315,7 +1349,7 @@ function onCod2Change(){
   var cod2=document.getElementById('pCod2').value.trim();
   if(!cod2){
     ++unirTokenB;
-    fotoImgB=null;unirNomeB='';
+    fotoImgB=null;fotoImgBRecortada=null;unirNomeB='';
     document.getElementById('unirStatus').textContent='Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).';
     drawPlaca();
     return;
@@ -1339,7 +1373,7 @@ async function buscarProdutoB(){
     }
   }
   if(statusEl)statusEl.textContent='Buscando foto do 2º produto ('+nome+')...';
-  fotoImgB=null;
+  fotoImgB=null;fotoImgBRecortada=null;
   drawPlaca();
   try{
     var foto=await buscarFotoItemEncarte(codNorm,nome,'');
@@ -1347,6 +1381,7 @@ async function buscarProdutoB(){
     if(foto&&foto.src){
       fotoImgB=await carregarImagemUrl(foto.src);
       if(token!==unirTokenB)return;
+      fotoImgBRecortada=fotoImgB?removerFundoBranco(fotoImgB):null;
       if(statusEl)statusEl.textContent='Encontrado: "'+nome+'" — foto via '+foto.origem+'.';
     }else{
       if(statusEl)statusEl.textContent='Nome "'+nome+'" carregado, mas não encontrei foto automaticamente. A placa usará só a foto do 1º produto.';
@@ -1364,7 +1399,7 @@ function limparCampos(){
   ++unirTokenB;
   prodAtualCod='';
   fotoOrigemDrive=false;
-  fotoImgB=null;unirNomeB='';
+  fotoImgB=null;fotoImgBRecortada=null;unirNomeB='';
   document.getElementById('pCod').value='';
   document.getElementById('pDescOverride').value='';
   document.getElementById('pDe').value='';
@@ -1580,15 +1615,33 @@ async function drawPlaca(){
   }
   if(fotoImg && !packOn){
     if(unirOn && fotoImgB){
-      // Duas fotos criando uma ilusão de profundidade: a da esquerda fica
-      // "atrás" (desenhada primeiro) e a da direita se sobrepõe a ela, um
-      // pouco maior e levemente mais baixa, como se estivesse mais perto.
-      var overlap=110;
-      var boxW=430, boxH=460;
-      var cxA=W/2-boxW/2+overlap/2;
-      var cxB=W/2+boxW/2-overlap/2;
-      desenharFotoEmCaixa(fotoImg,boxW,boxH,cxA,605,16,24);
-      desenharFotoEmCaixa(fotoImgB,boxW*1.08,boxH*1.08,cxB,596,16,24);
+      // Produto 1 com o cartão branco normal, um pouco deslocado pra esquerda
+      // pra abrir espaço pro produto 2 se sobrepor.
+      var boxA=560;
+      desenharFotoEmCaixa(fotoImg,boxA,460,W/2-70,605,18,26);
+
+      // Produto 2 é desenhado por cima SEM cartão branco próprio — usamos a
+      // versão com fundo removido (fotoImgBRecortada) pra só o objeto
+      // aparecer, sobrepondo o canto direito do produto 1 e dando a
+      // ilusão de estar mais perto/na frente.
+      var imgB=fotoImgBRecortada||fotoImgB;
+      var areaTopY=605, areaH=460;
+      var maxWB=340, maxHB=380;
+      var aspB=imgB.width/imgB.height;
+      var fWB,fHB;
+      if(aspB>maxWB/maxHB){fWB=maxWB;fHB=maxWB/aspB;}
+      else{fHB=maxHB;fWB=maxHB*aspB;}
+      var cxB=W/2+250;
+      var byB=areaTopY+areaH-fHB-14; // alinhado pela base, como se estivesse à frente
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,0.30)';
+      ctx.shadowBlur=20;
+      ctx.shadowOffsetX=-6;
+      ctx.shadowOffsetY=8;
+      ctx.imageSmoothingEnabled=true;
+      if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+      ctx.drawImage(imgB,cxB-fWB/2,byB,fWB,fHB);
+      ctx.restore();
     }else{
       desenharFotoEmCaixa(fotoImg,760,460,W/2,605,18,26);
     }
@@ -2271,7 +2324,7 @@ async function editarEncarte(id){
   var unirFieldsEl=document.getElementById('unirFields');
   var descFinalEl=document.getElementById('pDescFinal');
   ++unirTokenB;
-  fotoImgB=null;unirNomeB='';unirDescManual=false;
+  fotoImgB=null;fotoImgBRecortada=null;unirNomeB='';unirDescManual=false;
   if(it.unirOn&&it.cod2){
     if(unirOnEl)unirOnEl.checked=true;
     if(unirFieldsEl)unirFieldsEl.style.display='block';
@@ -2694,6 +2747,15 @@ async function gerarEncarteDoDia(){
     if(item.unirOn&&item.codigo2){
       var fotoB=await buscarFotoItemEncarte(item.codigo2,item.descricaoB,'');
       item.fotoB=fotoB.src;
+      if(item.fotoB){
+        try{
+          var imgBTmp=await carregarImagemUrl(proxyImagemUrl(item.fotoB));
+          if(imgBTmp){
+            var recortadaTmp=removerFundoBranco(imgBTmp);
+            if(recortadaTmp&&recortadaTmp.toDataURL)item.fotoB=recortadaTmp.toDataURL('image/png');
+          }
+        }catch(e){/* se falhar, mantém a foto original com fundo branco */}
+      }
     }
     concluidos++;
     if(statusEl)statusEl.textContent='Buscando descrição, unidade e foto por código: '+concluidos+' de '+preparados.length;
