@@ -363,7 +363,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
         <div class="f-row">
           <label for="pCod2">Código interno, EAN ou produto (2º item)</label>
-          <input type="text" id="pCod2" placeholder="Digite o código do segundo produto" autocomplete="off" oninput="onCod2Change()">
+          <div class="search-wrap">
+            <input type="text" id="pCod2" class="cod-input" placeholder="Digite código, EAN ou palavra-chave do 2º produto" autocomplete="off">
+            <div id="prodSug2" class="suggestions" role="listbox" aria-label="Sugestões de produtos (2º item)"></div>
+          </div>
+          <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN.</span>
         </div>
         <div class="foto-status" id="unirStatus">Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).</div>
         <div class="f-row" style="margin-top:8px">
@@ -1328,6 +1332,7 @@ function toggleUnir(){
       descFinalEl.value=(document.getElementById('pDescOverride').value||'').trim();
     }
   }else{
+    if(typeof esconderSugestoesB==='function')esconderSugestoesB();
     ++unirTokenB;
     fotoImgB=null;fotoImgBRecortada=null;
     unirNomeB='';
@@ -1346,18 +1351,6 @@ function onDescFinalChange(){
 }
 
 var unirBuscaTimer=null;
-function onCod2Change(){
-  clearTimeout(unirBuscaTimer);
-  var cod2=document.getElementById('pCod2').value.trim();
-  if(!cod2){
-    ++unirTokenB;
-    fotoImgB=null;fotoImgBRecortada=null;unirNomeB='';
-    document.getElementById('unirStatus').textContent='Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).';
-    drawPlaca();
-    return;
-  }
-  unirBuscaTimer=setTimeout(buscarProdutoB,350);
-}
 
 async function buscarProdutoB(){
   var token=++unirTokenB;
@@ -1397,6 +1390,7 @@ async function buscarProdutoB(){
 
 function limparCampos(){
   esconderSugestoes();
+  if(typeof esconderSugestoesB==='function')esconderSugestoesB();
   ++fotoToken;
   ++unirTokenB;
   prodAtualCod='';
@@ -3112,8 +3106,110 @@ document.getElementById('prodSug').addEventListener('mousedown',function(e){
   selecionarProduto(sugestoesAtuais[idx]);
 });
 document.addEventListener('click',function(e){
-  if(!e.target.closest('.search-wrap'))esconderSugestoes();
+  if(!e.target.closest('.search-wrap')){esconderSugestoes();esconderSugestoesB();}
 });
+
+// ============================================================
+// Campo do 2º produto (pCod2) — mesma busca por nome/código,
+// mesma lista de sugestões e mesma navegação por teclado do
+// campo principal (pCod). A diferença é que, ao selecionar,
+// preenche o produto B (buscarProdutoB) em vez do principal.
+// ============================================================
+var sugestoesAtuaisB=[];
+var sugestaoAtivaB=-1;
+
+function esconderSugestoesB(){
+  var box=document.getElementById('prodSug2');
+  if(box){box.className='suggestions';box.innerHTML='';}
+  sugestoesAtuaisB=[];
+  sugestaoAtivaB=-1;
+}
+
+function renderSugestoesB(lista,termo){
+  var box=document.getElementById('prodSug2');
+  if(!box)return;
+  sugestoesAtuaisB=lista||[];
+  if(sugestaoAtivaB<0||sugestaoAtivaB>=sugestoesAtuaisB.length)sugestaoAtivaB=sugestoesAtuaisB.length?0:-1;
+  if(!termo||!String(termo).trim()){esconderSugestoesB();return;}
+  if(!sugestoesAtuaisB.length){
+    box.className='suggestions open';
+    box.innerHTML='<div class="sg-empty">Nenhum produto encontrado para "'+escapeHtml(termo)+'".</div>';
+    return;
+  }
+  box.className='suggestions open';
+  box.innerHTML=sugestoesAtuaisB.map(function(p,idx){
+    var preco=p.preco?fmtR(p.preco):'sem preço';
+    var meta=(p.cod?'Cód/EAN: '+escapeHtml(p.cod):'sem código');
+    return ''+
+      '<button type="button" class="sg-item '+(idx===sugestaoAtivaB?'active':'')+'" data-idx="'+idx+'" role="option" aria-selected="'+(idx===sugestaoAtivaB?'true':'false')+'">'+
+        '<span><span class="sg-name">'+escapeHtml(p.nome||'(sem descrição)')+'</span><span class="sg-meta">'+meta+'</span></span>'+
+        '<span class="sg-price">'+escapeHtml(preco)+'</span>'+
+      '</button>';
+  }).join('');
+}
+
+function moverSugestaoB(delta){
+  if(!sugestoesAtuaisB.length)return;
+  sugestaoAtivaB=(sugestaoAtivaB+delta+sugestoesAtuaisB.length)%sugestoesAtuaisB.length;
+  renderSugestoesB(sugestoesAtuaisB,document.getElementById('pCod2').value);
+}
+
+function selecionarProdutoB(prod){
+  if(!prod)return;
+  document.getElementById('pCod2').value=prod.cod||prod.nome||'';
+  esconderSugestoesB();
+  buscarProdutoB();
+}
+
+document.getElementById('pCod2').addEventListener('input',function(e){
+  clearTimeout(unirBuscaTimer);
+  var v=e.target.value.trim();
+  if(!v){
+    esconderSugestoesB();
+    ++unirTokenB;
+    fotoImgB=null;fotoImgBRecortada=null;unirNomeB='';
+    var statusElVazio=document.getElementById('unirStatus');
+    if(statusElVazio)statusElVazio.textContent='Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).';
+    drawPlaca();
+    return;
+  }
+  unirBuscaTimer=setTimeout(function(){
+    if(!temBaseProdutos()){
+      mostrarToast('Sincronize primeiro (clique em Sincronizar).','warn');
+      return;
+    }
+    var lista=buscarProdutos(v,40);
+    sugestaoAtivaB=-1;
+    renderSugestoesB(lista,v);
+    if(ehBuscaCodigo(v)&&lista.length&&normalizarCodigo(lista[0].cod)===normalizarCodigo(v)){
+      selecionarProdutoB(lista[0]);
+    }
+  },140);
+});
+document.getElementById('pCod2').addEventListener('keydown',function(e){
+  var aberto=document.getElementById('prodSug2').classList.contains('open');
+  if(e.key==='ArrowDown'&&aberto){e.preventDefault();moverSugestaoB(1);return;}
+  if(e.key==='ArrowUp'&&aberto){e.preventDefault();moverSugestaoB(-1);return;}
+  if(e.key==='Escape'){esconderSugestoesB();return;}
+  if(e.key==='Enter'){
+    e.preventDefault();
+    clearTimeout(unirBuscaTimer);
+    if(aberto&&sugestoesAtuaisB.length){
+      selecionarProdutoB(sugestoesAtuaisB[Math.max(0,sugestaoAtivaB)]);
+    }else{
+      esconderSugestoesB();
+      buscarProdutoB();
+    }
+  }
+});
+document.getElementById('prodSug2').addEventListener('mousedown',function(e){
+  var item=e.target.closest('.sg-item');
+  if(!item)return;
+  e.preventDefault();
+  var idx=parseInt(item.getAttribute('data-idx'),10);
+  selecionarProdutoB(sugestoesAtuaisB[idx]);
+});
+
 document.getElementById('pFotoTermo').addEventListener('keydown',function(e){
   if(e.key==='Enter'){
     e.preventDefault();
