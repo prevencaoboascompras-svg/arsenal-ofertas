@@ -905,23 +905,67 @@ function removerFundoBranco(img,limiarAlto,limiarBaixo){
   limiarBaixo=limiarBaixo||205;
   try{
     var c=document.createElement('canvas');
-    c.width=img.naturalWidth||img.width;
-    c.height=img.naturalHeight||img.height;
-    if(!c.width||!c.height)return img;
+    var w=img.naturalWidth||img.width;
+    var h=img.naturalHeight||img.height;
+    c.width=w;c.height=h;
+    if(!w||!h)return img;
     var cx=c.getContext('2d');
-    cx.drawImage(img,0,0,c.width,c.height);
-    var id=cx.getImageData(0,0,c.width,c.height);
+    cx.drawImage(img,0,0,w,h);
+    var id=cx.getImageData(0,0,w,h);
     var d=id.data;
-    for(var i=0;i<d.length;i+=4){
-      var r=d[i],g=d[i+1],b=d[i+2];
-      var minc=Math.min(r,g,b);
-      if(minc>=limiarAlto){
-        d[i+3]=0;
-      }else if(minc>limiarBaixo){
-        var t=(minc-limiarBaixo)/(limiarAlto-limiarBaixo);
-        d[i+3]=Math.round(d[i+3]*(1-t));
-      }
+    var n=w*h;
+
+    // "Quão branco" é cada pixel (0 = nada branco, 1 = branco puro),
+    // usado tanto pra decidir a semente do flood fill quanto pra suavizar
+    // a borda do recorte final.
+    var brancura=new Float32Array(n);
+    for(var p=0;p<n;p++){
+      var i4=p*4;
+      var minc=Math.min(d[i4],d[i4+1],d[i4+2]);
+      if(minc>=limiarAlto)brancura[p]=1;
+      else if(minc>limiarBaixo)brancura[p]=(minc-limiarBaixo)/(limiarAlto-limiarBaixo);
+      else brancura[p]=0;
     }
+
+    // Flood fill (BFS) só a partir das bordas da imagem: marca como
+    // "fundo" apenas o branco que está conectado ao contorno externo.
+    // Branco isolado dentro do objeto (rótulo, reflexo, etc.) nunca é
+    // alcançado e continua opaco.
+    var ehFundo=new Uint8Array(n);
+    var fila=[];
+    var limiarSemente=0.5; // só entra na fila pixel razoavelmente branco
+    for(var x=0;x<w;x++){
+      var pTopo=x, pBase=(h-1)*w+x;
+      if(brancura[pTopo]>=limiarSemente&&!ehFundo[pTopo]){ehFundo[pTopo]=1;fila.push(pTopo);}
+      if(brancura[pBase]>=limiarSemente&&!ehFundo[pBase]){ehFundo[pBase]=1;fila.push(pBase);}
+    }
+    for(var y=0;y<h;y++){
+      var pEsq=y*w, pDir=y*w+(w-1);
+      if(brancura[pEsq]>=limiarSemente&&!ehFundo[pEsq]){ehFundo[pEsq]=1;fila.push(pEsq);}
+      if(brancura[pDir]>=limiarSemente&&!ehFundo[pDir]){ehFundo[pDir]=1;fila.push(pDir);}
+    }
+    var cabeca=0;
+    while(cabeca<fila.length){
+      var pAtual=fila[cabeca++];
+      var xa=pAtual%w, ya=(pAtual-xa)/w;
+      // 4 vizinhos; espalha por qualquer pixel ainda "branco o bastante"
+      // (limiar mais permissivo aqui pra acompanhar degradês suaves do fundo)
+      var limiarEspalha=0.12;
+      if(xa>0){var pv=pAtual-1;if(!ehFundo[pv]&&brancura[pv]>=limiarEspalha){ehFundo[pv]=1;fila.push(pv);}}
+      if(xa<w-1){var pv2=pAtual+1;if(!ehFundo[pv2]&&brancura[pv2]>=limiarEspalha){ehFundo[pv2]=1;fila.push(pv2);}}
+      if(ya>0){var pv3=pAtual-w;if(!ehFundo[pv3]&&brancura[pv3]>=limiarEspalha){ehFundo[pv3]=1;fila.push(pv3);}}
+      if(ya<h-1){var pv4=pAtual+w;if(!ehFundo[pv4]&&brancura[pv4]>=limiarEspalha){ehFundo[pv4]=1;fila.push(pv4);}}
+    }
+
+    for(var p2=0;p2<n;p2++){
+      if(!ehFundo[p2])continue;
+      var i5=p2*4;
+      // Usa a "brancura" real do pixel (não o limiar de espalhamento) pra
+      // decidir a opacidade final, mantendo a borda suave de antes.
+      var b=brancura[p2];
+      d[i5+3]=Math.round(d[i5+3]*(1-b));
+    }
+
     cx.putImageData(id,0,0);
     return c;
   }catch(e){
