@@ -2761,6 +2761,18 @@ async function gerarEncarteDoDia(){
     var foto=await buscarFotoItemEncarte(item.codigo,item.descricao,item.fallbackFoto);
     item.foto=foto.src;
     item.origemFoto=foto.origem;
+    // Remove o fundo branco de toda foto do encarte (produto único ou 1º da
+    // dupla), pra não aparecer a moldura/cartão quadrado — o produto fica
+    // solto direto sobre o fundo colorido do template.
+    if(item.foto){
+      try{
+        var imgATmp=await carregarImagemUrl(proxyImagemUrl(item.foto));
+        if(imgATmp){
+          var recortadaATmp=removerFundoBranco(imgATmp);
+          if(recortadaATmp&&recortadaATmp.toDataURL)item.foto=recortadaATmp.toDataURL('image/png');
+        }
+      }catch(e){/* se falhar, mantém a foto original com fundo branco */}
+    }
     if(item.unirOn&&item.codigo2){
       var fotoB=await buscarFotoItemEncarte(item.codigo2,item.descricaoB,'');
       item.fotoB=fotoB.src;
@@ -2770,17 +2782,6 @@ async function gerarEncarteDoDia(){
           if(imgBTmp){
             var recortadaTmp=removerFundoBranco(imgBTmp);
             if(recortadaTmp&&recortadaTmp.toDataURL)item.fotoB=recortadaTmp.toDataURL('image/png');
-          }
-        }catch(e){/* se falhar, mantém a foto original com fundo branco */}
-      }
-      // Produto 1 também tem o fundo removido aqui, pra ficar igual à placa
-      // individual: os dois objetos ficam próximos, sem cartão branco.
-      if(item.foto){
-        try{
-          var imgATmp=await carregarImagemUrl(proxyImagemUrl(item.foto));
-          if(imgATmp){
-            var recortadaATmp=removerFundoBranco(imgATmp);
-            if(recortadaATmp&&recortadaATmp.toDataURL)item.foto=recortadaATmp.toDataURL('image/png');
           }
         }catch(e){/* se falhar, mantém a foto original com fundo branco */}
       }
@@ -2882,8 +2883,8 @@ async function gerarEncarteDoDia(){
   '.ed-linha3{position:absolute;top:68%;left:1%;width:98%;height:19.6%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
   '.ed-footer-overlay{position:absolute;top:87.9%;left:2.5%;width:95%;height:6.4%;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:clamp(8px,1.15vw,13px);padding:0 2%}'+
   '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:100%;min-height:0}'+
-  '.ed-foto{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.15);margin:0 3%;padding:6%}'+
-  '.ed-foto img{max-width:100%;max-height:100%;object-fit:contain}'+
+  '.ed-foto{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;margin:0 3%;padding:6%}'+
+  '.ed-foto img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
   '.ed-foto-dupla img{max-width:62%;max-height:98%;object-fit:contain}'+
   '.ed-foto-dupla .ed-foto-a{position:relative;z-index:1;margin-right:-38%}'+
