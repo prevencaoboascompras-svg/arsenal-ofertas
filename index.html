@@ -49,7 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .f-row .hint{font-size:11px;color:var(--tx2)}
 .cod-input{font-family:monospace;font-size:15px!important;letter-spacing:.5px}
 .search-wrap{position:relative}
-.suggestions{display:none;position:absolute;z-index:50;left:0;right:0;top:calc(100% + 4px);max-height:280px;overflow:auto;background:var(--bg);border:1px solid var(--bds);border-radius:var(--r);box-shadow:0 14px 36px rgba(0,0,0,.22);padding:4px}
+.suggestions{display:none;position:absolute;z-index:50;left:0;right:0;top:calc(100% + 4px);max-height:400px;overflow:auto;background:var(--bg);border:1px solid var(--bds);border-radius:var(--r);box-shadow:0 14px 36px rgba(0,0,0,.22);padding:4px}
 .suggestions.open{display:block}
 .sg-item{width:100%;border:0;background:transparent;color:var(--tx);display:grid;grid-template-columns:1fr auto;gap:8px;text-align:left;padding:9px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
 .sg-item:hover,.sg-item.active{background:var(--bg2)}
@@ -366,7 +366,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <input type="text" id="pCod2" placeholder="Digite o código do segundo produto" autocomplete="off" oninput="onCod2Change()">
         </div>
         <div class="foto-status" id="unirStatus">Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).</div>
-        <div style="font-size:11px;color:var(--tx2)">A descrição da placa vira "1º produto OU 2º produto" e as duas fotos aparecem lado a lado. O preço usado continua sendo o do produto principal.</div>
+        <div class="f-row" style="margin-top:8px">
+          <label for="pDescFinal">Descrição final da placa (editável)</label>
+          <textarea id="pDescFinal" rows="2" placeholder="Ex: PEPINO CONSERVA PETRY OU PEPINO PETRY GREMIO" oninput="onDescFinalChange()" style="resize:vertical;font-family:inherit;font-size:13px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--bd);background:var(--bg);color:var(--tx);width:100%"></textarea>
+        </div>
+        <div style="font-size:11px;color:var(--tx2)">Este texto substitui a descrição na placa/encarte — edite livremente, inclusive o nome do 2º produto. É preenchido automaticamente ao buscar os dois produtos, mas fica sob seu controle depois disso. As duas fotos aparecem lado a lado; o preço usado continua sendo o do produto principal.</div>
       </div>
 
       <div class="f-row">
@@ -478,6 +482,7 @@ var fotoToken=0;
 var prodAtualCod='';
 var fotoImgB=null;
 var unirNomeB='';
+var unirDescManual=false; // true assim que o usuário edita manualmente o campo pDescFinal
 var unirTokenB=0;
 var fotoOrigemDrive=false;
 
@@ -772,8 +777,14 @@ function buscarProdutos(termo,limite){
   termo=String(termo||'').trim();
   if(!termo)return [];
   var texto=normalizarTexto(termo);
-  var dig=normalizarCodigo(termo);
   var termos=texto.split(' ').filter(Boolean);
+  // Só tratamos como "busca por código" quando o termo inteiro é composto
+  // apenas por dígitos/pontuação (ex: "789657721", "12345"). Isso evita que
+  // uma palavra-chave com número no meio (ex: "MASSA ISABELA 1KG") vire uma
+  // busca por código e traga produtos aleatórios só porque o código deles
+  // contém aquele dígito em algum lugar.
+  var buscaSoCodigo=ehBuscaCodigo(termo);
+  var dig=buscaSoCodigo?normalizarCodigo(termo):'';
   var lista=consolidarProdutos();
   var resultados=[];
 
@@ -782,20 +793,26 @@ function buscarProdutos(termo,limite){
     var nomeNorm=normalizarTexto(p.nome);
     var codNorm=normalizarCodigo(p.cod);
     var score=0;
+    var nomeBate=false;
 
-    if(dig&&codNorm){
+    if(texto&&nomeNorm){
+      if(nomeNorm===texto){score+=180;nomeBate=true;}
+      else if(nomeNorm.indexOf(texto)===0){score+=130;nomeBate=true;}
+      else if(nomeNorm.indexOf(texto)>0){score+=90;nomeBate=true;}
+      var todos=termos.length>0&&termos.every(function(t){return nomeNorm.indexOf(t)>=0;});
+      if(todos){score+=termos.length*25;nomeBate=true;}
+    }
+
+    if(buscaSoCodigo&&dig&&codNorm){
       if(codNorm===dig)score+=220;
       else if(codNorm.indexOf(dig)===0)score+=120;
       else if(codNorm.indexOf(dig)>0)score+=50;
     }
-    if(texto&&nomeNorm){
-      if(nomeNorm===texto)score+=180;
-      else if(nomeNorm.indexOf(texto)===0)score+=130;
-      else if(nomeNorm.indexOf(texto)>0)score+=90;
-      var todos=termos.every(function(t){return nomeNorm.indexOf(t)>=0||codNorm.indexOf(t)>=0;});
-      if(todos)score+=termos.length*25;
-      else if(!dig)score=0;
-    }
+
+    // Descarta produtos que não bateram em nada relevante: nome não bateu
+    // e (não é busca por código OU código também não bateu).
+    if(!nomeBate&&!(buscaSoCodigo&&score>0))continue;
+
     if(score>0){
       if(p.preco>0)score+=8;
       resultados.push({cod:p.cod,nome:p.nome,preco:p.preco,unidade:p.unidade||'',score:score});
@@ -806,7 +823,7 @@ function buscarProdutos(termo,limite){
     if(b.score!==a.score)return b.score-a.score;
     return String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR');
   });
-  return resultados.slice(0,limite||10);
+  return resultados.slice(0,limite||40);
 }
 
 function buscarProduto(termo){
@@ -1268,14 +1285,28 @@ function onPackChange(){
 function toggleUnir(){
   var on=document.getElementById('pUnirOn').checked;
   document.getElementById('unirFields').style.display=on?'block':'none';
-  if(!on){
+  if(on){
+    // ao ligar, sugere a descrição atual do 1º produto como ponto de partida editável
+    var descFinalEl=document.getElementById('pDescFinal');
+    if(descFinalEl&&!descFinalEl.value.trim()){
+      descFinalEl.value=(document.getElementById('pDescOverride').value||'').trim();
+    }
+  }else{
     ++unirTokenB;
     fotoImgB=null;
     unirNomeB='';
+    unirDescManual=false;
     document.getElementById('pCod2').value='';
+    var descFinalEl2=document.getElementById('pDescFinal');
+    if(descFinalEl2)descFinalEl2.value='';
     document.getElementById('unirStatus').textContent='Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).';
     drawPlaca();
   }
+}
+
+function onDescFinalChange(){
+  unirDescManual=true;
+  drawPlaca();
 }
 
 var unirBuscaTimer=null;
@@ -1300,6 +1331,13 @@ async function buscarProdutoB(){
   var prodB=buscarPorCodigo(codNorm)||{};
   var nome=(prodB.nome||cod2).trim();
   unirNomeB=nome;
+  if(!unirDescManual){
+    var descFinalEl=document.getElementById('pDescFinal');
+    if(descFinalEl){
+      var principal=(document.getElementById('pDescOverride').value||'').trim();
+      descFinalEl.value=principal?(principal+' OU '+nome):nome;
+    }
+  }
   if(statusEl)statusEl.textContent='Buscando foto do 2º produto ('+nome+')...';
   fotoImgB=null;
   drawPlaca();
@@ -1336,6 +1374,8 @@ function limparCampos(){
   var fu=document.getElementById('pFotoUrl');if(fu)fu.value='';
   var pf=document.getElementById('pFoto');if(pf)pf.value='';
   var c2=document.getElementById('pCod2');if(c2)c2.value='';
+  var dF=document.getElementById('pDescFinal');if(dF)dF.value='';
+  unirDescManual=false;
   var unirOn=document.getElementById('pUnirOn');
   if(unirOn){unirOn.checked=false;document.getElementById('unirFields').style.display='none';}
   limparFoto();
@@ -1387,8 +1427,10 @@ async function drawPlaca(){
 
   var unirOn=document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked;
   var produto=(document.getElementById('pDescOverride').value||'NOME DO PRODUTO').trim();
-  if(unirOn && unirNomeB){
-    produto=produto+' OU '+unirNomeB;
+  if(unirOn){
+    var descFinalVal=(document.getElementById('pDescFinal')&&document.getElementById('pDescFinal').value||'').trim();
+    if(descFinalVal)produto=descFinalVal;
+    else if(unirNomeB)produto=produto+' OU '+unirNomeB;
   }
   var de=document.getElementById('pDe').value.replace(/R\$\s*/i,'').trim();
   var por=document.getElementById('pPor').value.replace(/R\$\s*/i,'').trim();
@@ -1538,11 +1580,15 @@ async function drawPlaca(){
   }
   if(fotoImg && !packOn){
     if(unirOn && fotoImgB){
-      // duas fotos lado a lado, cada uma ocupando metade da área com um respiro no meio
-      var gap=24;
-      var halfW=(760-gap)/2;
-      desenharFotoEmCaixa(fotoImg,halfW,460,W/2-halfW/2-gap/2,605,16,24);
-      desenharFotoEmCaixa(fotoImgB,halfW,460,W/2+halfW/2+gap/2,605,16,24);
+      // Duas fotos criando uma ilusão de profundidade: a da esquerda fica
+      // "atrás" (desenhada primeiro) e a da direita se sobrepõe a ela, um
+      // pouco maior e levemente mais baixa, como se estivesse mais perto.
+      var overlap=110;
+      var boxW=430, boxH=460;
+      var cxA=W/2-boxW/2+overlap/2;
+      var cxB=W/2+boxW/2-overlap/2;
+      desenharFotoEmCaixa(fotoImg,boxW,boxH,cxA,605,16,24);
+      desenharFotoEmCaixa(fotoImgB,boxW*1.08,boxH*1.08,cxB,596,16,24);
     }else{
       desenharFotoEmCaixa(fotoImg,760,460,W/2,605,18,26);
     }
@@ -2033,6 +2079,7 @@ async function adicionarNaListaAuto(){
   var cod2Raw=(document.getElementById('pCod2')&&document.getElementById('pCod2').value||'').trim();
   var cod2=unirOn?normalizarCodigo(cod2Raw):'';
   var produtoB=unirOn?(unirNomeB||''):'';
+  var descricaoFinalManual=unirOn?((document.getElementById('pDescFinal')&&document.getElementById('pDescFinal').value||'').trim()):'';
 
   try{
     // Lista leve: guarda só os dados do produto (código, descrição, unidade
@@ -2059,6 +2106,7 @@ async function adicionarNaListaAuto(){
       unirOn:unirOn,
       cod2:cod2,
       produtoB:produtoB,
+      descricaoFinal:descricaoFinalManual,
       data:new Date().toISOString()
     };
 
@@ -2217,6 +2265,29 @@ async function editarEncarte(id){
   }else{
     document.getElementById('pPor').value=precoPromo;
     onPrecoChange();
+  }
+
+  var unirOnEl=document.getElementById('pUnirOn');
+  var unirFieldsEl=document.getElementById('unirFields');
+  var descFinalEl=document.getElementById('pDescFinal');
+  ++unirTokenB;
+  fotoImgB=null;unirNomeB='';unirDescManual=false;
+  if(it.unirOn&&it.cod2){
+    if(unirOnEl)unirOnEl.checked=true;
+    if(unirFieldsEl)unirFieldsEl.style.display='block';
+    document.getElementById('pCod2').value=it.cod2||'';
+    var prodB=buscarPorCodigo(normalizarCodigo(it.cod2))||{};
+    unirNomeB=(prodB.nome||it.produtoB||'').trim();
+    if(descFinalEl){
+      descFinalEl.value=it.descricaoFinal||(unirNomeB?(descricaoBanco+' OU '+unirNomeB):'');
+      unirDescManual=!!it.descricaoFinal;
+    }
+    buscarProdutoB();
+  }else{
+    if(unirOnEl)unirOnEl.checked=false;
+    if(unirFieldsEl)unirFieldsEl.style.display='none';
+    document.getElementById('pCod2').value='';
+    if(descFinalEl)descFinalEl.value='';
   }
 
   var btn=document.getElementById('btnSalvarNuvem');
@@ -2587,7 +2658,9 @@ function prepararItemEncarte(it){
     var produtoBancoB=buscarPorCodigo(cod2)||{};
     descricaoB=(banco[cod2]||produtoBancoB.nome||it.produtoB||'').trim();
   }
-  var descricaoFinal=(unirOn&&descricaoB)?(descricao+' OU '+descricaoB):descricao;
+  var descricaoFinal=(unirOn&&it.descricaoFinal&&it.descricaoFinal.trim())
+    ?it.descricaoFinal.trim()
+    :((unirOn&&descricaoB)?(descricao+' OU '+descricaoB):descricao);
   return {
     id:it.id,
     codigo:cod,
@@ -2644,8 +2717,8 @@ async function gerarEncarteDoDia(){
     var fotoHtml;
     if(it.unirOn&&fotoBSrcSegura){
       fotoHtml='<div class="ed-foto-dupla">'+
-        '<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'+
-        '<img src="'+escapeHtml(fotoBSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricaoB)+'">'+
+        '<img class="ed-foto-a" src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'+
+        '<img class="ed-foto-b" src="'+escapeHtml(fotoBSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricaoB)+'">'+
       '</div>';
     }else if(fotoSrcSegura){
       fotoHtml='<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">';
@@ -2721,8 +2794,10 @@ async function gerarEncarteDoDia(){
   '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:100%;min-height:0}'+
   '.ed-foto{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.15);margin:0 3%;padding:6%}'+
   '.ed-foto img{max-width:100%;max-height:100%;object-fit:contain}'+
-  '.ed-foto-dupla{display:flex;width:100%;height:100%;gap:4%;align-items:center;justify-content:center}'+
-  '.ed-foto-dupla img{max-width:48%;max-height:100%;object-fit:contain;flex:1 1 48%}'+
+  '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
+  '.ed-foto-dupla img{max-width:56%;max-height:96%;object-fit:contain}'+
+  '.ed-foto-dupla .ed-foto-a{position:relative;z-index:1;margin-right:-11%}'+
+  '.ed-foto-dupla .ed-foto-b{position:relative;z-index:2;max-width:60%;max-height:100%;margin-bottom:-2%;filter:drop-shadow(-6px 4px 8px rgba(0,0,0,.18))}'+
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
@@ -2908,7 +2983,7 @@ document.getElementById('pCod').addEventListener('input',function(e){
       mostrarToast('Sincronize primeiro (clique em Sincronizar).','warn');
       return;
     }
-    var lista=buscarProdutos(v,10);
+    var lista=buscarProdutos(v,40);
     sugestaoAtiva=-1;
     renderSugestoes(lista,v);
     if(ehBuscaCodigo(v)&&lista.length&&normalizarCodigo(lista[0].cod)===normalizarCodigo(v)){
