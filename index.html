@@ -1643,7 +1643,7 @@ async function drawPlaca(){
 
       // Os dois se encostam no centro da área, alinhados pela base,
       // como se estivessem apoiados lado a lado.
-      var gap=-18; // sobreposição leve entre as bordas pra ficarem "colados"
+      var gap=-90; // sobreposição maior pra ficarem bem próximos/colados, como no exemplo de referência
       var totalW=fWA+fWB+gap;
       var startX=W/2-totalW/2;
       var cxA=startX+fWA/2;
@@ -2892,7 +2892,7 @@ async function gerarEncarteDoDia(){
   '.ed-foto img{max-width:100%;max-height:100%;object-fit:contain}'+
   '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
   '.ed-foto-dupla img{max-width:56%;max-height:96%;object-fit:contain}'+
-  '.ed-foto-dupla .ed-foto-a{position:relative;z-index:1;margin-right:-11%}'+
+  '.ed-foto-dupla .ed-foto-a{position:relative;z-index:1;margin-right:-26%}'+
   '.ed-foto-dupla .ed-foto-b{position:relative;z-index:2;max-width:60%;max-height:100%;margin-bottom:-2%;filter:drop-shadow(-6px 4px 8px rgba(0,0,0,.18))}'+
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
