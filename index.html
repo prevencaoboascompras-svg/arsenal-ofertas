@@ -63,15 +63,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .pi-value{font-size:14px;font-weight:600;color:var(--tx)}
 .pi-price{font-size:20px;font-weight:700;color:var(--green)}
 .foto-panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
-.foto-preview{position:relative;width:62px;height:62px;border:1px dashed var(--bds);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:#777}
+.foto-preview{position:relative;width:62px;height:62px;border:1px dashed var(--bds);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:visible;flex-shrink:0;color:#777}
 .foto-preview img{max-width:100%;max-height:100%;object-fit:contain;display:block}
-.foto-busca-pop{position:absolute;top:-8px;left:-8px;width:210px;max-width:70vw;background:rgba(192,0,14,.88);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:8px 10px 8px 30px;font-size:11px;line-height:1.35;color:#fff;z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.45);backdrop-filter:blur(2px);display:none;pointer-events:none}
+.foto-busca-pop{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:210px;max-width:70vw;background:rgba(192,0,14,.88);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:8px 10px 8px 30px;font-size:11px;line-height:1.35;color:#fff;z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.45);backdrop-filter:blur(2px);display:none;pointer-events:none}
 .foto-busca-pop.show{display:block;animation:fotoPopIn .22s ease}
 .foto-busca-pop .spin{position:absolute;left:9px;top:11px;width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:fotoSpin .7s linear infinite}
 .foto-busca-pop .spin::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(255,255,255,.35);animation:fotoPulse 1.2s ease-out infinite}
 @keyframes fotoSpin{to{transform:rotate(360deg)}}
 @keyframes fotoPulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.9);opacity:0}}
-@keyframes fotoPopIn{from{opacity:0;transform:translateY(4px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes fotoPopIn{from{opacity:0;transform:translate(-50%,-50%) translateY(4px) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) translateY(0) scale(1)}}
 .foto-meta{min-width:0;flex:1}
 .foto-title{font-size:12px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:5px;margin-bottom:2px}
 .foto-status{font-size:11px;color:var(--tx2);line-height:1.35;margin-bottom:7px}
@@ -386,12 +386,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <label><input type="checkbox" id="pShowMsg" checked onchange="drawPlaca()"> Mostrar faixa de mensagem</label>
       </div>
 
-      <div class="f-row">
-        <label for="pTemaPlaca">Tema da placa</label>
-        <select id="pTemaPlaca" onchange="aplicarTemaPlaca()"></select>
-        <span class="hint">Escolhe automaticamente o fundo e as cores de acordo com a ocasião/produto. Pode ajustar as cores manualmente depois.</span>
-      </div>
-
       <div class="color-row">
         <label>Cor produto <input type="color" id="pCorTexto" value="#000000" oninput="drawPlaca()"></label>
         <label>Cor valores <input type="color" id="pCorValor" value="#ffffff" oninput="drawPlaca()"></label>
@@ -404,6 +398,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <div class="ph-row">
         <h2><i class="ti ti-photo"></i> Prévia da placa</h2>
         <div class="actions">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tx2);white-space:nowrap">
+            <i class="ti ti-palette"></i>
+            <select id="pTemaPlaca" onchange="aplicarTemaPlaca()" style="height:32px;padding:0 8px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600"></select>
+          </label>
           <button class="btn btn-green" onclick="downloadPlaca()"><i class="ti ti-download"></i> Baixar PNG</button>
           <button class="btn" onclick="copiarPlaca()"><i class="ti ti-copy"></i> Copiar imagem</button>
           <button class="btn" onclick="limparCampos()"><i class="ti ti-eraser"></i> Limpar campos</button>
@@ -1619,33 +1617,8 @@ async function drawPlaca(){
     return lines;
   }
 
-  // BADGE BRANCO DE FUNDO (mesma atmosfera do Encarte do Dia) — retângulo
-  // arredondado, branco a 50% de transparência, atrás do nome, da foto e
-  // da caixa de preço, dando destaque ao conjunto. Só aparece nos temas
-  // marcados com usaBadgeFundo (ex.: Horti) — no padrão fica como sempre foi.
-  if(!packOn && temaPlacaAtual().usaBadgeFundo){
-    (function desenharBadgeFundo(){
-      function roundRectBadge(x,y,w,h,r){
-        ctx.beginPath();
-        ctx.moveTo(x+r,y);
-        ctx.lineTo(x+w-r,y);
-        ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-        ctx.lineTo(x+w,y+h-r);
-        ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-        ctx.lineTo(x+r,y+h);
-        ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-        ctx.lineTo(x,y+r);
-        ctx.quadraticCurveTo(x,y,x+r,y);
-        ctx.closePath();
-      }
-      var boxX=64,boxY=262,boxW2=W-128,boxH2=1245-262; // vai até logo acima da faixa de mensagem
-      ctx.save();
-      ctx.fillStyle='rgba(255,255,255,.5)';
-      roundRectBadge(boxX,boxY,boxW2,boxH2,32);
-      ctx.fill();
-      ctx.restore();
-    })();
-  }
+  // (Badge branco de fundo removido — a placa individual não usa mais
+  // esse retângulo translúcido atrás do nome/foto/preço.)
 
   // NOME DO PRODUTO — dentro da área branca, abaixo do banner OFERTÃO
   // Intervalo seguro: y=430~630 (não invade o banner e não vai até o preço)
