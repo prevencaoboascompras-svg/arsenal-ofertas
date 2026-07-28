@@ -2177,8 +2177,8 @@ var encartesSelecionados={}; // id -> true
 // ela aparece sozinha no seletor de tema da lista de encartes.
 // ============================================================
 var TEMAS_ENCARTE={
-  hortifruti:{label:'Horti',corBadge:'#fede00',corPreco:'#055405',fundo:'template horti.png'},
-  promocaodia:{label:'Promoção do Dia',corBadge:'#fede00',corPreco:'#fd6301',fundo:'template-encarte-semanal.png'}
+  hortifruti:{label:'Horti',corBadge:'#fede00',corPreco:'#055405',fundo:'template horti.png',usaHeaderDia:false},
+  promocaodia:{label:'Promoção do Dia',corBadge:'#fede00',corPreco:'#fd6301',fundo:'template-encarte-semanal.png',usaHeaderDia:true}
 };
 function popularSeletorTema(){
   var sel=document.getElementById('selTemaEncarte');
@@ -2995,7 +2995,7 @@ async function gerarEncarteDoDia(){
     var estiloTema='background-image:url(\''+tplUrl+'\');--tema-cor-preco:'+temaAtual.corPreco+';';
     return ''+
       '<div class="ed-page" style="'+estiloTema+'">'+
-        '<div class="ed-header-img-wrap"><img src="'+headerUrl+'" alt="'+escapeHtml(dt.dia)+' da economia"></div>'+
+        '<div class="ed-header-img-wrap">'+(temaAtual.usaHeaderDia?'<img src="'+headerUrl+'" alt="'+escapeHtml(dt.dia)+' da economia">':'')+'</div>'+
         '<div class="ed-badges-area">'+montarBadgesPagina(grupo)+'</div>'+
         '<div class="ed-footer-overlay">OFERTAS VÁLIDAS PARA '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+' OU ENQUANTO DURAREM OS ESTOQUES</div>'+
       '</div>';
