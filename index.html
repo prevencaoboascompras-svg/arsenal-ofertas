@@ -396,6 +396,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <label>Cor produto <input type="color" id="pCorTexto" value="#000000" oninput="drawPlaca()"></label>
         <label>Cor valores <input type="color" id="pCorValor" value="#ffffff" oninput="drawPlaca()"></label>
         <label>Cor unidade <input type="color" id="pCorUnidade" value="#FFD600" oninput="drawPlaca()"></label>
+        <label>Cor badge preço <input type="color" id="pCorBadgePreco" value="#E8000D" oninput="drawPlaca()"></label>
       </div>
     </div>
 
@@ -502,8 +503,8 @@ var templatePackImg=null;
 // cores; ele aparece sozinho no seletor "Tema da placa".
 // ============================================================
 var TEMAS_PLACA={
-  padrao:{label:'Padrão (Oferta do Dia)',templatePlaca:'template-placa.png',templatePack:'template-pack.png',corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600'},
-  horti:{label:'Horti/Sacolão',templatePlaca:'template-placa-horti.png',templatePack:'template-pack-horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00'}
+  padrao:{label:'Padrão (Oferta do Dia)',templatePlaca:'template-placa.png',templatePack:'template-pack.png',corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',corBadgePreco:'#E8000D'},
+  horti:{label:'Horti/Sacolão',templatePlaca:'template horti.png',templatePack:'template horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',corBadgePreco:'#055405'}
 };
 function temaPlacaAtual(){
   var sel=document.getElementById('pTemaPlaca');
@@ -524,6 +525,7 @@ function aplicarTemaPlaca(){
   document.getElementById('pCorTexto').value=tema.corTexto;
   document.getElementById('pCorValor').value=tema.corValor;
   document.getElementById('pCorUnidade').value=tema.corUnidade;
+  if(document.getElementById('pCorBadgePreco'))document.getElementById('pCorBadgePreco').value=tema.corBadgePreco;
   // o arquivo de fundo muda conforme o tema — força recarregar
   templateImg=null;templateReady=false;
   templatePackImg=null;templatePackReady=false;
@@ -1591,6 +1593,7 @@ async function drawPlaca(){
   var cod=document.getElementById('pCod').value.trim();
   var corTexto=document.getElementById('pCorTexto').value||'#000000';
   var corValor=document.getElementById('pCorValor').value||'#ffffff';
+  var corBadgePreco=(document.getElementById('pCorBadgePreco')&&document.getElementById('pCorBadgePreco').value)||'#E8000D';
   var corUnidade=document.getElementById('pCorUnidade').value||'#FFD600';
   var fonte=fonteAtual;
 
@@ -1802,7 +1805,7 @@ async function drawPlaca(){
     var cx=105,cy=1150,r=55;
     ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=10;
     ctx.fillStyle='#FFD600';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#E8000D';ctx.beginPath();ctx.arc(cx,cy,r-8,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=corBadgePreco;ctx.beginPath();ctx.arc(cx,cy,r-8,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;ctx.shadowColor='transparent';
     ctx.fillStyle='#FFD600';ctx.textAlign='center';ctx.textBaseline='middle';
     var pctFs=36;
@@ -1943,7 +1946,7 @@ async function drawPlaca(){
     var boxX=(W-boxW)/2, boxY=1065;
 
     ctx.shadowColor='rgba(0,0,0,0.35)';ctx.shadowBlur=14;
-    ctx.fillStyle='#E8000D';
+    ctx.fillStyle=corBadgePreco;
     ctx.beginPath();
     ctx.moveTo(boxX+boxR,boxY);
     ctx.lineTo(boxX+boxW-boxR,boxY);
@@ -2068,7 +2071,7 @@ async function drawPlaca(){
       // Faixa fica logo abaixo da caixa de preço
       var bandY=1245;
       ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=8;
-      ctx.fillStyle='#E8000D';
+      ctx.fillStyle=corBadgePreco;
       var rad=10;
       ctx.beginPath();
       ctx.moveTo(bandX+rad,bandY);
