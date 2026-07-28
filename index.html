@@ -1784,7 +1784,29 @@ async function drawPlaca(){
       ctx.drawImage(imgB,cxB-fWB/2,byB,fWB,fHB);
       ctx.restore();
     }else{
-      desenharFotoEmCaixa(fotoImg,760,460,W/2,605,18,26);
+      // Produto único: sem cartão branco quadrado — mesma lógica do
+      // encarte do dia, o fundo branco da foto é removido e o objeto
+      // fica solto direto sobre o fundo da placa, com sombra.
+      if(fotoImgARecortadaFonte!==fotoImg){
+        fotoImgARecortada=removerFundoBranco(fotoImg);
+        fotoImgARecortadaFonte=fotoImg;
+      }
+      var imgSolo=fotoImgARecortada||fotoImg;
+      var areaTopYS=605, areaHS=460, maxWS=760, maxHS=460;
+      var aspSolo=imgSolo.width/imgSolo.height;
+      var fWSolo,fHSolo;
+      if(aspSolo>maxWS/maxHS){fWSolo=maxWS;fHSolo=maxWS/aspSolo;}
+      else{fHSolo=maxHS;fWSolo=maxHS*aspSolo;}
+      var cxSolo=W/2, bySolo=areaTopYS+areaHS-fHSolo-14;
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,0.30)';
+      ctx.shadowBlur=18;
+      ctx.shadowOffsetX=0;
+      ctx.shadowOffsetY=8;
+      ctx.imageSmoothingEnabled=true;
+      if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+      ctx.drawImage(imgSolo,cxSolo-fWSolo/2,bySolo,fWSolo,fHSolo);
+      ctx.restore();
     }
   }
 
