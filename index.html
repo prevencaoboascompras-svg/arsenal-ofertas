@@ -440,6 +440,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div class="print-qtd-row">
       <span class="lbl"><i class="ti ti-checklist"></i> <b id="encartesSelCount">0</b> promoção(ões) selecionada(s):</span>
       <select id="selTemaEncarte" style="height:32px;padding:0 8px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600"></select>
+      <select id="selQtdPorFolha" style="height:32px;padding:0 8px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600">
+        <option value="3">3 por folha</option>
+        <option value="5">5 por folha</option>
+        <option value="6">6 por folha</option>
+        <option value="8">8 por folha</option>
+        <option value="12" selected>12 por folha</option>
+      </select>
       <button class="btn btn-sm" onclick="imprimirSelecionados(1)">1 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(2)">2 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(4)">4 por folha</button>
@@ -2898,7 +2905,7 @@ async function gerarEncarteDoDia(){
     return [{cor:'branca',rows:rows}];
   }
 
-  function montarCard(it,destaque){
+  function montarCard(it,escala,larguraPct){
     var precoNum=parseDec(it.precoPromocional);
     var precoInt='0',precoDec='00';
     if(precoNum>0){
@@ -2921,8 +2928,11 @@ async function gerarEncarteDoDia(){
     var packHtml=it.tipoPromocao==='PACK'&&it.packQtd
       ?'<div class="ed-pack">LEVE '+escapeHtml(it.packQtd)+'</div>'
       :'';
+    // --escala controla o tamanho da fonte do preço/descrição (ver CSS
+    // .ed-price-int etc usando calc(clamp(...)*var(--escala))); a foto
+    // já escala sozinha porque cresce junto com a largura do card.
     return ''+
-      '<div class="ed-card" data-codigo="'+escapeHtml(it.codigo)+'">'+
+      '<div class="ed-card" data-codigo="'+escapeHtml(it.codigo)+'" style="width:'+larguraPct+'%;max-width:'+larguraPct+'%;--escala:'+escala+'">'+
         '<div class="ed-foto">'+fotoHtml+'</div>'+packHtml+
         '<div class="ed-desc">'+escapeHtml(it.descricao.toUpperCase())+'</div>'+
         '<div class="ed-badge">'+
@@ -2940,7 +2950,9 @@ async function gerarEncarteDoDia(){
   }
 
   // Monta os badges (containers grandes) de uma página conforme o
-  // layout definido pra quantidade de itens daquela página.
+  // layout definido pra quantidade de itens daquela página. Quanto
+  // menos itens numa linha, maior o card (foto + texto) — proporcional
+  // ao padrão de referência de 4 por linha (o layout original de 12).
   function montarBadgesPagina(grupo){
     var layout=obterLayoutBadge(grupo.length);
     var idx=0;
@@ -2950,8 +2962,12 @@ async function gerarEncarteDoDia(){
         var itensLinha=grupo.slice(idx,idx+qtdLinha);
         idx+=qtdLinha;
         var ehDestaque=badgeCfg.destaque===rowIdx;
+        // 4 por linha = referência (escala 1, largura 23%). Menos itens
+        // na linha = card mais largo e texto maior, na mesma proporção.
+        var escala=Math.min(1.7,4/qtdLinha)*(ehDestaque?1.15:1);
+        var larguraPct=Math.min(46,Math.floor(92/qtdLinha));
         return '<div class="tema-row'+(ehDestaque?' tema-row-destaque':'')+'">'+
-          itensLinha.map(function(it){return montarCard(it,ehDestaque);}).join('')+
+          itensLinha.map(function(it){return montarCard(it,escala.toFixed(2),larguraPct);}).join('')+
         '</div>';
       }).join('');
       return '<div class="tema-badge" style="background:'+corFundo+'">'+linhasHtml+'</div>';
@@ -2960,7 +2976,11 @@ async function gerarEncarteDoDia(){
 
   // Até 12 placas por página (o layout de badges se ajusta conforme a
   // quantidade de itens de cada página — ver LAYOUTS_BADGE acima).
-  var POR_PAGINA=12;
+  // Quantidade de itens por folha escolhida pelo usuário (3, 5, 6, 8 ou 12) —
+  // cada página é montada com o layout de badge correspondente a esse número
+  // (ver LAYOUTS_BADGE). Se sobrar um resto na última página, o fallback de
+  // obterLayoutBadge cuida da distribuição.
+  var POR_PAGINA=parseInt((document.getElementById('selQtdPorFolha')&&document.getElementById('selQtdPorFolha').value)||'12',10)||12;
   var paginas=[];
   for(var pgI=0;pgI<itens.length;pgI+=POR_PAGINA){
     paginas.push(itens.slice(pgI,pgI+POR_PAGINA));
@@ -2999,7 +3019,7 @@ async function gerarEncarteDoDia(){
   '.tema-row-destaque{justify-content:center}'+
   '.tema-row-destaque .ed-card{transform:scale(1.16);z-index:2}'+
   '.ed-footer-overlay{position:absolute;top:87.9%;left:2.5%;width:95%;height:6.4%;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:clamp(8px,1.15vw,13px);padding:0 2%}'+
-  '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:100%;min-height:0;flex:1;max-width:23%}'+
+  '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:100%;min-height:0;flex:0 0 auto}'+
   '.ed-foto{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;margin:0 3%;padding:6%}'+
   '.ed-foto img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
@@ -3009,15 +3029,15 @@ async function gerarEncarteDoDia(){
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
-  '.ed-desc{background:#fff;border-radius:8px;font-size:clamp(7px,1vw,11px);font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:4% 6%;min-height:2.1em;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;margin:-8% 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
+  '.ed-desc{background:#fff;border-radius:8px;font-size:calc(clamp(7px,1vw,11px)*var(--escala,1));font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:4% 6%;min-height:2.1em;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;margin:-8% 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
   '.ed-badge{background:var(--tema-cor-preco,#055405);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3%;padding:8% 5% 5%;position:relative;z-index:1;margin-top:-6%;border-radius:0 0 8px 8px;flex-shrink:0}'+
-  '.ed-badge-label{font-size:clamp(5px,.65vw,7.5px);font-weight:700;color:#fff;line-height:1.1;text-transform:uppercase;opacity:.95}'+
+  '.ed-badge-label{font-size:calc(clamp(5px,.65vw,7.5px)*var(--escala,1));font-weight:700;color:#fff;line-height:1.1;text-transform:uppercase;opacity:.95}'+
   '.ed-badge-spacer{visibility:hidden}'+
   '.ed-badge-price{display:flex;align-items:center;justify-content:center;line-height:1;gap:7px}'+
-  '.ed-price-int{font-size:clamp(24px,4.6vw,46px);font-weight:900;color:#fff}'+
+  '.ed-price-int{font-size:calc(clamp(24px,4.6vw,46px)*var(--escala,1));font-weight:900;color:#fff}'+
   '.ed-price-decunit{display:flex;flex-direction:column;align-items:flex-start}'+
-  '.ed-price-dec{font-size:clamp(12px,1.95vw,22px);font-weight:800;color:#fff;line-height:1}'+
-  '.ed-badge-unit{font-size:clamp(6px,.85vw,9px);font-weight:800;color:#fff;text-transform:uppercase;line-height:1;margin-top:2px}'+
+  '.ed-price-dec{font-size:calc(clamp(12px,1.95vw,22px)*var(--escala,1));font-weight:800;color:#fff;line-height:1}'+
+  '.ed-badge-unit{font-size:calc(clamp(6px,.85vw,9px)*var(--escala,1));font-weight:800;color:#fff;text-transform:uppercase;line-height:1;margin-top:2px}'+
   '.ed-toolbar{max-width:1080px;margin:0 auto 10px;display:flex;justify-content:flex-end;gap:8px;align-items:center}'+
   '.ed-toolbar .info{margin-right:auto;font-size:12px;color:#555}'+
   '.ed-toolbar button{border:0;background:#1D9E75;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;cursor:pointer}'+
