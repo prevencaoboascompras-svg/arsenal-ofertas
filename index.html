@@ -2174,8 +2174,8 @@ async function adicionarNaListaAuto(){
   var cod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
   var packOn=!!(document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked);
   var precoPromo=(packOn?document.getElementById('pPackTotal').value:document.getElementById('pPor').value||'').trim();
-  if(!cod||parseDec(precoPromo)<=0){
-    mostrarToast('Baixado. Para entrar na lista, informe código/EAN e valor.','warn');
+  if(!cod){
+    mostrarToast('Baixado. Para entrar na lista, informe ao menos o código/EAN.','warn');
     return;
   }
 
