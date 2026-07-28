@@ -503,8 +503,8 @@ var templatePackImg=null;
 // cores; ele aparece sozinho no seletor "Tema da placa".
 // ============================================================
 var TEMAS_PLACA={
-  padrao:{label:'Padrão (Oferta do Dia)',templatePlaca:'template-placa.png',templatePack:'template-pack.png',corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',corBadgePreco:'#E8000D'},
-  horti:{label:'Horti/Sacolão',templatePlaca:'placa horti.png',templatePack:'placa horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',corBadgePreco:'#055405'}
+  padrao:{label:'Padrão (Oferta do Dia)',templatePlaca:'template-placa.png',templatePack:'template-pack.png',corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',corBadgePreco:'#E8000D',usaBadgeFundo:false},
+  horti:{label:'Horti/Sacolão',templatePlaca:'placa horti.png',templatePack:'placa horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',corBadgePreco:'#055405',usaBadgeFundo:true}
 };
 function temaPlacaAtual(){
   var sel=document.getElementById('pTemaPlaca');
@@ -1620,8 +1620,10 @@ async function drawPlaca(){
   }
 
   // BADGE BRANCO DE FUNDO (mesma atmosfera do Encarte do Dia) — retângulo
-  // arredondado, branco a 50% de transparência, atrás do nome e da foto.
-  if(!packOn){
+  // arredondado, branco a 50% de transparência, atrás do nome, da foto e
+  // da caixa de preço, dando destaque ao conjunto. Só aparece nos temas
+  // marcados com usaBadgeFundo (ex.: Horti) — no padrão fica como sempre foi.
+  if(!packOn && temaPlacaAtual().usaBadgeFundo){
     (function desenharBadgeFundo(){
       function roundRectBadge(x,y,w,h,r){
         ctx.beginPath();
@@ -1636,9 +1638,10 @@ async function drawPlaca(){
         ctx.quadraticCurveTo(x,y,x+r,y);
         ctx.closePath();
       }
+      var boxX=64,boxY=262,boxW2=W-128,boxH2=1245-262; // vai até logo acima da faixa de mensagem
       ctx.save();
       ctx.fillStyle='rgba(255,255,255,.5)';
-      roundRectBadge(40,262,W-80,795,30);
+      roundRectBadge(boxX,boxY,boxW2,boxH2,32);
       ctx.fill();
       ctx.restore();
     })();
