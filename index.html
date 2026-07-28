@@ -2840,7 +2840,39 @@ async function gerarEncarteDoDia(){
   var semUnidade=itens.filter(function(x){return x.semUnidadeBanco;}).length;
   var semFoto=itens.filter(function(x){return !x.foto;}).length;
 
-  function montarCard(it){
+  // ============================================================
+  // SISTEMA DE TEMAS — cada tema define a cor do badge grande (fundo
+  // dos produtos) e a cor do badge de preço. Pra criar um novo tema,
+  // basta adicionar uma entrada aqui com essas duas cores e o nome do
+  // arquivo de fundo (PNG exportado do Canva, sem as faixas coloridas
+  // — só cabeçalho + fundo, porque as faixas agora são geradas aqui).
+  // ============================================================
+  var TEMAS_ENCARTE={
+    hortifruti:{corBadge:'#fede00',corPreco:'#055405',fundo:'template_horti.png'}
+  };
+  var temaAtual=TEMAS_ENCARTE.hortifruti; // TODO: trocar por seletor de tema quando houver mais de um
+
+  // Layouts de badge por quantidade de itens na página (regra combinada
+  // com o usuário). "cor" pode ser 'dinamica' (usa temaAtual.corBadge)
+  // ou 'branca' (branco 50% transparente). "destaque" marca o índice
+  // da linha que deve ficar centralizada/maior (ex.: 3º item sozinho).
+  var LAYOUTS_BADGE={
+    3:[{cor:'branca',rows:[3]}],
+    5:[{cor:'branca',rows:[2,1,2],destaque:1}],
+    6:[{cor:'branca',rows:[3,3]}],
+    8:[{cor:'branca',rows:[4,4]}],
+    12:[{cor:'dinamica',rows:[4]},{cor:'branca',rows:[4]},{cor:'dinamica',rows:[4]}]
+  };
+  function obterLayoutBadge(qtd){
+    if(LAYOUTS_BADGE[qtd])return LAYOUTS_BADGE[qtd];
+    // fallback pra quantidades não previstas: um único badge branco,
+    // distribuindo os itens em linhas de até 4.
+    var rows=[],restante=qtd;
+    while(restante>0){var n=Math.min(4,restante);rows.push(n);restante-=n;}
+    return [{cor:'branca',rows:rows}];
+  }
+
+  function montarCard(it,destaque){
     var precoNum=parseDec(it.precoPromocional);
     var precoInt='0',precoDec='00';
     if(precoNum>0){
@@ -2881,10 +2913,27 @@ async function gerarEncarteDoDia(){
       '</div>';
   }
 
-  // O template-encarte-semanal.png já traz o cabeçalho, as duas faixas
-  // amarelas e o rodapé prontos — aqui encaixamos a arte do dia da semana
-  // no topo e até 12 placas por página (4 colunas x 3 linhas: as duas
-  // faixas amarelas + a área do meio, entre elas).
+  // Monta os badges (containers grandes) de uma página conforme o
+  // layout definido pra quantidade de itens daquela página.
+  function montarBadgesPagina(grupo){
+    var layout=obterLayoutBadge(grupo.length);
+    var idx=0;
+    return layout.map(function(badgeCfg){
+      var corFundo=badgeCfg.cor==='dinamica'?temaAtual.corBadge:'rgba(255,255,255,.5)';
+      var linhasHtml=badgeCfg.rows.map(function(qtdLinha,rowIdx){
+        var itensLinha=grupo.slice(idx,idx+qtdLinha);
+        idx+=qtdLinha;
+        var ehDestaque=badgeCfg.destaque===rowIdx;
+        return '<div class="tema-row'+(ehDestaque?' tema-row-destaque':'')+'">'+
+          itensLinha.map(function(it){return montarCard(it,ehDestaque);}).join('')+
+        '</div>';
+      }).join('');
+      return '<div class="tema-badge" style="background:'+corFundo+'">'+linhasHtml+'</div>';
+    }).join('');
+  }
+
+  // Até 12 placas por página (o layout de badges se ajusta conforme a
+  // quantidade de itens de cada página — ver LAYOUTS_BADGE acima).
   var POR_PAGINA=12;
   var paginas=[];
   for(var pgI=0;pgI<itens.length;pgI+=POR_PAGINA){
@@ -2892,20 +2941,16 @@ async function gerarEncarteDoDia(){
   }
   if(!paginas.length)paginas.push([]);
 
-  var tplUrl=new URL('template-encarte-semanal.png',location.href).href;
+  var tplUrl=new URL(temaAtual.fundo,location.href).href;
   var ARQ_DIA=['domingo.png','segunda.png','terca.png','quarta.png','quinta.png','sexta.png','sabado.png'];
   var headerUrl=new URL(ARQ_DIA[new Date().getDay()],location.href).href;
 
   var paginasHtml=paginas.map(function(grupo){
-    var linha1=grupo.slice(0,4).map(montarCard).join('');
-    var linha2=grupo.slice(4,8).map(montarCard).join('');
-    var linha3=grupo.slice(8,12).map(montarCard).join('');
+    var estiloTema='background-image:url(\''+tplUrl+'\');--tema-cor-preco:'+temaAtual.corPreco+';';
     return ''+
-      '<div class="ed-page" style="background-image:url(\''+tplUrl+'\')">'+
+      '<div class="ed-page" style="'+estiloTema+'">'+
         '<div class="ed-header-img-wrap"><img src="'+headerUrl+'" alt="'+escapeHtml(dt.dia)+' da economia"></div>'+
-        '<div class="ed-linha1">'+linha1+'</div>'+
-        '<div class="ed-linha2">'+linha2+'</div>'+
-        '<div class="ed-linha3">'+linha3+'</div>'+
+        '<div class="ed-badges-area">'+montarBadgesPagina(grupo)+'</div>'+
         '<div class="ed-footer-overlay">OFERTAS VÁLIDAS PARA '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+' OU ENQUANTO DURAREM OS ESTOQUES</div>'+
       '</div>';
   }).join('');
@@ -2922,11 +2967,13 @@ async function gerarEncarteDoDia(){
   '.ed-page{position:relative;max-width:1080px;margin:0 auto 20px;aspect-ratio:1080/1350;background-repeat:no-repeat;background-size:100% 100%;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
   '.ed-header-img-wrap{position:absolute;top:0;left:0;width:100%;height:25.27%;display:flex;align-items:center;justify-content:center;padding:1% 4%;overflow:visible;z-index:2}'+
   '.ed-header-img-wrap img{max-width:100%;max-height:140.4%;object-fit:contain}'+
-  '.ed-linha1{position:absolute;top:21.6%;left:1%;width:98%;height:21.8%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
-  '.ed-linha2{position:absolute;top:43.4%;left:1%;width:98%;height:24.5%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
-  '.ed-linha3{position:absolute;top:68%;left:1%;width:98%;height:19.6%;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4%;padding:1.2% 1%}'+
+  '.ed-badges-area{position:absolute;top:25.5%;left:1.5%;width:97%;height:61%;display:flex;flex-direction:column;justify-content:center;gap:2.2%}'+
+  '.tema-badge{border-radius:22px;padding:2.6% 2%;display:flex;flex-direction:column;gap:2%;box-shadow:0 4px 14px rgba(0,0,0,.14)}'+
+  '.tema-row{display:flex;justify-content:center;align-items:stretch;gap:2%}'+
+  '.tema-row-destaque{justify-content:center}'+
+  '.tema-row-destaque .ed-card{transform:scale(1.16);z-index:2}'+
   '.ed-footer-overlay{position:absolute;top:87.9%;left:2.5%;width:95%;height:6.4%;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:clamp(8px,1.15vw,13px);padding:0 2%}'+
-  '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:100%;min-height:0}'+
+  '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:100%;min-height:0;flex:1;max-width:23%}'+
   '.ed-foto{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;margin:0 3%;padding:6%}'+
   '.ed-foto img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
@@ -2936,8 +2983,8 @@ async function gerarEncarteDoDia(){
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
-  '.ed-desc{background:#fede00;border-radius:8px;font-size:clamp(7px,1vw,11px);font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:4% 6%;min-height:2.1em;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;margin:-8% 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
-  '.ed-badge{background:#fd6301;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3%;padding:8% 5% 5%;position:relative;z-index:1;margin-top:-6%;border-radius:0 0 8px 8px;flex-shrink:0}'+
+  '.ed-desc{background:#fff;border-radius:8px;font-size:clamp(7px,1vw,11px);font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:4% 6%;min-height:2.1em;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;margin:-8% 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
+  '.ed-badge{background:var(--tema-cor-preco,#055405);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3%;padding:8% 5% 5%;position:relative;z-index:1;margin-top:-6%;border-radius:0 0 8px 8px;flex-shrink:0}'+
   '.ed-badge-label{font-size:clamp(5px,.65vw,7.5px);font-weight:700;color:#fff;line-height:1.1;text-transform:uppercase;opacity:.95}'+
   '.ed-badge-spacer{visibility:hidden}'+
   '.ed-badge-price{display:flex;align-items:center;justify-content:center;line-height:1;gap:7px}'+
