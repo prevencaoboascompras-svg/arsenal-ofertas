@@ -2170,7 +2170,7 @@ var encartesSelecionados={}; // id -> true
 // ela aparece sozinha no seletor de tema da lista de encartes.
 // ============================================================
 var TEMAS_ENCARTE={
-  hortifruti:{label:'Horti',corBadge:'#fede00',corPreco:'#055405',fundo:'template_horti.png'},
+  hortifruti:{label:'Horti',corBadge:'#fede00',corPreco:'#055405',fundo:'template horti.png'},
   promocaodia:{label:'Promoção do Dia',corBadge:'#fede00',corPreco:'#fd6301',fundo:'template-encarte-semanal.png'}
 };
 function popularSeletorTema(){
@@ -2789,6 +2789,10 @@ function prepararItemEncarte(it){
   var unidadePromo=normalizarUnidadeBanco(it.unidadePromocao||it.unidade||'');
   var unidade=unidadePromo||unidadeBanco||'UNID';
   var precoPromo=String(it.precoPromocional||it.por||'').trim();
+  if(!(parseDec(precoPromo)>0)){
+    var precoNormalBanco=bancoPreco[cod]||produtoBanco.preco||0;
+    if(precoNormalBanco>0)precoPromo=String(precoNormalBanco).replace('.',',');
+  }
   var unirOn=!!it.unirOn;
   var cod2=unirOn?normalizarCodigo(it.cod2||''):'';
   var descricaoB='';
@@ -2964,7 +2968,7 @@ async function gerarEncarteDoDia(){
   if(!paginas.length)paginas.push([]);
 
   var tplUrl=new URL(temaAtual.fundo,location.href).href;
-  var ARQ_DIA=['domingo.png','segunda.png','terca.png','quarta.png','quinta.png','sexta.png','sabado.png'];
+  var ARQ_DIA=['domingo.png','segunda.png','terça.png','quarta.png','quinta.png','sexta.png','sabado.png'];
   var headerUrl=new URL(ARQ_DIA[new Date().getDay()],location.href).href;
 
   var paginasHtml=paginas.map(function(grupo){
