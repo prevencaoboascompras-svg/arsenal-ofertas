@@ -1619,6 +1619,31 @@ async function drawPlaca(){
     return lines;
   }
 
+  // BADGE BRANCO DE FUNDO (mesma atmosfera do Encarte do Dia) — retângulo
+  // arredondado, branco a 50% de transparência, atrás do nome e da foto.
+  if(!packOn){
+    (function desenharBadgeFundo(){
+      function roundRectBadge(x,y,w,h,r){
+        ctx.beginPath();
+        ctx.moveTo(x+r,y);
+        ctx.lineTo(x+w-r,y);
+        ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+        ctx.lineTo(x+w,y+h-r);
+        ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+        ctx.lineTo(x+r,y+h);
+        ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+        ctx.lineTo(x,y+r);
+        ctx.quadraticCurveTo(x,y,x+r,y);
+        ctx.closePath();
+      }
+      ctx.save();
+      ctx.fillStyle='rgba(255,255,255,.5)';
+      roundRectBadge(40,262,W-80,795,30);
+      ctx.fill();
+      ctx.restore();
+    })();
+  }
+
   // NOME DO PRODUTO — dentro da área branca, abaixo do banner OFERTÃO
   // Intervalo seguro: y=430~630 (não invade o banner e não vai até o preço)
   var nomeClean=produto
