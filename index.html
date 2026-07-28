@@ -386,6 +386,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <label><input type="checkbox" id="pShowMsg" checked onchange="drawPlaca()"> Mostrar faixa de mensagem</label>
       </div>
 
+      <div class="f-row">
+        <label for="pTemaPlaca">Tema da placa</label>
+        <select id="pTemaPlaca" onchange="aplicarTemaPlaca()"></select>
+        <span class="hint">Escolhe automaticamente o fundo e as cores de acordo com a ocasião/produto. Pode ajustar as cores manualmente depois.</span>
+      </div>
+
       <div class="color-row">
         <label>Cor produto <input type="color" id="pCorTexto" value="#000000" oninput="drawPlaca()"></label>
         <label>Cor valores <input type="color" id="pCorValor" value="#ffffff" oninput="drawPlaca()"></label>
@@ -488,6 +494,41 @@ var PACK_MAP={
 var templateImg=null;
 var templateReady=false;
 var templatePackImg=null;
+// ============================================================
+// TEMAS DA PLACA INDIVIDUAL — cada tema define o PNG de fundo (normal
+// e modo Pack) e as cores padrão de texto/valor/unidade. Pra criar um
+// tema novo, adicione uma entrada aqui com os dois arquivos PNG
+// (exportados do Canva no mesmo tamanho/posições do padrão) e as
+// cores; ele aparece sozinho no seletor "Tema da placa".
+// ============================================================
+var TEMAS_PLACA={
+  padrao:{label:'Padrão (Oferta do Dia)',templatePlaca:'template-placa.png',templatePack:'template-pack.png',corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600'},
+  horti:{label:'Horti/Sacolão',templatePlaca:'template-placa-horti.png',templatePack:'template-pack-horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00'}
+};
+function temaPlacaAtual(){
+  var sel=document.getElementById('pTemaPlaca');
+  return TEMAS_PLACA[sel&&sel.value]||TEMAS_PLACA.padrao;
+}
+function popularSeletorTemaPlaca(){
+  var sel=document.getElementById('pTemaPlaca');
+  if(!sel||sel.options.length)return;
+  Object.keys(TEMAS_PLACA).forEach(function(id){
+    var opt=document.createElement('option');
+    opt.value=id;
+    opt.textContent=TEMAS_PLACA[id].label||id;
+    sel.appendChild(opt);
+  });
+}
+function aplicarTemaPlaca(){
+  var tema=temaPlacaAtual();
+  document.getElementById('pCorTexto').value=tema.corTexto;
+  document.getElementById('pCorValor').value=tema.corValor;
+  document.getElementById('pCorUnidade').value=tema.corUnidade;
+  // o arquivo de fundo muda conforme o tema — força recarregar
+  templateImg=null;templateReady=false;
+  templatePackImg=null;templatePackReady=false;
+  drawPlaca();
+}
 var templatePackReady=false;
 var fotoImg=null;
 var fotoToken=0;
@@ -1478,7 +1519,7 @@ function loadTemplate(){
     img.crossOrigin='anonymous';
     img.onload=function(){templateImg=img;templateReady=true;resolve(img);};
     img.onerror=function(){resolve(null);};
-    img.src='template-placa.png';
+    img.src=temaPlacaAtual().templatePlaca;
   });
 }
 
@@ -1489,7 +1530,7 @@ function loadTemplatePack(){
     img.crossOrigin='anonymous';
     img.onload=function(){templatePackImg=img;templatePackReady=true;resolve(img);};
     img.onerror=function(){resolve(null);};
-    img.src='template-pack.png';
+    img.src=temaPlacaAtual().templatePack;
   });
 }
 
@@ -3379,6 +3420,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     toggleCfg();
   }
   drawPlaca();
+  popularSeletorTemaPlaca();
   popularSeletorTema();
   if(cfg.id)carregarEncartes();
   document.getElementById('pCod').focus();
