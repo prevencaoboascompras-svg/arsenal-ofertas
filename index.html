@@ -439,6 +439,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <hr class="divider" style="width:100%">
     <div class="print-qtd-row">
       <span class="lbl"><i class="ti ti-checklist"></i> <b id="encartesSelCount">0</b> promoção(ões) selecionada(s):</span>
+      <select id="selTemaEncarte" style="height:32px;padding:0 8px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600"></select>
       <button class="btn btn-sm" onclick="imprimirSelecionados(1)">1 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(2)">2 por folha</button>
       <button class="btn btn-sm" onclick="imprimirSelecionados(4)">4 por folha</button>
@@ -2160,6 +2161,29 @@ async function imprimirPlacaA4(){
 var encartesCache=[];
 var encartesSelecionados={}; // id -> true
 
+// ============================================================
+// SISTEMA DE TEMAS DO ENCARTE — cada tema define a cor do badge
+// grande (fundo dos produtos), a cor do badge de preço, e o PNG de
+// fundo (cabeçalho + prateleira, exportado do Canva SEM faixas
+// coloridas, pois elas agora são desenhadas dinamicamente aqui).
+// Pra criar um novo tema: adicione uma entrada nova neste objeto —
+// ela aparece sozinha no seletor de tema da lista de encartes.
+// ============================================================
+var TEMAS_ENCARTE={
+  hortifruti:{label:'Horti',corBadge:'#fede00',corPreco:'#055405',fundo:'template_horti.png'},
+  promocaodia:{label:'Promoção do Dia',corBadge:'#fede00',corPreco:'#fd6301',fundo:'template-encarte-semanal.png'}
+};
+function popularSeletorTema(){
+  var sel=document.getElementById('selTemaEncarte');
+  if(!sel||sel.options.length)return;
+  Object.keys(TEMAS_ENCARTE).forEach(function(id){
+    var opt=document.createElement('option');
+    opt.value=id;
+    opt.textContent=TEMAS_ENCARTE[id].label||id;
+    sel.appendChild(opt);
+  });
+}
+
 function gerarIdEncarte(){
   return 'enc_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 }
@@ -2847,10 +2871,8 @@ async function gerarEncarteDoDia(){
   // arquivo de fundo (PNG exportado do Canva, sem as faixas coloridas
   // — só cabeçalho + fundo, porque as faixas agora são geradas aqui).
   // ============================================================
-  var TEMAS_ENCARTE={
-    hortifruti:{corBadge:'#fede00',corPreco:'#055405',fundo:'template_horti.png'}
-  };
-  var temaAtual=TEMAS_ENCARTE.hortifruti; // TODO: trocar por seletor de tema quando houver mais de um
+  var temaSelecionadoId=(document.getElementById('selTemaEncarte')&&document.getElementById('selTemaEncarte').value)||'hortifruti';
+  var temaAtual=TEMAS_ENCARTE[temaSelecionadoId]||TEMAS_ENCARTE.hortifruti;
 
   // Layouts de badge por quantidade de itens na página (regra combinada
   // com o usuário). "cor" pode ser 'dinamica' (usa temaAtual.corBadge)
@@ -3333,6 +3355,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     toggleCfg();
   }
   drawPlaca();
+  popularSeletorTema();
   if(cfg.id)carregarEncartes();
   document.getElementById('pCod').focus();
 })();
