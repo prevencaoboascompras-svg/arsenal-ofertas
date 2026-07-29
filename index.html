@@ -2963,6 +2963,45 @@ async function gerarEncarteDoDia(){
     8:[{cor:'branca',rows:[4,4]}],
     12:[{cor:'dinamica',rows:[4]},{cor:'branca',rows:[4]},{cor:'dinamica',rows:[4]}]
   };
+  // Layout absoluto específico do tema Horti Fruti pra grupos de 5 itens:
+  // 4 fotos nos cantos (com moldura de "céu" já desenhada no PNG de fundo)
+  // + 1 foto central em destaque, cada uma com sua tarja verde de descrição
+  // logo abaixo, nas coordenadas exatas mapeadas sobre o template
+  // (referência 1000x1250px, convertidas aqui em % de .ed-page).
+  var LAYOUT_HORTI5=[
+    {foto:{top:28.0,left:6.5,width:28.5,height:15.5},  desc:{top:43.5,left:4.8,width:30.2,height:7.5}},
+    {foto:{top:28.0,left:65.0,width:28.5,height:15.5}, desc:{top:43.5,left:65.0,width:30.2,height:7.5}},
+    {foto:{top:36.0,left:36.0,width:28.0,height:19.0}, desc:{top:56.0,left:31.3,width:37.4,height:11.5}},
+    {foto:{top:57.5,left:5.3,width:28.5,height:15.5},  desc:{top:73.0,left:3.8,width:30.2,height:8.0}},
+    {foto:{top:57.5,left:65.0,width:28.5,height:15.5}, desc:{top:73.0,left:65.0,width:30.2,height:8.0}}
+  ];
+  function montarCardHorti5(it,slot){
+    var precoNum=parseDec(it.precoPromocional);
+    var precoInt='0',precoDec='00';
+    if(precoNum>0){
+      precoInt=String(Math.floor(precoNum));
+      precoDec=(precoNum-Math.floor(precoNum)).toFixed(2).substring(2);
+    }
+    var fotoSrcSegura=it.foto?(/^data:/i.test(it.foto)?it.foto:proxyImagemUrl(it.foto)):'';
+    var fotoHtml=fotoSrcSegura
+      ?'<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'
+      :'<div class="ed-sem-foto"><span>SEM FOTO</span><small>Cód. '+escapeHtml(it.codigo||'não informado')+'</small></div>';
+    var f=slot.foto,d=slot.desc;
+    return ''+
+      '<div class="ed-foto-abs" style="top:'+f.top+'%;left:'+f.left+'%;width:'+f.width+'%;height:'+f.height+'%">'+fotoHtml+'</div>'+
+      '<div class="ed-desc-abs" style="top:'+d.top+'%;left:'+d.left+'%;width:'+d.width+'%;height:'+d.height+'%" data-codigo="'+escapeHtml(it.codigo)+'">'+
+        '<div class="ed-desc-abs-nome">'+escapeHtml(it.descricao.toUpperCase())+'</div>'+
+        '<div class="ed-desc-abs-preco">'+
+          '<span class="ed-desc-abs-cifrao">R$</span>'+
+          '<span class="ed-desc-abs-int">'+escapeHtml(precoInt)+'</span>'+
+          '<span class="ed-desc-abs-dec">,'+escapeHtml(precoDec)+'</span>'+
+          '<span class="ed-desc-abs-un">'+escapeHtml(it.unidade)+'</span>'+
+        '</div>'+
+      '</div>';
+  }
+  function montarBadgesHorti5(grupo){
+    return grupo.slice(0,5).map(function(it,i){return montarCardHorti5(it,LAYOUT_HORTI5[i]);}).join('');
+  }
   function obterLayoutBadge(qtd){
     if(LAYOUTS_BADGE[qtd])return LAYOUTS_BADGE[qtd];
     // fallback pra quantidades não previstas: um único badge branco,
@@ -2972,68 +3011,7 @@ async function gerarEncarteDoDia(){
     return [{cor:'branca',rows:rows}];
   }
 
-  // Layout de 5 itens: coordenadas exatas (em % da página inteira,
-  // referência 1000x1250) fornecidas pelo usuário a partir do template
-  // visual — foto e tarja verde posicionadas de forma independente,
-  // sem depender do fluxo flex (que gerava desproporção). Ordem dos
-  // itens no grupo: [sup.esq, sup.dir, destaque/central, inf.esq, inf.dir].
-  var LAYOUT_ABSOLUTO_5=[
-    {foto:{top:28.0,left:6.5,width:28.5,height:15.5},tarja:{top:43.5,left:4.8,width:30.2,height:7.5},escala:1},
-    {foto:{top:28.0,left:65.0,width:28.5,height:15.5},tarja:{top:43.5,left:65.0,width:30.2,height:7.5},escala:1},
-    {foto:{top:36.0,left:36.0,width:28.0,height:19.0},tarja:{top:56.0,left:31.3,width:37.4,height:11.5},escala:1.3,destaque:true},
-    {foto:{top:57.5,left:5.3,width:28.5,height:15.5},tarja:{top:73.0,left:3.8,width:30.2,height:8.0},escala:1},
-    {foto:{top:57.5,left:65.0,width:28.5,height:15.5},tarja:{top:73.0,left:65.0,width:30.2,height:8.0},escala:1}
-  ];
-  function montarCardAbsoluto(it,slot){
-    var precoNum=parseDec(it.precoPromocional);
-    var precoInt='0',precoDec='00';
-    if(precoNum>0){
-      precoInt=String(Math.floor(precoNum));
-      precoDec=(precoNum-Math.floor(precoNum)).toFixed(2).substring(2);
-    }
-    var fotoSrcSegura=it.foto?(/^data:/i.test(it.foto)?it.foto:proxyImagemUrl(it.foto)):'';
-    var fotoBSrcSegura=it.fotoB?(/^data:/i.test(it.fotoB)?it.fotoB:proxyImagemUrl(it.fotoB)):'';
-    var fotoHtml;
-    if(it.unirOn&&fotoBSrcSegura){
-      fotoHtml='<div class="ed-foto-dupla">'+
-        '<img class="ed-foto-a" src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'+
-        '<img class="ed-foto-b" src="'+escapeHtml(fotoBSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricaoB)+'">'+
-      '</div>';
-    }else if(fotoSrcSegura){
-      fotoHtml='<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">';
-    }else{
-      fotoHtml='<div class="ed-sem-foto"><span>SEM FOTO</span><small>Cód. '+escapeHtml(it.codigo||'não informado')+'</small></div>';
-    }
-    var packHtml=it.tipoPromocao==='PACK'&&it.packQtd
-      ?'<div class="ed-pack" style="margin:0 0 2%">LEVE '+escapeHtml(it.packQtd)+'</div>'
-      :'';
-    var f=slot.foto,t=slot.tarja;
-    return ''+
-      '<div class="ed-foto" data-codigo="'+escapeHtml(it.codigo)+'" style="position:absolute;top:'+f.top+'%;left:'+f.left+'%;width:'+f.width+'%;height:'+f.height+'%;margin:0;padding:4%">'+fotoHtml+'</div>'+
-      '<div style="position:absolute;top:'+t.top+'%;left:'+t.left+'%;width:'+t.width+'%;height:'+t.height+'%;display:flex;flex-direction:column;gap:3%;--escala:'+slot.escala+'">'+
-        packHtml+
-        '<div class="ed-desc" style="margin:0;flex-shrink:0">'+escapeHtml(it.descricao.toUpperCase())+'</div>'+
-        '<div class="ed-badge" style="margin:0;flex:1 1 auto;min-height:0">'+
-          '<div class="ed-badge-label">no<br>Clube<br>Boas<br>Compras</div>'+
-          '<div class="ed-badge-price">'+
-            '<span class="ed-price-int">'+escapeHtml(precoInt)+'</span>'+
-            '<span class="ed-price-decunit">'+
-              '<span class="ed-price-dec">,'+escapeHtml(precoDec)+'</span>'+
-              '<span class="ed-badge-unit">'+escapeHtml(it.unidade)+'</span>'+
-            '</span>'+
-          '</div>'+
-          '<div class="ed-badge-label ed-badge-spacer" aria-hidden="true">no<br>Clube<br>Boas<br>Compras</div>'+
-        '</div>'+
-      '</div>';
-  }
-  function montarBadgesAbsoluto5(grupo){
-    return grupo.map(function(it,i){
-      var slot=LAYOUT_ABSOLUTO_5[i]||LAYOUT_ABSOLUTO_5[LAYOUT_ABSOLUTO_5.length-1];
-      return montarCardAbsoluto(it,slot);
-    }).join('');
-  }
-
-
+  function montarCard(it,escala,larguraPct){
     var precoNum=parseDec(it.precoPromocional);
     var precoInt='0',precoDec='00';
     if(precoNum>0){
@@ -3082,6 +3060,9 @@ async function gerarEncarteDoDia(){
   // menos itens numa linha, maior o card (foto + texto) — proporcional
   // ao padrão de referência de 4 por linha (o layout original de 12).
   function montarBadgesPagina(grupo){
+    if(temaSelecionadoId==='hortifruti'&&grupo.length===5){
+      return montarBadgesHorti5(grupo);
+    }
     var layout=obterLayoutBadge(grupo.length);
     var idx=0;
     return layout.map(function(badgeCfg){
@@ -3134,7 +3115,9 @@ async function gerarEncarteDoDia(){
     return ''+
       '<div class="ed-page" style="'+estiloTema+'">'+
         '<div class="ed-header-img-wrap">'+(temaAtual.usaHeaderDia?'<img src="'+headerUrl+'" alt="'+escapeHtml(dt.dia)+' da economia">':'')+'</div>'+
-        '<div class="ed-badges-area">'+montarBadgesPagina(grupo)+'</div>'+
+        (temaSelecionadoId==='hortifruti'&&grupo.length===5
+          ?montarBadgesHorti5(grupo)
+          :'<div class="ed-badges-area">'+montarBadgesPagina(grupo)+'</div>')+
         '<div class="ed-footer-overlay">OFERTAS VÁLIDAS PARA '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+' OU ENQUANTO DURAREM OS ESTOQUES</div>'+
       '</div>';
   }).join('');
@@ -3151,6 +3134,15 @@ async function gerarEncarteDoDia(){
   '.ed-page{position:relative;max-width:1080px;margin:0 auto 20px;aspect-ratio:1080/1350;background-repeat:no-repeat;background-size:100% 100%;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
   '.ed-header-img-wrap{position:absolute;top:0;left:0;width:100%;height:25.27%;display:flex;align-items:center;justify-content:center;padding:1% 4%;overflow:visible;z-index:2}'+
   '.ed-header-img-wrap img{max-width:100%;max-height:140.4%;object-fit:contain}'+
+  '.ed-foto-abs{position:absolute;display:flex;align-items:center;justify-content:center;overflow:visible;z-index:2}'+
+  '.ed-foto-abs img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
+  '.ed-desc-abs{position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:2% 6%;box-sizing:border-box}'+
+  '.ed-desc-abs-nome{font-size:clamp(8px,1.5vw,15px);font-weight:900;line-height:1.15;text-transform:uppercase}'+
+  '.ed-desc-abs-preco{display:flex;align-items:baseline;justify-content:center;gap:2px;margin-top:2%}'+
+  '.ed-desc-abs-cifrao{font-size:clamp(7px,1vw,11px);font-weight:800;color:#fede00}'+
+  '.ed-desc-abs-int{font-size:clamp(14px,2.6vw,26px);font-weight:900;color:#fede00;line-height:1}'+
+  '.ed-desc-abs-dec{font-size:clamp(8px,1.3vw,13px);font-weight:800;color:#fede00}'+
+  '.ed-desc-abs-un{font-size:clamp(7px,1vw,11px);font-weight:700;color:#fff;text-transform:uppercase;margin-left:3px}'+
   '.ed-badges-area{position:absolute;top:25.5%;left:1.5%;width:97%;height:61%;box-sizing:border-box;padding:2.2% 0;display:flex;flex-direction:column;justify-content:center;gap:2.2%;overflow:hidden}'+
   '.tema-badge{border-radius:22px;padding:2.6% 2%;display:flex;flex-direction:column;gap:2%;box-shadow:0 4px 14px rgba(0,0,0,.14)}'+
   '.tema-row{display:flex;justify-content:center;align-items:flex-end;gap:2%}'+
