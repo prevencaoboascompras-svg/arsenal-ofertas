@@ -358,23 +358,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
 
       <div class="opts" style="margin-bottom:8px">
-        <label style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pUnirOn" onchange="toggleUnir();drawPlaca()"> <i class="ti ti-git-merge" style="color:var(--green)"></i> Unir com outro produto (mesmo preço)</label>
+        <label style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pUnirOn" onchange="toggleUnir();drawPlaca()"> <i class="ti ti-git-merge" style="color:var(--green)"></i> Unir vários produtos / pack (mesmo preço)</label>
       </div>
       <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
-        <div class="f-row">
-          <label for="pCod2">Código interno, EAN ou produto (2º item)</label>
-          <div class="search-wrap">
-            <input type="text" id="pCod2" class="cod-input" placeholder="Digite código, EAN ou palavra-chave do 2º produto" autocomplete="off">
-            <div id="prodSug2" class="suggestions" role="listbox" aria-label="Sugestões de produtos (2º item)"></div>
-          </div>
-          <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN.</span>
-        </div>
-        <div class="foto-status" id="unirStatus">Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).</div>
+        <div id="unirLista"></div>
+        <button type="button" class="btn btn-sm" onclick="unirAdicionarProduto()" style="margin-top:2px;margin-bottom:4px"><i class="ti ti-plus"></i> Adicionar produto</button>
         <div class="f-row" style="margin-top:8px">
           <label for="pDescFinal">Descrição final da placa (editável)</label>
           <textarea id="pDescFinal" rows="2" placeholder="Ex: PEPINO CONSERVA PETRY OU PEPINO PETRY GREMIO" oninput="onDescFinalChange()" style="resize:vertical;font-family:inherit;font-size:13px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--bd);background:var(--bg);color:var(--tx);width:100%"></textarea>
         </div>
-        <div style="font-size:11px;color:var(--tx2)">Este texto substitui a descrição na placa/encarte — edite livremente, inclusive o nome do 2º produto. É preenchido automaticamente ao buscar os dois produtos, mas fica sob seu controle depois disso. As duas fotos aparecem lado a lado; o preço usado continua sendo o do produto principal.</div>
+        <div style="font-size:11px;color:var(--tx2)">Este texto substitui a descrição na placa/encarte — edite livremente, inclusive os nomes dos produtos extras. É preenchido automaticamente ao buscar os produtos, mas fica sob seu controle depois disso. As fotos aparecem lado a lado (na placa padrão e na placa Pack); o preço usado continua sendo o do produto principal.</div>
       </div>
 
       <div class="f-row">
@@ -533,13 +526,11 @@ var templatePackReady=false;
 var fotoImg=null;
 var fotoToken=0;
 var prodAtualCod='';
-var fotoImgB=null;
-var fotoImgBRecortada=null; // versão de fotoImgB com o fundo branco removido (canvas), usada na sobreposição
+var unirExtras=[];   // produtos extras unidos ao principal: cada item {id,cod,nome,img,imgRecortada,token}
+var unirExtraSeq=0;  // gerador de ids únicos pras linhas de produto extra
 var fotoImgARecortada=null;       // versão de fotoImg (produto 1) com fundo removido, cacheada por referência
 var fotoImgARecortadaFonte=null;  // guarda qual fotoImg gerou o cache acima, pra saber quando recalcular
-var unirNomeB='';
 var unirDescManual=false; // true assim que o usuário edita manualmente o campo pDescFinal
-var unirTokenB=0;
 var fotoOrigemDrive=false;
 
 function loadCfg(){
@@ -1460,16 +1451,12 @@ function toggleUnir(){
     if(descFinalEl&&!descFinalEl.value.trim()){
       descFinalEl.value=(document.getElementById('pDescOverride').value||'').trim();
     }
+    if(!unirExtras.length)unirAdicionarProduto();
   }else{
-    if(typeof esconderSugestoesB==='function')esconderSugestoesB();
-    ++unirTokenB;
-    fotoImgB=null;fotoImgBRecortada=null;
-    unirNomeB='';
+    unirLimparTudo();
     unirDescManual=false;
-    document.getElementById('pCod2').value='';
     var descFinalEl2=document.getElementById('pDescFinal');
     if(descFinalEl2)descFinalEl2.value='';
-    document.getElementById('unirStatus').textContent='Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).';
     drawPlaca();
   }
 }
@@ -1479,52 +1466,109 @@ function onDescFinalChange(){
   drawPlaca();
 }
 
-var unirBuscaTimer=null;
+// ============================================================
+// PRODUTOS EXTRAS (unir vários) — lista dinâmica sem limite de
+// quantidade. Cada linha vira um item em unirExtras com sua
+// própria busca de nome/foto (mesmas fontes de sempre).
+// ============================================================
+function unirRowTemplate(id){
+  return ''+
+    '<div class="f-row unir-row" data-id="'+id+'" style="margin-bottom:8px">'+
+      '<label>Produto extra (código interno, EAN ou nome)</label>'+
+      '<div style="display:flex;gap:6px;align-items:flex-start">'+
+        '<div class="search-wrap" style="flex:1">'+
+          '<input type="text" class="cod-input unir-cod-input" data-id="'+id+'" placeholder="Digite código, EAN ou palavra-chave" autocomplete="off">'+
+          '<div class="suggestions unir-sug" data-id="'+id+'" role="listbox" aria-label="Sugestões de produtos (extra)"></div>'+
+        '</div>'+
+        '<button type="button" class="btn btn-sm" onclick="unirRemoverProduto(\''+id+'\')" title="Remover produto"><i class="ti ti-trash"></i></button>'+
+      '</div>'+
+      '<div class="foto-status unir-status" data-id="'+id+'">Preencha o código para buscar nome e foto (Drive, Cosmos, Google, Open Food Facts).</div>'+
+    '</div>';
+}
 
-async function buscarProdutoB(){
-  var token=++unirTokenB;
-  var cod2=document.getElementById('pCod2').value.trim();
-  var codNorm=normalizarCodigo(cod2);
-  var statusEl=document.getElementById('unirStatus');
-  var prodB=buscarPorCodigo(codNorm)||{};
-  var nome=(prodB.nome||cod2).trim();
-  unirNomeB=nome;
-  if(!unirDescManual){
-    var descFinalEl=document.getElementById('pDescFinal');
-    if(descFinalEl){
-      var principal=(document.getElementById('pDescOverride').value||'').trim();
-      descFinalEl.value=principal?(principal+' OU '+nome):nome;
-    }
+function unirAdicionarProduto(codPrefill){
+  var id='u'+(++unirExtraSeq);
+  unirExtras.push({id:id,cod:'',nome:'',img:null,imgRecortada:null,token:0});
+  var container=document.getElementById('unirLista');
+  if(container)container.insertAdjacentHTML('beforeend',unirRowTemplate(id));
+  if(codPrefill){
+    var inp=container&&container.querySelector('.unir-cod-input[data-id="'+id+'"]');
+    if(inp){inp.value=codPrefill;unirBuscarExtra(id);}
   }
-  if(statusEl)statusEl.textContent='Buscando foto do 2º produto ('+nome+')...';
-  fotoImgB=null;fotoImgBRecortada=null;
+  return id;
+}
+
+function unirRemoverProduto(id){
+  unirExtras=unirExtras.filter(function(x){return x.id!==id;});
+  var row=document.querySelector('.unir-row[data-id="'+id+'"]');
+  if(row)row.remove();
+  delete unirSugState[id];
+  atualizarDescFinalAuto();
+  drawPlaca();
+}
+
+function unirLimparTudo(){
+  unirExtras=[];
+  unirSugState={};
+  var container=document.getElementById('unirLista');
+  if(container)container.innerHTML='';
+}
+
+function unirGetExtra(id){
+  return unirExtras.find(function(x){return x.id===id;});
+}
+
+function atualizarDescFinalAuto(){
+  if(unirDescManual)return;
+  var descFinalEl=document.getElementById('pDescFinal');
+  if(!descFinalEl)return;
+  var principal=(document.getElementById('pDescOverride').value||'').trim();
+  var nomes=unirExtras.map(function(x){return x.nome;}).filter(Boolean);
+  descFinalEl.value=[principal].concat(nomes).filter(Boolean).join(' OU ');
+}
+
+var unirBuscaTimers={};
+
+async function unirBuscarExtra(id){
+  var ex=unirGetExtra(id);
+  if(!ex)return;
+  var token=++ex.token;
+  var row=document.querySelector('.unir-row[data-id="'+id+'"]');
+  var input=row&&row.querySelector('.unir-cod-input');
+  var statusEl=row&&row.querySelector('.unir-status');
+  var codRaw=(input&&input.value||'').trim();
+  var codNorm=normalizarCodigo(codRaw);
+  var prod=buscarPorCodigo(codNorm)||{};
+  var nome=(prod.nome||codRaw).trim();
+  ex.cod=codNorm;ex.nome=nome;
+  atualizarDescFinalAuto();
+  if(statusEl)statusEl.textContent='Buscando foto ('+nome+')...';
+  ex.img=null;ex.imgRecortada=null;
   drawPlaca();
   try{
     var foto=await buscarFotoItemEncarte(codNorm,nome,'');
-    if(token!==unirTokenB)return;
+    if(token!==ex.token)return;
     if(foto&&foto.src){
-      fotoImgB=await carregarImagemUrl(foto.src);
-      if(token!==unirTokenB)return;
-      fotoImgBRecortada=fotoImgB?removerFundoBranco(fotoImgB):null;
+      ex.img=await carregarImagemUrl(foto.src);
+      if(token!==ex.token)return;
+      ex.imgRecortada=ex.img?removerFundoBranco(ex.img):null;
       if(statusEl)statusEl.textContent='Encontrado: "'+nome+'" — foto via '+foto.origem+'.';
     }else{
-      if(statusEl)statusEl.textContent='Nome "'+nome+'" carregado, mas não encontrei foto automaticamente. A placa usará só a foto do 1º produto.';
+      if(statusEl)statusEl.textContent='Nome "'+nome+'" carregado, mas não encontrei foto automaticamente.';
     }
   }catch(e){
-    if(token!==unirTokenB)return;
-    if(statusEl)statusEl.textContent='Erro ao buscar o 2º produto: '+e.message;
+    if(token!==ex.token)return;
+    if(statusEl)statusEl.textContent='Erro ao buscar: '+e.message;
   }
   drawPlaca();
 }
 
 function limparCampos(){
   esconderSugestoes();
-  if(typeof esconderSugestoesB==='function')esconderSugestoesB();
   ++fotoToken;
-  ++unirTokenB;
+  unirLimparTudo();
   prodAtualCod='';
   fotoOrigemDrive=false;
-  fotoImgB=null;fotoImgBRecortada=null;unirNomeB='';
   document.getElementById('pCod').value='';
   document.getElementById('pDescOverride').value='';
   document.getElementById('pDe').value='';
@@ -1533,7 +1577,6 @@ function limparCampos(){
   var ft=document.getElementById('pFotoTermo');if(ft)ft.value='';
   var fu=document.getElementById('pFotoUrl');if(fu)fu.value='';
   var pf=document.getElementById('pFoto');if(pf)pf.value='';
-  var c2=document.getElementById('pCod2');if(c2)c2.value='';
   var dF=document.getElementById('pDescFinal');if(dF)dF.value='';
   unirDescManual=false;
   var unirOn=document.getElementById('pUnirOn');
@@ -1590,7 +1633,10 @@ async function drawPlaca(){
   if(unirOn){
     var descFinalVal=(document.getElementById('pDescFinal')&&document.getElementById('pDescFinal').value||'').trim();
     if(descFinalVal)produto=descFinalVal;
-    else if(unirNomeB)produto=produto+' OU '+unirNomeB;
+    else{
+      var nomesExtraDesc=unirExtras.map(function(x){return x.nome;}).filter(Boolean);
+      if(nomesExtraDesc.length)produto=[produto].concat(nomesExtraDesc).join(' OU ');
+    }
   }
   var de=document.getElementById('pDe').value.replace(/R\$\s*/i,'').trim();
   var por=document.getElementById('pPor').value.replace(/R\$\s*/i,'').trim();
@@ -1743,54 +1789,48 @@ async function drawPlaca(){
     ctx.restore();
   }
   if(fotoImg && !packOn){
-    if(unirOn && fotoImgB){
-      // Modo "unir": nenhum dos dois produtos tem cartão branco próprio.
-      // Os dois objetos são recortados (fundo removido) e desenhados
-      // lado a lado, próximos, direto sobre o fundo da placa.
+    var extrasComFotoN=unirOn?unirExtras.filter(function(x){return x.img;}):[];
+    if(unirOn && extrasComFotoN.length){
+      // Modo "unir": nenhum produto tem cartão branco próprio. Todos os
+      // objetos são recortados (fundo removido) e desenhados lado a lado,
+      // sobrepostos, direto sobre o fundo da placa. Funciona pra 2, 3, 4+
+      // produtos — o tamanho e a sobreposição se ajustam à quantidade.
       if(fotoImgARecortadaFonte!==fotoImg){
         fotoImgARecortada=removerFundoBranco(fotoImg);
         fotoImgARecortadaFonte=fotoImg;
       }
-      var imgA=fotoImgARecortada||fotoImg;
-      var imgB=fotoImgBRecortada||fotoImgB;
-
+      var imgsUnirN=[fotoImgARecortada||fotoImg].concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
+      var nUnirN=imgsUnirN.length;
       var areaTopY=605, areaH=460;
-      var maxWA=400, maxHA=440;
-      var maxWB=380, maxHB=400;
+      var maxWItemN=Math.max(190,400-(nUnirN-2)*50);
+      var maxHItemN=440;
+      var overlapFracN=Math.min(0.55,0.40+(nUnirN-2)*0.05);
 
-      var aspA=imgA.width/imgA.height;
-      var fWA,fHA;
-      if(aspA>maxWA/maxHA){fWA=maxWA;fHA=maxWA/aspA;}
-      else{fHA=maxHA;fWA=maxHA*aspA;}
-
-      var aspB=imgB.width/imgB.height;
-      var fWB,fHB;
-      if(aspB>maxWB/maxHB){fWB=maxWB;fHB=maxWB/aspB;}
-      else{fHB=maxHB;fWB=maxHB*aspB;}
-
-      // Os dois se encostam no centro da área, alinhados pela base,
-      // como se estivessem apoiados lado a lado.
-      var gap=-160; // sobreposição forte pra ficarem encostados, como no exemplo de referência
-      var totalW=fWA+fWB+gap;
-      var startX=W/2-totalW/2;
-      var cxA=startX+fWA/2;
-      var cxB=startX+fWA+gap+fWB/2;
-      var byA=areaTopY+areaH-fHA-14;
-      var byB=areaTopY+areaH-fHB-14;
+      var dimsUnirN=imgsUnirN.map(function(img){
+        var asp=img.width/img.height;
+        var fW,fH;
+        if(asp>maxWItemN/maxHItemN){fW=maxWItemN;fH=maxWItemN/asp;}
+        else{fH=maxHItemN;fW=maxHItemN*asp;}
+        return {img:img,fW:fW,fH:fH};
+      });
+      var gapN=-(maxWItemN*overlapFracN);
+      var totalWN=dimsUnirN.reduce(function(s,d){return s+d.fW;},0)+gapN*(nUnirN-1);
+      var startXN=W/2-totalWN/2;
 
       ctx.save();
-      ctx.shadowColor='rgba(0,0,0,0.30)';
-      ctx.shadowBlur=18;
-      ctx.shadowOffsetX=0;
-      ctx.shadowOffsetY=8;
       ctx.imageSmoothingEnabled=true;
       if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
-      ctx.drawImage(imgA,cxA-fWA/2,byA,fWA,fHA);
-      // Produto B por cima, um pouco mais à frente (sombra mais forte pra
-      // reforçar profundidade e a ilusão de estar mais perto da câmera).
-      ctx.shadowBlur=20;
-      ctx.shadowOffsetX=-6;
-      ctx.drawImage(imgB,cxB-fWB/2,byB,fWB,fHB);
+      var curXN=startXN;
+      dimsUnirN.forEach(function(d,i){
+        var cx=curXN+d.fW/2;
+        var by=areaTopY+areaH-d.fH-14;
+        ctx.shadowColor='rgba(0,0,0,0.30)';
+        ctx.shadowBlur=i===0?18:20;
+        ctx.shadowOffsetX=i===0?0:-6;
+        ctx.shadowOffsetY=8;
+        ctx.drawImage(d.img,cx-d.fW/2,by,d.fW,d.fH);
+        curXN+=d.fW+gapN;
+      });
       ctx.restore();
     }else{
       // Produto único: sem cartão branco quadrado — mesma lógica do
@@ -1831,21 +1871,62 @@ async function drawPlaca(){
     var iCfg=PACK_MAP.imagem;
     var fX2=mx(iCfg.x), fY2=my(iCfg.y), fW2=mx(iCfg.width), fH2=my(iCfg.height), pad3=16;
     var innerW2=fW2-pad3*2, innerH2=fH2-pad3*2;
-    var imgAspect2=imgPack.width/imgPack.height;
-    var boxAspect2=innerW2/innerH2;
-    var dw2,dh2;
-    if(imgAspect2>boxAspect2){ dw2=innerW2; dh2=innerW2/imgAspect2; }
-    else{ dh2=innerH2; dw2=innerH2*imgAspect2; }
-    var dx2=fX2+pad3+(innerW2-dw2)/2, dy2=fY2+pad3+(innerH2-dh2)/2;
-    ctx.save();
-    ctx.shadowColor='rgba(0,0,0,0.30)';
-    ctx.shadowBlur=18;
-    ctx.shadowOffsetX=0;
-    ctx.shadowOffsetY=8;
-    ctx.imageSmoothingEnabled=true;
-    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
-    ctx.drawImage(imgPack,dx2,dy2,dw2,dh2);
-    ctx.restore();
+    var extrasComFotoP=unirOn?unirExtras.filter(function(x){return x.img;}):[];
+    if(unirOn && extrasComFotoP.length){
+      // Mesma lógica de "unir" do modo padrão, só que encaixada dentro
+      // da área de imagem do template Pack.
+      var imgsPackN=[imgPack].concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
+      var nPackN=imgsPackN.length;
+      var maxWItemP=innerW2/(nPackN*0.62);
+      var maxHItemP=innerH2;
+      var dimsPackN=imgsPackN.map(function(img){
+        var asp=img.width/img.height;
+        var fW,fH;
+        if(asp>maxWItemP/maxHItemP){fW=maxWItemP;fH=maxWItemP/asp;}
+        else{fH=maxHItemP;fW=maxHItemP*asp;}
+        return {img:img,fW:fW,fH:fH};
+      });
+      var overlapFracP=0.35;
+      var gapP=-(maxWItemP*overlapFracP);
+      var totalWP=dimsPackN.reduce(function(s,d){return s+d.fW;},0)+gapP*(nPackN-1);
+      if(totalWP>innerW2){
+        var scaleFixP=innerW2/totalWP;
+        dimsPackN.forEach(function(d){d.fW*=scaleFixP;d.fH*=scaleFixP;});
+        gapP*=scaleFixP;
+        totalWP=innerW2;
+      }
+      var startXP=fX2+pad3+(innerW2-totalWP)/2;
+      ctx.save();
+      ctx.imageSmoothingEnabled=true;
+      if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+      var curXP=startXP;
+      dimsPackN.forEach(function(d,i){
+        var byP=fY2+pad3+innerH2-d.fH;
+        ctx.shadowColor='rgba(0,0,0,0.30)';
+        ctx.shadowBlur=18;
+        ctx.shadowOffsetX=i===0?0:-6;
+        ctx.shadowOffsetY=8;
+        ctx.drawImage(d.img,curXP,byP,d.fW,d.fH);
+        curXP+=d.fW+gapP;
+      });
+      ctx.restore();
+    }else{
+      var imgAspect2=imgPack.width/imgPack.height;
+      var boxAspect2=innerW2/innerH2;
+      var dw2,dh2;
+      if(imgAspect2>boxAspect2){ dw2=innerW2; dh2=innerW2/imgAspect2; }
+      else{ dh2=innerH2; dw2=innerH2*imgAspect2; }
+      var dx2=fX2+pad3+(innerW2-dw2)/2, dy2=fY2+pad3+(innerH2-dh2)/2;
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,0.30)';
+      ctx.shadowBlur=18;
+      ctx.shadowOffsetX=0;
+      ctx.shadowOffsetY=8;
+      ctx.imageSmoothingEnabled=true;
+      if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+      ctx.drawImage(imgPack,dx2,dy2,dw2,dh2);
+      ctx.restore();
+    }
   }
 
   // % DESCONTO — círculo flutuante à esquerda da caixa de preço (não sobrepõe)
@@ -2313,9 +2394,7 @@ async function adicionarNaListaAuto(){
   var unidadeBanco=normalizarUnidadeBanco(bancoUnidade[cod]||(buscarPorCodigo(cod)||{}).unidade||'');
   var validade=(document.getElementById('pValidade').value||'').trim();
   var unirOn=!!(document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked);
-  var cod2Raw=(document.getElementById('pCod2')&&document.getElementById('pCod2').value||'').trim();
-  var cod2=unirOn?normalizarCodigo(cod2Raw):'';
-  var produtoB=unirOn?(unirNomeB||''):'';
+  var produtosExtra=unirOn?unirExtras.filter(function(x){return x.cod||x.nome;}).map(function(x){return {codigo:x.cod,nome:x.nome};}):[];
   var descricaoFinalManual=unirOn?((document.getElementById('pDescFinal')&&document.getElementById('pDescFinal').value||'').trim()):'';
 
   try{
@@ -2327,7 +2406,7 @@ async function adicionarNaListaAuto(){
     var lista=(atual&&atual.ok&&Array.isArray(atual.dados))?atual.dados:[];
     var registro={
       id:editingEncarteId||gerarIdEncarte(),
-      versaoRegistro:3,
+      versaoRegistro:4,
       codigo:cod,
       produto:produtoBanco,
       produtoDigitado:produtoDigitado,
@@ -2341,8 +2420,9 @@ async function adicionarNaListaAuto(){
       tipoPromocao:packOn?'PACK':'UNITARIA',
       packQtd:packOn?(parseInt(document.getElementById('pPackQtd').value,10)||0):0,
       unirOn:unirOn,
-      cod2:cod2,
-      produtoB:produtoB,
+      cod2:produtosExtra[0]?produtosExtra[0].codigo:'', // compat com leitores antigos (versaoRegistro<4)
+      produtoB:produtosExtra[0]?produtosExtra[0].nome:'', // idem
+      produtosExtra:produtosExtra,
       descricaoFinal:descricaoFinalManual,
       data:new Date().toISOString()
     };
@@ -2507,23 +2587,20 @@ async function editarEncarte(id){
   var unirOnEl=document.getElementById('pUnirOn');
   var unirFieldsEl=document.getElementById('unirFields');
   var descFinalEl=document.getElementById('pDescFinal');
-  ++unirTokenB;
-  fotoImgB=null;fotoImgBRecortada=null;unirNomeB='';unirDescManual=false;
-  if(it.unirOn&&it.cod2){
+  unirLimparTudo();
+  var listaExtraRestaurar=Array.isArray(it.produtosExtra)&&it.produtosExtra.length
+    ? it.produtosExtra
+    : (it.unirOn&&it.cod2?[{codigo:it.cod2,nome:it.produtoB||''}]:[]);
+  if(it.unirOn&&listaExtraRestaurar.length){
+    unirDescManual=!!it.descricaoFinal;
     if(unirOnEl)unirOnEl.checked=true;
     if(unirFieldsEl)unirFieldsEl.style.display='block';
-    document.getElementById('pCod2').value=it.cod2||'';
-    var prodB=buscarPorCodigo(normalizarCodigo(it.cod2))||{};
-    unirNomeB=(prodB.nome||it.produtoB||'').trim();
-    if(descFinalEl){
-      descFinalEl.value=it.descricaoFinal||(unirNomeB?(descricaoBanco+' OU '+unirNomeB):'');
-      unirDescManual=!!it.descricaoFinal;
-    }
-    buscarProdutoB();
+    listaExtraRestaurar.forEach(function(ex){unirAdicionarProduto(ex.codigo||'');});
+    if(descFinalEl)descFinalEl.value=it.descricaoFinal||'';
   }else{
+    unirDescManual=false;
     if(unirOnEl)unirOnEl.checked=false;
     if(unirFieldsEl)unirFieldsEl.style.display='none';
-    document.getElementById('pCod2').value='';
     if(descFinalEl)descFinalEl.value='';
   }
 
@@ -2893,15 +2970,22 @@ function prepararItemEncarte(it){
     if(precoNormalBanco>0)precoPromo=String(precoNormalBanco).replace('.',',');
   }
   var unirOn=!!it.unirOn;
-  var cod2=unirOn?normalizarCodigo(it.cod2||''):'';
-  var descricaoB='';
-  if(unirOn&&cod2){
-    var produtoBancoB=buscarPorCodigo(cod2)||{};
-    descricaoB=(banco[cod2]||produtoBancoB.nome||it.produtoB||'').trim();
+  var listaExtraPrep=Array.isArray(it.produtosExtra)&&it.produtosExtra.length
+    ? it.produtosExtra
+    : (unirOn&&it.cod2?[{codigo:it.cod2,nome:it.produtoB||''}]:[]);
+  var produtosExtraPrep=[];
+  if(unirOn&&listaExtraPrep.length){
+    produtosExtraPrep=listaExtraPrep.map(function(ex){
+      var codEx=normalizarCodigo(ex.codigo||'');
+      var prodBancoEx=codEx?(buscarPorCodigo(codEx)||{}):{};
+      var nomeEx=(codEx&&banco[codEx])||prodBancoEx.nome||ex.nome||'';
+      return {codigo:codEx,nome:(nomeEx||'').trim()};
+    });
   }
+  var nomesExtraPrep=produtosExtraPrep.map(function(x){return x.nome;}).filter(Boolean);
   var descricaoFinal=(unirOn&&it.descricaoFinal&&it.descricaoFinal.trim())
     ?it.descricaoFinal.trim()
-    :((unirOn&&descricaoB)?(descricao+' OU '+descricaoB):descricao);
+    :((unirOn&&nomesExtraPrep.length)?([descricao].concat(nomesExtraPrep).join(' OU ')):descricao);
   return {
     id:it.id,
     codigo:cod,
@@ -2912,8 +2996,7 @@ function prepararItemEncarte(it){
     packQtd:it.packQtd||0,
     fallbackFoto:it.foto||'',
     unirOn:unirOn,
-    codigo2:cod2,
-    descricaoB:descricaoB,
+    produtosExtra:produtosExtraPrep,
     semDescricaoBanco:!banco[cod]&&!produtoBanco.nome,
     semUnidadeBanco:!unidadeBanco
   };
@@ -2944,17 +3027,22 @@ async function gerarEncarteDoDia(){
         }
       }catch(e){/* se falhar, mantém a foto original com fundo branco */}
     }
-    if(item.unirOn&&item.codigo2){
-      var fotoB=await buscarFotoItemEncarte(item.codigo2,item.descricaoB,'');
-      item.fotoB=fotoB.src;
-      if(item.fotoB){
-        try{
-          var imgBTmp=await carregarImagemUrl(proxyImagemUrl(item.fotoB));
-          if(imgBTmp){
-            var recortadaTmp=removerFundoBranco(imgBTmp);
-            if(recortadaTmp&&recortadaTmp.toDataURL)item.fotoB=recortadaTmp.toDataURL('image/png');
-          }
-        }catch(e){/* se falhar, mantém a foto original com fundo branco */}
+    if(item.unirOn&&item.produtosExtra&&item.produtosExtra.length){
+      item.fotosExtra=[];
+      for(var k=0;k<item.produtosExtra.length;k++){
+        var exK=item.produtosExtra[k];
+        var fotoK=await buscarFotoItemEncarte(exK.codigo,exK.nome,'');
+        var srcK=fotoK.src||'';
+        if(srcK){
+          try{
+            var imgKTmp=await carregarImagemUrl(proxyImagemUrl(srcK));
+            if(imgKTmp){
+              var recortadaKTmp=removerFundoBranco(imgKTmp);
+              if(recortadaKTmp&&recortadaKTmp.toDataURL)srcK=recortadaKTmp.toDataURL('image/png');
+            }
+          }catch(e){/* se falhar, mantém a foto original com fundo branco */}
+        }
+        item.fotosExtra.push(srcK);
       }
     }
     concluidos++;
@@ -3045,13 +3133,14 @@ async function gerarEncarteDoDia(){
       precoDec=(precoNum-Math.floor(precoNum)).toFixed(2).substring(2);
     }
     var fotoSrcSegura=it.foto?(/^data:/i.test(it.foto)?it.foto:proxyImagemUrl(it.foto)):'';
-    var fotoBSrcSegura=it.fotoB?(/^data:/i.test(it.fotoB)?it.fotoB:proxyImagemUrl(it.fotoB)):'';
+    var fotosExtraSeguras=(it.fotosExtra||[]).map(function(src){
+      return src?(/^data:/i.test(src)?src:proxyImagemUrl(src)):'';
+    }).filter(Boolean);
     var fotoHtml;
-    if(it.unirOn&&fotoBSrcSegura){
-      fotoHtml='<div class="ed-foto-dupla">'+
-        '<img class="ed-foto-a" src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'+
-        '<img class="ed-foto-b" src="'+escapeHtml(fotoBSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricaoB)+'">'+
-      '</div>';
+    if(it.unirOn&&fotosExtraSeguras.length){
+      var imgsMultiHtml='<img class="ed-foto-item" src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'+
+        fotosExtraSeguras.map(function(src){return '<img class="ed-foto-item" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="">';}).join('');
+      fotoHtml='<div class="ed-foto-multi">'+imgsMultiHtml+'</div>';
     }else if(fotoSrcSegura){
       fotoHtml='<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">';
     }else{
@@ -3203,10 +3292,9 @@ async function gerarEncarteDoDia(){
   '.ed-foto{width:94%;aspect-ratio:1/1;margin:0 3%;padding:6%;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0;position:relative}'+
   '.ed-foto::before{content:"";position:absolute;top:10%;left:10%;right:10%;bottom:10%;background:radial-gradient(circle,#fff 55%,rgba(255,255,255,.85) 72%,rgba(255,255,255,0) 100%);filter:blur(6px);border-radius:50%;z-index:0}'+
   '.ed-foto img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
-  '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
-  '.ed-foto-dupla img{max-width:62%;max-height:98%;object-fit:contain}'+
-  '.ed-foto-dupla .ed-foto-a{position:relative;z-index:1;margin-right:-38%}'+
-  '.ed-foto-dupla .ed-foto-b{position:relative;z-index:2;max-width:60%;max-height:100%;margin-bottom:-2%;filter:drop-shadow(-6px 4px 8px rgba(0,0,0,.18))}'+
+  '.ed-foto-multi{display:flex;width:100%;height:100%;align-items:flex-end;justify-content:center}'+
+  '.ed-foto-multi .ed-foto-item{position:relative;max-width:68%;max-height:98%;object-fit:contain;filter:drop-shadow(-4px 4px 8px rgba(0,0,0,.18))}'+
+  '.ed-foto-multi .ed-foto-item:not(:first-child){margin-left:-34%}'+
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
@@ -3425,108 +3513,118 @@ document.getElementById('prodSug').addEventListener('mousedown',function(e){
   selecionarProduto(sugestoesAtuais[idx]);
 });
 document.addEventListener('click',function(e){
-  if(!e.target.closest('.search-wrap')){esconderSugestoes();esconderSugestoesB();}
+  if(!e.target.closest('.search-wrap')){
+    esconderSugestoes();
+    document.querySelectorAll('.unir-sug').forEach(function(box){box.className='suggestions';box.innerHTML='';});
+    unirSugState={};
+  }
 });
 
 // ============================================================
-// Campo do 2º produto (pCod2) — mesma busca por nome/código,
-// mesma lista de sugestões e mesma navegação por teclado do
-// campo principal (pCod). A diferença é que, ao selecionar,
-// preenche o produto B (buscarProdutoB) em vez do principal.
+// Linhas de produto extra (unir vários) — mesma busca por nome/
+// código e mesma navegação por teclado do campo principal, mas
+// via delegação de eventos em #unirLista, pra funcionar com
+// quantas linhas o usuário adicionar (2, 3, 4 ou mais produtos).
 // ============================================================
-var sugestoesAtuaisB=[];
-var sugestaoAtivaB=-1;
+var unirSugState={}; // id da linha -> {lista, ativa}
 
-function esconderSugestoesB(){
-  var box=document.getElementById('prodSug2');
-  if(box){box.className='suggestions';box.innerHTML='';}
-  sugestoesAtuaisB=[];
-  sugestaoAtivaB=-1;
-}
-
-function renderSugestoesB(lista,termo){
-  var box=document.getElementById('prodSug2');
+function renderSugestoesUnir(id,lista,termo,ativaIdx){
+  var box=document.querySelector('.unir-sug[data-id="'+id+'"]');
   if(!box)return;
-  sugestoesAtuaisB=lista||[];
-  if(sugestaoAtivaB<0||sugestaoAtivaB>=sugestoesAtuaisB.length)sugestaoAtivaB=sugestoesAtuaisB.length?0:-1;
-  if(!termo||!String(termo).trim()){esconderSugestoesB();return;}
-  if(!sugestoesAtuaisB.length){
+  if(ativaIdx===undefined)ativaIdx=(lista&&lista.length)?0:-1;
+  unirSugState[id]={lista:lista||[],ativa:ativaIdx};
+  if(!termo||!String(termo).trim()){box.className='suggestions';box.innerHTML='';return;}
+  if(!lista||!lista.length){
     box.className='suggestions open';
     box.innerHTML='<div class="sg-empty">Nenhum produto encontrado para "'+escapeHtml(termo)+'".</div>';
     return;
   }
   box.className='suggestions open';
-  box.innerHTML=sugestoesAtuaisB.map(function(p,idx){
+  box.innerHTML=lista.map(function(p,idx){
     var preco=p.preco?fmtR(p.preco):'sem preço';
     var meta=(p.cod?'Cód/EAN: '+escapeHtml(p.cod):'sem código');
     return ''+
-      '<button type="button" class="sg-item '+(idx===sugestaoAtivaB?'active':'')+'" data-idx="'+idx+'" role="option" aria-selected="'+(idx===sugestaoAtivaB?'true':'false')+'">'+
+      '<button type="button" class="sg-item '+(idx===ativaIdx?'active':'')+'" data-idx="'+idx+'" role="option" aria-selected="'+(idx===ativaIdx?'true':'false')+'">'+
         '<span><span class="sg-name">'+escapeHtml(p.nome||'(sem descrição)')+'</span><span class="sg-meta">'+meta+'</span></span>'+
         '<span class="sg-price">'+escapeHtml(preco)+'</span>'+
       '</button>';
   }).join('');
 }
 
-function moverSugestaoB(delta){
-  if(!sugestoesAtuaisB.length)return;
-  sugestaoAtivaB=(sugestaoAtivaB+delta+sugestoesAtuaisB.length)%sugestoesAtuaisB.length;
-  renderSugestoesB(sugestoesAtuaisB,document.getElementById('pCod2').value);
+function esconderSugestaoUnir(id){
+  var box=document.querySelector('.unir-sug[data-id="'+id+'"]');
+  if(box){box.className='suggestions';box.innerHTML='';}
+  delete unirSugState[id];
 }
 
-function selecionarProdutoB(prod){
+function selecionarProdutoUnir(id,prod){
   if(!prod)return;
-  document.getElementById('pCod2').value=prod.cod||prod.nome||'';
-  esconderSugestoesB();
-  buscarProdutoB();
+  var input=document.querySelector('.unir-cod-input[data-id="'+id+'"]');
+  if(input)input.value=prod.cod||prod.nome||'';
+  esconderSugestaoUnir(id);
+  unirBuscarExtra(id);
 }
 
-document.getElementById('pCod2').addEventListener('input',function(e){
-  clearTimeout(unirBuscaTimer);
-  var v=e.target.value.trim();
+document.getElementById('unirLista').addEventListener('input',function(e){
+  var input=e.target.closest('.unir-cod-input');
+  if(!input)return;
+  var id=input.getAttribute('data-id');
+  clearTimeout(unirBuscaTimers[id]);
+  var v=input.value.trim();
   if(!v){
-    esconderSugestoesB();
-    ++unirTokenB;
-    fotoImgB=null;fotoImgBRecortada=null;unirNomeB='';
-    var statusElVazio=document.getElementById('unirStatus');
-    if(statusElVazio)statusElVazio.textContent='Preencha o código do segundo produto para buscar nome e foto (mesmas fontes: Drive, Cosmos, Google, Open Food Facts).';
+    esconderSugestaoUnir(id);
+    var ex=unirGetExtra(id);
+    if(ex){ex.cod='';ex.nome='';ex.img=null;ex.imgRecortada=null;++ex.token;}
+    atualizarDescFinalAuto();
+    var row=input.closest('.unir-row');
+    var statusEl=row&&row.querySelector('.unir-status');
+    if(statusEl)statusEl.textContent='Preencha o código para buscar nome e foto (Drive, Cosmos, Google, Open Food Facts).';
     drawPlaca();
     return;
   }
-  unirBuscaTimer=setTimeout(function(){
+  unirBuscaTimers[id]=setTimeout(function(){
     if(!temBaseProdutos()){
       mostrarToast('Sincronize primeiro (clique em Sincronizar).','warn');
       return;
     }
     var lista=buscarProdutos(v,40);
-    sugestaoAtivaB=-1;
-    renderSugestoesB(lista,v);
+    renderSugestoesUnir(id,lista,v);
     if(ehBuscaCodigo(v)&&lista.length&&normalizarCodigo(lista[0].cod)===normalizarCodigo(v)){
-      selecionarProdutoB(lista[0]);
+      selecionarProdutoUnir(id,lista[0]);
     }
   },140);
 });
-document.getElementById('pCod2').addEventListener('keydown',function(e){
-  var aberto=document.getElementById('prodSug2').classList.contains('open');
-  if(e.key==='ArrowDown'&&aberto){e.preventDefault();moverSugestaoB(1);return;}
-  if(e.key==='ArrowUp'&&aberto){e.preventDefault();moverSugestaoB(-1);return;}
-  if(e.key==='Escape'){esconderSugestoesB();return;}
+document.getElementById('unirLista').addEventListener('keydown',function(e){
+  var input=e.target.closest('.unir-cod-input');
+  if(!input)return;
+  var id=input.getAttribute('data-id');
+  var box=document.querySelector('.unir-sug[data-id="'+id+'"]');
+  var aberto=box&&box.classList.contains('open');
+  var state=unirSugState[id]||{lista:[],ativa:-1};
+  if(e.key==='ArrowDown'&&aberto){e.preventDefault();var novoIdx1=(state.ativa+1+state.lista.length)%state.lista.length;renderSugestoesUnir(id,state.lista,input.value,novoIdx1);return;}
+  if(e.key==='ArrowUp'&&aberto){e.preventDefault();var novoIdx2=(state.ativa-1+state.lista.length)%state.lista.length;renderSugestoesUnir(id,state.lista,input.value,novoIdx2);return;}
+  if(e.key==='Escape'){esconderSugestaoUnir(id);return;}
   if(e.key==='Enter'){
     e.preventDefault();
-    clearTimeout(unirBuscaTimer);
-    if(aberto&&sugestoesAtuaisB.length){
-      selecionarProdutoB(sugestoesAtuaisB[Math.max(0,sugestaoAtivaB)]);
+    clearTimeout(unirBuscaTimers[id]);
+    if(aberto&&state.lista.length){
+      selecionarProdutoUnir(id,state.lista[Math.max(0,state.ativa)]);
     }else{
-      esconderSugestoesB();
-      buscarProdutoB();
+      esconderSugestaoUnir(id);
+      unirBuscarExtra(id);
     }
   }
 });
-document.getElementById('prodSug2').addEventListener('mousedown',function(e){
+document.getElementById('unirLista').addEventListener('mousedown',function(e){
   var item=e.target.closest('.sg-item');
   if(!item)return;
+  var box=e.target.closest('.unir-sug');
+  if(!box)return;
+  var id=box.getAttribute('data-id');
   e.preventDefault();
   var idx=parseInt(item.getAttribute('data-idx'),10);
-  selecionarProdutoB(sugestoesAtuaisB[idx]);
+  var state=unirSugState[id];
+  if(state)selecionarProdutoUnir(id,state.lista[idx]);
 });
 
 document.getElementById('pFotoTermo').addEventListener('keydown',function(e){
