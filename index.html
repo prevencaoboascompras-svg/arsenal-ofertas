@@ -1789,30 +1789,43 @@ async function drawPlaca(){
     ctx.restore();
   }
   // Desenha uma lista de fotos (já com fundo removido) organizadas em
-  // grade (colunas x linhas), cada uma centralizada na sua célula com
-  // uma leve sombra — usado quando há muitos produtos unidos (4+),
-  // onde o layout "lado a lado sobrepostos" ficaria apertado demais.
+  // grade (colunas x linhas) DENTRO de um cartão branco arredondado —
+  // usado quando há muitos produtos unidos (4+), onde o layout "lado a
+  // lado sobrepostos" ficaria apertado demais. Ex.: 9 produtos vira uma
+  // grade 3x3 dentro de um único cartão branco, como uma vitrine.
   function desenharGradeFotos(imgs,boxX,boxY,boxW,boxH,cols){
     var n=imgs.length;
     cols=cols||Math.ceil(Math.sqrt(n));
     var rows=Math.ceil(n/cols);
-    var cellW=boxW/cols, cellH=boxH/rows;
+    var cardR=Math.min(boxW,boxH)*0.045;
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.18)';
+    ctx.shadowBlur=22;
+    ctx.shadowOffsetY=8;
+    ctx.fillStyle='#FFFFFF';
+    fotoRoundRect(boxX,boxY,boxW,boxH,cardR);
+    ctx.fill();
+    ctx.restore();
+    var padCard=boxW*0.035;
+    var innerX=boxX+padCard, innerY=boxY+padCard;
+    var innerW=boxW-padCard*2, innerH=boxH-padCard*2;
+    var cellW=innerW/cols, cellH=innerH/rows;
     ctx.save();
     ctx.imageSmoothingEnabled=true;
     if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
     imgs.forEach(function(img,i){
       var col=i%cols, row=Math.floor(i/cols);
-      var cellX=boxX+col*cellW, cellY=boxY+row*cellH;
-      var maxW=cellW*0.86, maxH=cellH*0.86;
+      var cellX=innerX+col*cellW, cellY=innerY+row*cellH;
+      var maxW=cellW*0.84, maxH=cellH*0.84;
       var asp=img.width/img.height;
       var fW,fH;
       if(asp>maxW/maxH){fW=maxW;fH=maxW/asp;}
       else{fH=maxH;fW=maxH*asp;}
       var cx=cellX+cellW/2, cy=cellY+cellH/2;
-      ctx.shadowColor='rgba(0,0,0,0.28)';
-      ctx.shadowBlur=14;
+      ctx.shadowColor='rgba(0,0,0,0.20)';
+      ctx.shadowBlur=8;
       ctx.shadowOffsetX=0;
-      ctx.shadowOffsetY=6;
+      ctx.shadowOffsetY=4;
       ctx.drawImage(img,cx-fW/2,cy-fH/2,fW,fH);
     });
     ctx.restore();
@@ -1827,8 +1840,8 @@ async function drawPlaca(){
     if(unirOn && imgsUnirN.length>3){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
-      var areaTopYG=605, areaHG=460;
-      desenharGradeFotos(imgsUnirN,0,areaTopYG,W,areaHG);
+      var areaTopYG=575, areaHG=520, padXG=60;
+      desenharGradeFotos(imgsUnirN,padXG,areaTopYG,W-padXG*2,areaHG);
     }else if(unirOn && imgsUnirN.length>1){
       // Modo "unir": nenhum produto tem cartão branco próprio. Todos os
       // objetos são recortados (fundo removido) e desenhados lado a lado,
