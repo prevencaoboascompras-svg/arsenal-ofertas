@@ -2999,7 +2999,7 @@ async function gerarEncarteDoDia(){
     // .ed-price-int etc usando calc(clamp(...)*var(--escala))); a foto
     // já escala sozinha porque cresce junto com a largura do card.
     return ''+
-      '<div class="ed-card" data-codigo="'+escapeHtml(it.codigo)+'" style="width:'+larguraPct+'%;max-width:'+larguraPct+'%;--escala:'+escala+';--foto-largura:'+fotoPct+'%;'+(compacto?'--foto-padding:2.2%;--desc-pad-y:2.4%;--desc-overlap:-5%;--badge-pad-top:5%;--badge-pad-bottom:3%;--badge-overlap:-4%;':'')+'">'+
+      '<div class="ed-card" data-codigo="'+escapeHtml(it.codigo)+'" style="width:'+larguraPct+'%;max-width:'+larguraPct+'%;--escala:'+escala+';--foto-largura:'+fotoPct+'%;'+(compacto?'--foto-padding:1.2%;--desc-pad-y:2.1%;--desc-overlap:-4%;--badge-pad-top:4.5%;--badge-pad-bottom:2.8%;--badge-overlap:-3%;':'')+'">'+
         '<div class="ed-foto">'+fotoHtml+'</div>'+packHtml+
         '<div class="ed-desc">'+escapeHtml(it.descricao.toUpperCase())+'</div>'+
         '<div class="ed-badge">'+
@@ -3034,7 +3034,7 @@ async function gerarEncarteDoDia(){
         // badge. Isso impede que a imagem roube toda a altura disponível.
         var CONFIG_POR_PAGINA={
           3:{normal:{largura:29,foto:82,escala:1.12}},
-          5:{normal:{largura:29,foto:62,escala:1.00},destaque:{largura:34,foto:65,escala:1.12},compacto:true},
+          5:{normal:{largura:26.5,foto:78,escala:0.96},destaque:{largura:31.5,foto:82,escala:1.08},compacto:true},
           6:{normal:{largura:28,foto:70,escala:1.00}},
           8:{normal:{largura:22.5,foto:74,escala:.94}},
           12:{normal:{largura:22.5,foto:78,escala:.94}}
@@ -3057,8 +3057,9 @@ async function gerarEncarteDoDia(){
         var compacto=!!(cfgPagina&&cfgPagina.compacto);
         // Linhas com dois itens vão para as laterais; o destaque central
         // permanece centralizado e cresce somente cerca de 17%.
-        var justif=qtdLinha===2?'space-between':'center';
-        return '<div class="tema-row'+(ehDestaque?' tema-row-destaque':'')+'" style="justify-content:'+justif+'">'+
+        var justif='center';
+        var rowGap=(grupo.length===5&&qtdLinha===2)?'12%':(grupo.length===5&&qtdLinha===1?'0':'2%');
+        return '<div class="tema-row'+(ehDestaque?' tema-row-destaque':'')+'" style="justify-content:'+justif+';gap:'+rowGap+'">'+
           itensLinha.map(function(it){return montarCard(it,Number(escala).toFixed(2),larguraPct,fotoPct,compacto);}).join('')+
         '</div>';
       }).join('');
@@ -3107,12 +3108,12 @@ async function gerarEncarteDoDia(){
   '.ed-header-img-wrap img{max-width:100%;max-height:140.4%;object-fit:contain}'+
   '.ed-badges-area{position:absolute;top:25.3%;left:1.5%;width:97%;height:62.1%;box-sizing:border-box;padding:1.3% 0;display:flex;flex-direction:column;justify-content:center;gap:1.3%;overflow:hidden}'+
   '.tema-badge{border-radius:22px;padding:2.2% 2%;display:flex;flex-direction:column;gap:1.5%;box-shadow:0 4px 14px rgba(0,0,0,.14)}'+
-  '.tema-badge-qtd-5{height:100%;padding:1.1% 2%;gap:.5%;justify-content:space-between}'+
+  '.tema-badge-qtd-5{height:100%;padding:3.2% 4.5%;gap:2.2%;justify-content:center}'+
   '.tema-row{display:flex;justify-content:center;align-items:flex-end;gap:2%}'+
   '.tema-row-destaque{justify-content:center}'+
   '.ed-footer-overlay{position:absolute;top:87.9%;left:2.5%;width:95%;height:6.4%;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:clamp(8px,1.15vw,13px);padding:0 2%;background:var(--tema-cor-preco,#055405);border-radius:10px}'+
   '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:auto;flex:0 0 auto}'+
-  '.ed-foto{width:var(--foto-largura,82%);aspect-ratio:1/1;margin:0 auto;padding:var(--foto-padding,4%);display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0}'+
+  '.ed-foto{width:var(--foto-largura,82%);aspect-ratio:1/1;margin:0 auto;padding:var(--foto-padding,2.2%);display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0}'+
   '.ed-foto img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
   '.ed-foto-dupla img{max-width:62%;max-height:98%;object-fit:contain}'+
