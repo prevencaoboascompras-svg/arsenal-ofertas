@@ -1788,18 +1788,52 @@ async function drawPlaca(){
     ctx.drawImage(img,fX+pad2,fY+pad2,dw,dh);
     ctx.restore();
   }
-  if(fotoImg && !packOn){
+  // Desenha uma lista de fotos (já com fundo removido) organizadas em
+  // grade (colunas x linhas), cada uma centralizada na sua célula com
+  // uma leve sombra — usado quando há muitos produtos unidos (4+),
+  // onde o layout "lado a lado sobrepostos" ficaria apertado demais.
+  function desenharGradeFotos(imgs,boxX,boxY,boxW,boxH,cols){
+    var n=imgs.length;
+    cols=cols||Math.ceil(Math.sqrt(n));
+    var rows=Math.ceil(n/cols);
+    var cellW=boxW/cols, cellH=boxH/rows;
+    ctx.save();
+    ctx.imageSmoothingEnabled=true;
+    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+    imgs.forEach(function(img,i){
+      var col=i%cols, row=Math.floor(i/cols);
+      var cellX=boxX+col*cellW, cellY=boxY+row*cellH;
+      var maxW=cellW*0.86, maxH=cellH*0.86;
+      var asp=img.width/img.height;
+      var fW,fH;
+      if(asp>maxW/maxH){fW=maxW;fH=maxW/asp;}
+      else{fH=maxH;fW=maxH*asp;}
+      var cx=cellX+cellW/2, cy=cellY+cellH/2;
+      ctx.shadowColor='rgba(0,0,0,0.28)';
+      ctx.shadowBlur=14;
+      ctx.shadowOffsetX=0;
+      ctx.shadowOffsetY=6;
+      ctx.drawImage(img,cx-fW/2,cy-fH/2,fW,fH);
+    });
+    ctx.restore();
+  }
+  if(!packOn){
     var extrasComFotoN=unirOn?unirExtras.filter(function(x){return x.img;}):[];
-    if(unirOn && extrasComFotoN.length){
+    if(fotoImg&&fotoImgARecortadaFonte!==fotoImg){
+      fotoImgARecortada=removerFundoBranco(fotoImg);
+      fotoImgARecortadaFonte=fotoImg;
+    }
+    var imgsUnirN=(fotoImg?[fotoImgARecortada||fotoImg]:[]).concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
+    if(unirOn && imgsUnirN.length>3){
+      // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
+      // dentro da mesma área onde as fotos apareceriam.
+      var areaTopYG=605, areaHG=460;
+      desenharGradeFotos(imgsUnirN,0,areaTopYG,W,areaHG);
+    }else if(unirOn && imgsUnirN.length>1){
       // Modo "unir": nenhum produto tem cartão branco próprio. Todos os
       // objetos são recortados (fundo removido) e desenhados lado a lado,
       // sobrepostos, direto sobre o fundo da placa. Funciona pra 2, 3, 4+
       // produtos — o tamanho e a sobreposição se ajustam à quantidade.
-      if(fotoImgARecortadaFonte!==fotoImg){
-        fotoImgARecortada=removerFundoBranco(fotoImg);
-        fotoImgARecortadaFonte=fotoImg;
-      }
-      var imgsUnirN=[fotoImgARecortada||fotoImg].concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
       var nUnirN=imgsUnirN.length;
       var areaTopY=605, areaH=460;
       var maxWItemN=Math.max(190,400-(nUnirN-2)*50);
@@ -1832,15 +1866,11 @@ async function drawPlaca(){
         curXN+=d.fW+gapN;
       });
       ctx.restore();
-    }else{
+    }else if(imgsUnirN.length===1){
       // Produto único: sem cartão branco quadrado — mesma lógica do
       // encarte do dia, o fundo branco da foto é removido e o objeto
       // fica solto direto sobre o fundo da placa, com sombra.
-      if(fotoImgARecortadaFonte!==fotoImg){
-        fotoImgARecortada=removerFundoBranco(fotoImg);
-        fotoImgARecortadaFonte=fotoImg;
-      }
-      var imgSolo=fotoImgARecortada||fotoImg;
+      var imgSolo=imgsUnirN[0];
       var areaTopYS=605, areaHS=460, maxWS=760, maxHS=460;
       var aspSolo=imgSolo.width/imgSolo.height;
       var fWSolo,fHSolo;
@@ -1862,20 +1892,24 @@ async function drawPlaca(){
   // No modo Pack — coordenadas do template atual (PACK_MAP.imagem), "object-fit: contain".
   // Sem cartão branco: mesma lógica do modo solo/unir — o fundo branco da
   // foto é removido e o objeto fica solto direto sobre o fundo da placa.
-  if(fotoImg && packOn){
-    if(fotoImgARecortadaFonte!==fotoImg){
+  if(packOn){
+    if(fotoImg&&fotoImgARecortadaFonte!==fotoImg){
       fotoImgARecortada=removerFundoBranco(fotoImg);
       fotoImgARecortadaFonte=fotoImg;
     }
-    var imgPack=fotoImgARecortada||fotoImg;
+    var imgPack=fotoImg?(fotoImgARecortada||fotoImg):null;
     var iCfg=PACK_MAP.imagem;
     var fX2=mx(iCfg.x), fY2=my(iCfg.y), fW2=mx(iCfg.width), fH2=my(iCfg.height), pad3=16;
     var innerW2=fW2-pad3*2, innerH2=fH2-pad3*2;
     var extrasComFotoP=unirOn?unirExtras.filter(function(x){return x.img;}):[];
-    if(unirOn && extrasComFotoP.length){
+    var imgsPackN=(imgPack?[imgPack]:[]).concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
+    if(unirOn && imgsPackN.length>3){
+      // 4 ou mais produtos: organiza em grade dentro da área de imagem
+      // do template Pack (ex.: 9 produtos vira 3x3).
+      desenharGradeFotos(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2);
+    }else if(unirOn && imgsPackN.length>1){
       // Mesma lógica de "unir" do modo padrão, só que encaixada dentro
       // da área de imagem do template Pack.
-      var imgsPackN=[imgPack].concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
       var nPackN=imgsPackN.length;
       var maxWItemP=innerW2/(nPackN*0.62);
       var maxHItemP=innerH2;
@@ -1910,8 +1944,9 @@ async function drawPlaca(){
         curXP+=d.fW+gapP;
       });
       ctx.restore();
-    }else{
-      var imgAspect2=imgPack.width/imgPack.height;
+    }else if(imgsPackN.length===1){
+      var imgPackSolo=imgsPackN[0];
+      var imgAspect2=imgPackSolo.width/imgPackSolo.height;
       var boxAspect2=innerW2/innerH2;
       var dw2,dh2;
       if(imgAspect2>boxAspect2){ dw2=innerW2; dh2=innerW2/imgAspect2; }
@@ -1924,7 +1959,7 @@ async function drawPlaca(){
       ctx.shadowOffsetY=8;
       ctx.imageSmoothingEnabled=true;
       if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
-      ctx.drawImage(imgPack,dx2,dy2,dw2,dh2);
+      ctx.drawImage(imgPackSolo,dx2,dy2,dw2,dh2);
       ctx.restore();
     }
   }
@@ -3138,9 +3173,11 @@ async function gerarEncarteDoDia(){
     }).filter(Boolean);
     var fotoHtml;
     if(it.unirOn&&fotosExtraSeguras.length){
+      var totalFotosMulti=1+fotosExtraSeguras.length;
       var imgsMultiHtml='<img class="ed-foto-item" src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'+
         fotosExtraSeguras.map(function(src){return '<img class="ed-foto-item" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="">';}).join('');
-      fotoHtml='<div class="ed-foto-multi">'+imgsMultiHtml+'</div>';
+      var classeMulti=totalFotosMulti>3?'ed-foto-multi ed-foto-multi-grade':'ed-foto-multi';
+      fotoHtml='<div class="'+classeMulti+'">'+imgsMultiHtml+'</div>';
     }else if(fotoSrcSegura){
       fotoHtml='<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">';
     }else{
