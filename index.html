@@ -1048,6 +1048,40 @@ function removerFundoBranco(img,limiarAlto,limiarBaixo){
     return img;
   }
 }
+function croparTransparente(img){
+  try{
+    var w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+    if(!w||!h)return img;
+    var c=document.createElement('canvas');
+    c.width=w;c.height=h;
+    var cx=c.getContext('2d');
+    cx.drawImage(img,0,0,w,h);
+    var d=cx.getImageData(0,0,w,h).data;
+    var minX=w,minY=h,maxX=-1,maxY=-1;
+    var limiarAlpha=10;
+    for(var y=0;y<h;y++){
+      var rowOff=y*w;
+      for(var x=0;x<w;x++){
+        if(d[(rowOff+x)*4+3]>=limiarAlpha){
+          if(x<minX)minX=x; if(x>maxX)maxX=x;
+          if(y<minY)minY=y; if(y>maxY)maxY=y;
+        }
+      }
+    }
+    if(maxX<minX||maxY<minY)return img;
+    var pad=Math.round(Math.max(maxX-minX,maxY-minY)*0.02);
+    minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+    maxX=Math.min(w-1,maxX+pad); maxY=Math.min(h-1,maxY+pad);
+    var cw=maxX-minX+1, ch=maxY-minY+1;
+    if(cw<=0||ch<=0)return img;
+    var out=document.createElement('canvas');
+    out.width=cw;out.height=ch;
+    out.getContext('2d').drawImage(c,minX,minY,cw,ch,0,0,cw,ch);
+    return out;
+  }catch(e){
+    return img;
+  }
+}
 function carregarImagemUrl(url,semProxy){
   return new Promise(function(resolve){
     if(!url){resolve(null);return;}
@@ -1793,7 +1827,8 @@ async function drawPlaca(){
   // usado quando há muitos produtos unidos (4+), onde o layout "lado a
   // lado sobrepostos" ficaria apertado demais. Ex.: 9 produtos vira uma
   // grade 3x3 dentro de um único cartão branco, como uma vitrine.
-  function desenharGradeFotos(imgs,boxX,boxY,boxW,boxH,cols){
+  function desenharGradeFotos(imgsOriginais,boxX,boxY,boxW,boxH,cols){
+    var imgs=imgsOriginais.map(croparTransparente);
     var n=imgs.length;
     cols=cols||Math.ceil(Math.sqrt(n));
     var rows=Math.ceil(n/cols);
@@ -1806,7 +1841,7 @@ async function drawPlaca(){
     fotoRoundRect(boxX,boxY,boxW,boxH,cardR);
     ctx.fill();
     ctx.restore();
-    var padCard=boxW*0.035;
+    var padCard=boxW*0.025;
     var innerX=boxX+padCard, innerY=boxY+padCard;
     var innerW=boxW-padCard*2, innerH=boxH-padCard*2;
     var cellW=innerW/cols, cellH=innerH/rows;
@@ -1816,7 +1851,7 @@ async function drawPlaca(){
     imgs.forEach(function(img,i){
       var col=i%cols, row=Math.floor(i/cols);
       var cellX=innerX+col*cellW, cellY=innerY+row*cellH;
-      var maxW=cellW*0.84, maxH=cellH*0.84;
+      var maxW=cellW*0.96, maxH=cellH*0.96;
       var asp=img.width/img.height;
       var fW,fH;
       if(asp>maxW/maxH){fW=maxW;fH=maxW/asp;}
