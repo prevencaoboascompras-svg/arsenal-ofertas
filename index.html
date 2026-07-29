@@ -2972,7 +2972,7 @@ async function gerarEncarteDoDia(){
     return [{cor:'branca',rows:rows}];
   }
 
-  function montarCard(it,escala,larguraPct){
+  function montarCard(it,escala,larguraPct,fotoPct,compacto){
     var precoNum=parseDec(it.precoPromocional);
     var precoInt='0',precoDec='00';
     if(precoNum>0){
@@ -2999,7 +2999,7 @@ async function gerarEncarteDoDia(){
     // .ed-price-int etc usando calc(clamp(...)*var(--escala))); a foto
     // já escala sozinha porque cresce junto com a largura do card.
     return ''+
-      '<div class="ed-card" data-codigo="'+escapeHtml(it.codigo)+'" style="width:'+larguraPct+'%;max-width:'+larguraPct+'%;--escala:'+escala+'">'+
+      '<div class="ed-card" data-codigo="'+escapeHtml(it.codigo)+'" style="width:'+larguraPct+'%;max-width:'+larguraPct+'%;--escala:'+escala+';--foto-largura:'+fotoPct+'%;'+(compacto?'--foto-padding:2.2%;--desc-pad-y:2.4%;--desc-overlap:-5%;--badge-pad-top:5%;--badge-pad-bottom:3%;--badge-overlap:-4%;':'')+'">'+
         '<div class="ed-foto">'+fotoHtml+'</div>'+packHtml+
         '<div class="ed-desc">'+escapeHtml(it.descricao.toUpperCase())+'</div>'+
         '<div class="ed-badge">'+
@@ -3029,25 +3029,40 @@ async function gerarEncarteDoDia(){
         var itensLinha=grupo.slice(idx,idx+qtdLinha);
         idx+=qtdLinha;
         var ehDestaque=badgeCfg.destaque===rowIdx;
-        // Largura do card por quantidade de colunas na linha — valores fixos
-        // (não "92/qtd") pra manter a foto sempre próxima de quadrada e do
-        // mesmo tamanho do badge de preço, em vez de esticar o card e sobrar
-        // espaço vazio ao redor da foto. O destaque fica só um pouco maior
-        // que os demais, não o dobro.
-        var LARGURA_POR_QTD={1:36,2:33,3:29,4:23};
-        var larguraPct=LARGURA_POR_QTD[qtdLinha]||Math.max(18,Math.floor(88/qtdLinha));
-        if(ehDestaque)larguraPct=Math.min(46,larguraPct+11);
-        // Escala do texto acompanha a largura, mas com teto bem mais
-        // comedido — texto grande demais rouba a altura que devia ser da foto.
-        var escala=Math.min(1.35,larguraPct/23);
-        // Linhas com só 2 itens vão cada um pra um canto (mais espaço livre
-        // ao redor de cada foto) em vez de ficarem grudados no centro.
+        // Configuração proporcional por modalidade. A largura do card define
+        // o badge; a foto continua quadrada, mas ocupa apenas uma fração do
+        // badge. Isso impede que a imagem roube toda a altura disponível.
+        var CONFIG_POR_PAGINA={
+          3:{normal:{largura:29,foto:82,escala:1.12}},
+          5:{normal:{largura:29,foto:62,escala:1.00},destaque:{largura:34,foto:65,escala:1.12},compacto:true},
+          6:{normal:{largura:28,foto:70,escala:1.00}},
+          8:{normal:{largura:22.5,foto:74,escala:.94}},
+          12:{normal:{largura:22.5,foto:78,escala:.94}}
+        };
+        var cfgPagina=CONFIG_POR_PAGINA[grupo.length];
+        var cfgCard=cfgPagina&&(ehDestaque&&cfgPagina.destaque?cfgPagina.destaque:cfgPagina.normal);
+        if(!cfgCard){
+          var LARGURA_POR_QTD={1:34,2:30,3:27,4:22.5};
+          var FOTO_POR_QTD={1:68,2:70,3:78,4:82};
+          var larguraFallback=LARGURA_POR_QTD[qtdLinha]||Math.max(18,Math.floor(88/qtdLinha));
+          cfgCard={
+            largura:ehDestaque?Math.min(38,larguraFallback*1.16):larguraFallback,
+            foto:FOTO_POR_QTD[qtdLinha]||76,
+            escala:Math.min(1.16,Math.max(.90,larguraFallback/24))
+          };
+        }
+        var larguraPct=cfgCard.largura;
+        var fotoPct=cfgCard.foto;
+        var escala=cfgCard.escala;
+        var compacto=!!(cfgPagina&&cfgPagina.compacto);
+        // Linhas com dois itens vão para as laterais; o destaque central
+        // permanece centralizado e cresce somente cerca de 17%.
         var justif=qtdLinha===2?'space-between':'center';
         return '<div class="tema-row'+(ehDestaque?' tema-row-destaque':'')+'" style="justify-content:'+justif+'">'+
-          itensLinha.map(function(it){return montarCard(it,escala.toFixed(2),larguraPct);}).join('')+
+          itensLinha.map(function(it){return montarCard(it,Number(escala).toFixed(2),larguraPct,fotoPct,compacto);}).join('')+
         '</div>';
       }).join('');
-      return '<div class="tema-badge" style="background:'+corFundo+'">'+linhasHtml+'</div>';
+      return '<div class="tema-badge tema-badge-qtd-'+grupo.length+'" style="background:'+corFundo+'">'+linhasHtml+'</div>';
     }).join('');
   }
 
@@ -3090,13 +3105,14 @@ async function gerarEncarteDoDia(){
   '.ed-page{position:relative;max-width:1080px;margin:0 auto 20px;aspect-ratio:1080/1350;background-repeat:no-repeat;background-size:100% 100%;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
   '.ed-header-img-wrap{position:absolute;top:0;left:0;width:100%;height:25.27%;display:flex;align-items:center;justify-content:center;padding:1% 4%;overflow:visible;z-index:2}'+
   '.ed-header-img-wrap img{max-width:100%;max-height:140.4%;object-fit:contain}'+
-  '.ed-badges-area{position:absolute;top:25.5%;left:1.5%;width:97%;height:61%;box-sizing:border-box;padding:2.2% 0;display:flex;flex-direction:column;justify-content:center;gap:2.2%;overflow:hidden}'+
-  '.tema-badge{border-radius:22px;padding:2.6% 2%;display:flex;flex-direction:column;gap:2%;box-shadow:0 4px 14px rgba(0,0,0,.14)}'+
+  '.ed-badges-area{position:absolute;top:25.3%;left:1.5%;width:97%;height:62.1%;box-sizing:border-box;padding:1.3% 0;display:flex;flex-direction:column;justify-content:center;gap:1.3%;overflow:hidden}'+
+  '.tema-badge{border-radius:22px;padding:2.2% 2%;display:flex;flex-direction:column;gap:1.5%;box-shadow:0 4px 14px rgba(0,0,0,.14)}'+
+  '.tema-badge-qtd-5{height:100%;padding:1.1% 2%;gap:.5%;justify-content:space-between}'+
   '.tema-row{display:flex;justify-content:center;align-items:flex-end;gap:2%}'+
   '.tema-row-destaque{justify-content:center}'+
   '.ed-footer-overlay{position:absolute;top:87.9%;left:2.5%;width:95%;height:6.4%;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:clamp(8px,1.15vw,13px);padding:0 2%;background:var(--tema-cor-preco,#055405);border-radius:10px}'+
   '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:auto;flex:0 0 auto}'+
-  '.ed-foto{width:94%;aspect-ratio:1/1;margin:0 3%;padding:6%;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0}'+
+  '.ed-foto{width:var(--foto-largura,82%);aspect-ratio:1/1;margin:0 auto;padding:var(--foto-padding,4%);display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0}'+
   '.ed-foto img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
   '.ed-foto-dupla img{max-width:62%;max-height:98%;object-fit:contain}'+
@@ -3105,8 +3121,8 @@ async function gerarEncarteDoDia(){
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
-  '.ed-desc{background:var(--tema-cor-badge,#fede00);border-radius:8px;font-size:calc(clamp(7px,1vw,11px)*var(--escala,1));font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:4% 6%;min-height:2.1em;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;margin:-8% 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
-  '.ed-badge{background:var(--tema-cor-preco,#055405);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3%;padding:8% 5% 5%;position:relative;z-index:1;margin-top:-6%;border-radius:0 0 8px 8px;flex-shrink:0}'+
+  '.ed-desc{background:var(--tema-cor-badge,#fede00);border-radius:8px;font-size:calc(clamp(7px,1vw,11px)*var(--escala,1));font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:var(--desc-pad-y,3.4%) 6%;min-height:2.1em;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;margin:var(--desc-overlap,-6%) 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
+  '.ed-badge{background:var(--tema-cor-preco,#055405);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3%;padding:var(--badge-pad-top,6.5%) 5% var(--badge-pad-bottom,4%);position:relative;z-index:1;margin-top:var(--badge-overlap,-5%);border-radius:0 0 8px 8px;flex-shrink:0}'+
   '.ed-badge-label{font-size:calc(clamp(5px,.65vw,7.5px)*var(--escala,1));font-weight:700;color:#fff;line-height:1.1;text-transform:uppercase;opacity:.95}'+
   '.ed-badge-spacer{visibility:hidden}'+
   '.ed-badge-price{display:flex;align-items:center;justify-content:center;line-height:1;gap:7px}'+
