@@ -3035,13 +3035,21 @@ async function gerarEncarteDoDia(){
         var itensLinha=grupo.slice(idx,idx+qtdLinha);
         idx+=qtdLinha;
         var ehDestaque=badgeCfg.destaque===rowIdx;
-        // Largura do card: referência de 4 por linha = 23%. Linha sozinha
-        // (destaque) ganha bem mais espaço (64%) por não dividir a linha.
-        var larguraPct=qtdLinha===1?64:Math.min(46,Math.floor(92/qtdLinha));
-        // Escala do texto (preço/descrição) acompanha a largura do card,
-        // usando 23% como referência 1×, com teto pra não ficar ilegível.
-        var escala=Math.min(1.9,larguraPct/23);
-        return '<div class="tema-row'+(ehDestaque?' tema-row-destaque':'')+'">'+
+        // Largura do card por quantidade de colunas na linha — valores fixos
+        // (não "92/qtd") pra manter a foto sempre próxima de quadrada e do
+        // mesmo tamanho do badge de preço, em vez de esticar o card e sobrar
+        // espaço vazio ao redor da foto. O destaque fica só um pouco maior
+        // que os demais, não o dobro.
+        var LARGURA_POR_QTD={1:36,2:33,3:29,4:23};
+        var larguraPct=LARGURA_POR_QTD[qtdLinha]||Math.max(18,Math.floor(88/qtdLinha));
+        if(ehDestaque)larguraPct=Math.min(40,larguraPct+7);
+        // Escala do texto acompanha a largura, mas com teto bem mais
+        // comedido — texto grande demais rouba a altura que devia ser da foto.
+        var escala=Math.min(1.35,larguraPct/23);
+        // Linhas com só 2 itens vão cada um pra um canto (mais espaço livre
+        // ao redor de cada foto) em vez de ficarem grudados no centro.
+        var justif=qtdLinha===2?'space-between':'center';
+        return '<div class="tema-row'+(ehDestaque?' tema-row-destaque':'')+'" style="justify-content:'+justif+'">'+
           itensLinha.map(function(it){return montarCard(it,escala.toFixed(2),larguraPct);}).join('')+
         '</div>';
       }).join('');
@@ -3088,7 +3096,7 @@ async function gerarEncarteDoDia(){
   '.ed-page{position:relative;max-width:1080px;margin:0 auto 20px;aspect-ratio:1080/1350;background-repeat:no-repeat;background-size:100% 100%;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18)}'+
   '.ed-header-img-wrap{position:absolute;top:0;left:0;width:100%;height:25.27%;display:flex;align-items:center;justify-content:center;padding:1% 4%;overflow:visible;z-index:2}'+
   '.ed-header-img-wrap img{max-width:100%;max-height:140.4%;object-fit:contain}'+
-  '.ed-badges-area{position:absolute;top:25.5%;left:1.5%;width:97%;height:61%;display:flex;flex-direction:column;justify-content:center;gap:2.2%;overflow:hidden}'+
+  '.ed-badges-area{position:absolute;top:25.5%;left:1.5%;width:97%;height:61%;box-sizing:border-box;padding:2.2% 0;display:flex;flex-direction:column;justify-content:center;gap:2.2%;overflow:hidden}'+
   '.tema-badge{border-radius:22px;padding:2.6% 2%;display:flex;flex-direction:column;gap:2%;box-shadow:0 4px 14px rgba(0,0,0,.14);flex:1 1 0;min-height:0}'+
   '.tema-row{display:flex;justify-content:center;align-items:stretch;gap:2%;flex:1 1 0;min-height:0}'+
   '.tema-row-destaque{justify-content:center}'+
