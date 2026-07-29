@@ -2961,6 +2961,7 @@ async function gerarEncarteDoDia(){
     5:[{cor:'branca',rows:[2,1,2],destaque:1}],
     6:[{cor:'branca',rows:[3,3]}],
     8:[{cor:'branca',rows:[4,4]}],
+    9:[{cor:'dinamica',rows:[3]},{cor:'branca',rows:[3]},{cor:'branca',rows:[3]}],
     12:[{cor:'dinamica',rows:[4]},{cor:'branca',rows:[4]},{cor:'dinamica',rows:[4]}]
   };
   // Layout absoluto específico do tema Horti Fruti pra grupos de 5 itens:
@@ -3118,7 +3119,17 @@ async function gerarEncarteDoDia(){
         (temaSelecionadoId==='hortifruti'&&grupo.length===5
           ?montarBadgesHorti5(grupo)
           :'<div class="ed-badges-area">'+montarBadgesPagina(grupo)+'</div>')+
-        '<div class="ed-footer-overlay">OFERTAS VÁLIDAS PARA '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+' OU ENQUANTO DURAREM OS ESTOQUES</div>'+
+        '<div class="ed-footer-wrap">'+
+          '<div class="ed-footer-row1">'+
+            '<div class="ed-footer-col ed-footer-validade">OFERTAS VÁLIDAS PARA '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+' OU ENQUANTO DURAREM OS ESTOQUES</div>'+
+            '<div class="ed-footer-col ed-footer-entrega"><span class="ed-footer-icon">🛵</span><span class="ed-footer-txt">FAZEMOS ENTREGAS!<br><b>(51) 99680-6917</b></span></div>'+
+            '<div class="ed-footer-col ed-footer-local"><span class="ed-footer-icon">📍</span><span class="ed-footer-txt">MATRIZ AV. VISCONDE DO RIO GRANDE, 1960</span></div>'+
+          '</div>'+
+          '<div class="ed-footer-row2">'+
+            '<div class="ed-footer-col ed-footer-parcelas">PARCELAMOS NOS CARTÕES EM ATÉ <b>10X</b>&nbsp;&nbsp;<span class="ed-footer-condicoes">Confira condições</span></div>'+
+            '<div class="ed-footer-col ed-footer-bpf"><span>ACEITAMOS O SEU <b>BPF</b></span><span class="ed-footer-card">💳</span></div>'+
+          '</div>'+
+        '</div>'+
       '</div>';
   }).join('');
 
@@ -3147,7 +3158,21 @@ async function gerarEncarteDoDia(){
   '.tema-badge{border-radius:22px;padding:2.6% 2%;display:flex;flex-direction:column;gap:2%;box-shadow:0 4px 14px rgba(0,0,0,.14)}'+
   '.tema-row{display:flex;justify-content:center;align-items:flex-end;gap:2%}'+
   '.tema-row-destaque{justify-content:center}'+
-  '.ed-footer-overlay{position:absolute;top:87.9%;left:2.5%;width:95%;height:6.4%;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:clamp(8px,1.15vw,13px);padding:0 2%;background:var(--tema-cor-preco,#055405);border-radius:10px}'+
+  '.ed-footer-wrap{position:absolute;top:86.5%;left:2%;width:96%;height:12%;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:3}'+
+  '.ed-footer-row1{flex:1.15;display:flex;align-items:center;background:var(--tema-cor-preco,#055405);gap:1%;padding:0 1.5%}'+
+  '.ed-footer-row2{flex:.85;display:flex;align-items:center;justify-content:space-between;background:#02330f;gap:1%;padding:0 2%}'+
+  '.ed-footer-col{display:flex;align-items:center;gap:4px;color:#fff;line-height:1.15}'+
+  '.ed-footer-validade{flex:1.3;font-weight:800;font-size:clamp(6.5px,.92vw,10.5px);text-align:left}'+
+  '.ed-footer-entrega,.ed-footer-local{flex:1;font-weight:700;font-size:clamp(6.5px,.9vw,10px);text-align:left}'+
+  '.ed-footer-entrega b,.ed-footer-local b{color:#fede00}'+
+  '.ed-footer-icon{font-size:clamp(14px,2.1vw,22px);flex-shrink:0}'+
+  '.ed-footer-txt{line-height:1.2}'+
+  '.ed-footer-parcelas{font-weight:800;font-size:clamp(7px,1vw,12px);color:#fede00}'+
+  '.ed-footer-parcelas b{font-size:clamp(11px,1.6vw,18px)}'+
+  '.ed-footer-condicoes{font-weight:600;font-size:clamp(6px,.82vw,9px);color:#fff;text-decoration:underline;margin-left:4px}'+
+  '.ed-footer-bpf{font-weight:800;font-size:clamp(7px,1vw,12px);color:#fff}'+
+  '.ed-footer-bpf b{color:#fede00}'+
+  '.ed-footer-card{font-size:clamp(14px,2vw,20px)}'+
   '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:auto;flex:0 0 auto}'+
   '.ed-foto{width:94%;aspect-ratio:1/1;margin:0 3%;padding:6%;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0}'+
   '.ed-foto img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
