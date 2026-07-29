@@ -1820,42 +1820,31 @@ async function drawPlaca(){
   }
 
   // No modo Pack — coordenadas do template atual (PACK_MAP.imagem), "object-fit: contain".
+  // Sem cartão branco: mesma lógica do modo solo/unir — o fundo branco da
+  // foto é removido e o objeto fica solto direto sobre o fundo da placa.
   if(fotoImg && packOn){
-    var iCfg=PACK_MAP.imagem;
-    var fX2=mx(iCfg.x), fY2=my(iCfg.y), fW2=mx(iCfg.width), fH2=my(iCfg.height), fR2=22, pad3=16;
-    function fotoRoundRect2(x,y,w,h,r){
-      ctx.beginPath();
-      ctx.moveTo(x+r,y);
-      ctx.lineTo(x+w-r,y);
-      ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-      ctx.lineTo(x+w,y+h-r);
-      ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-      ctx.lineTo(x+r,y+h);
-      ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-      ctx.lineTo(x,y+r);
-      ctx.quadraticCurveTo(x,y,x+r,y);
-      ctx.closePath();
+    if(fotoImgARecortadaFonte!==fotoImg){
+      fotoImgARecortada=removerFundoBranco(fotoImg);
+      fotoImgARecortadaFonte=fotoImg;
     }
-    ctx.save();
-    ctx.shadowColor='rgba(0,0,0,0.15)';
-    ctx.shadowBlur=10;
-    ctx.fillStyle='#FFFFFF';
-    fotoRoundRect2(fX2,fY2,fW2,fH2,fR2);
-    ctx.fill();
-    ctx.restore();
-    ctx.save();
-    fotoRoundRect2(fX2,fY2,fW2,fH2,fR2);
-    ctx.clip();
-    ctx.imageSmoothingEnabled=true;
-    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+    var imgPack=fotoImgARecortada||fotoImg;
+    var iCfg=PACK_MAP.imagem;
+    var fX2=mx(iCfg.x), fY2=my(iCfg.y), fW2=mx(iCfg.width), fH2=my(iCfg.height), pad3=16;
     var innerW2=fW2-pad3*2, innerH2=fH2-pad3*2;
-    var imgAspect2=fotoImg.width/fotoImg.height;
+    var imgAspect2=imgPack.width/imgPack.height;
     var boxAspect2=innerW2/innerH2;
     var dw2,dh2;
     if(imgAspect2>boxAspect2){ dw2=innerW2; dh2=innerW2/imgAspect2; }
     else{ dh2=innerH2; dw2=innerH2*imgAspect2; }
     var dx2=fX2+pad3+(innerW2-dw2)/2, dy2=fY2+pad3+(innerH2-dh2)/2;
-    ctx.drawImage(fotoImg,dx2,dy2,dw2,dh2);
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.30)';
+    ctx.shadowBlur=18;
+    ctx.shadowOffsetX=0;
+    ctx.shadowOffsetY=8;
+    ctx.imageSmoothingEnabled=true;
+    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+    ctx.drawImage(imgPack,dx2,dy2,dw2,dh2);
     ctx.restore();
   }
 
@@ -3103,7 +3092,7 @@ async function gerarEncarteDoDia(){
     var layout=obterLayoutBadge(grupo.length);
     var idx=0;
     return layout.map(function(badgeCfg){
-      var corFundo=badgeCfg.cor==='dinamica'?temaAtual.corBadge:'rgba(255,255,255,.5)';
+      var corFundo='transparent';
       var linhasHtml=badgeCfg.rows.map(function(qtdLinha,rowIdx){
         var itensLinha=grupo.slice(idx,idx+qtdLinha);
         idx+=qtdLinha;
@@ -3192,7 +3181,7 @@ async function gerarEncarteDoDia(){
   '.ed-desc-abs-dec{font-size:clamp(8px,1.3vw,13px);font-weight:800;color:#fede00}'+
   '.ed-desc-abs-un{font-size:clamp(7px,1vw,11px);font-weight:700;color:#fff;text-transform:uppercase;margin-left:3px}'+
   '.ed-badges-area{position:absolute;top:25.5%;left:1.5%;width:97%;height:61%;box-sizing:border-box;padding:2.2% 0;display:flex;flex-direction:column;justify-content:center;gap:2.2%;overflow:hidden}'+
-  '.tema-badge{border-radius:22px;padding:2.6% 2%;display:flex;flex-direction:column;gap:2%;box-shadow:0 4px 14px rgba(0,0,0,.14)}'+
+  '.tema-badge{padding:2.6% 2%;display:flex;flex-direction:column;gap:2%}'+
   '.tema-row{display:flex;justify-content:center;align-items:flex-end;gap:2%}'+
   '.tema-row-destaque{justify-content:center}'+
   '.ed-footer-wrap{position:absolute;top:86.5%;left:2%;width:96%;height:12%;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:3}'+
