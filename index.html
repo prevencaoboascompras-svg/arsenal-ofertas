@@ -950,8 +950,8 @@ function proxyImagemUrl(url){
 // Se a imagem estiver bloqueada por CORS (canvas "tainted"), devolve a
 // imagem original sem recorte em vez de travar.
 function removerFundoBranco(img,limiarAlto,limiarBaixo){
-  limiarAlto=limiarAlto||244;
-  limiarBaixo=limiarBaixo||205;
+  limiarAlto=limiarAlto||248;
+  limiarBaixo=limiarBaixo||225;
   try{
     var c=document.createElement('canvas');
     var w=img.naturalWidth||img.width;
@@ -979,10 +979,12 @@ function removerFundoBranco(img,limiarAlto,limiarBaixo){
     // Flood fill (BFS) só a partir das bordas da imagem: marca como
     // "fundo" apenas o branco que está conectado ao contorno externo.
     // Branco isolado dentro do objeto (rótulo, reflexo, etc.) nunca é
-    // alcançado e continua opaco.
+    // alcançado e continua opaco. Limiares mais altos/rígidos aqui pra
+    // não "vazar" pra dentro de embalagens brancas/claras do produto —
+    // só espalha por branco bem próximo do puro (fundo de estúdio).
     var ehFundo=new Uint8Array(n);
     var fila=[];
-    var limiarSemente=0.5; // só entra na fila pixel razoavelmente branco
+    var limiarSemente=0.65; // só entra na fila pixel bem branco
     for(var x=0;x<w;x++){
       var pTopo=x, pBase=(h-1)*w+x;
       if(brancura[pTopo]>=limiarSemente&&!ehFundo[pTopo]){ehFundo[pTopo]=1;fila.push(pTopo);}
@@ -997,22 +999,56 @@ function removerFundoBranco(img,limiarAlto,limiarBaixo){
     while(cabeca<fila.length){
       var pAtual=fila[cabeca++];
       var xa=pAtual%w, ya=(pAtual-xa)/w;
-      // 4 vizinhos; espalha por qualquer pixel ainda "branco o bastante"
-      // (limiar mais permissivo aqui pra acompanhar degradês suaves do fundo)
-      var limiarEspalha=0.12;
+      // 4 vizinhos; espalha só por pixel ainda bem branco (limiar mais
+      // rígido que antes — reduz "vazamento" pra dentro de embalagem clara)
+      var limiarEspalha=0.32;
       if(xa>0){var pv=pAtual-1;if(!ehFundo[pv]&&brancura[pv]>=limiarEspalha){ehFundo[pv]=1;fila.push(pv);}}
       if(xa<w-1){var pv2=pAtual+1;if(!ehFundo[pv2]&&brancura[pv2]>=limiarEspalha){ehFundo[pv2]=1;fila.push(pv2);}}
       if(ya>0){var pv3=pAtual-w;if(!ehFundo[pv3]&&brancura[pv3]>=limiarEspalha){ehFundo[pv3]=1;fila.push(pv3);}}
       if(ya<h-1){var pv4=pAtual+w;if(!ehFundo[pv4]&&brancura[pv4]>=limiarEspalha){ehFundo[pv4]=1;fila.push(pv4);}}
     }
 
+    // Alpha alvo por pixel (antes de suavizar a borda)
+    var alvoAlpha=new Float32Array(n);
+    for(var p1=0;p1<n;p1++){
+      var i4b=p1*4;
+      alvoAlpha[p1]=d[i4b+3];
+      if(ehFundo[p1])alvoAlpha[p1]=alvoAlpha[p1]*(1-brancura[p1]);
+    }
+
+    // Esfumado leve na borda do recorte (blur separável só no canal alpha)
+    // — deixa o corte menos "serrilhado"/artificial, mais parecido com um
+    // recorte profissional, em vez de uma borda 100% dura de antes.
+    function blurAlphaSeparavel(src,w,h,raio){
+      var tmp=new Float32Array(w*h);
+      var out=new Float32Array(w*h);
+      var norm=1/(raio*2+1);
+      for(var yy=0;yy<h;yy++){
+        var base=yy*w;
+        for(var xx=0;xx<w;xx++){
+          var soma=0;
+          for(var k=-raio;k<=raio;k++){
+            var xx2=xx+k; if(xx2<0)xx2=0; else if(xx2>=w)xx2=w-1;
+            soma+=src[base+xx2];
+          }
+          tmp[base+xx]=soma*norm;
+        }
+      }
+      for(var xx3=0;xx3<w;xx3++){
+        for(var yy3=0;yy3<h;yy3++){
+          var soma2=0;
+          for(var k2=-raio;k2<=raio;k2++){
+            var yy2=yy3+k2; if(yy2<0)yy2=0; else if(yy2>=h)yy2=h-1;
+            soma2+=tmp[yy2*w+xx3];
+          }
+          out[yy3*w+xx3]=soma2*norm;
+        }
+      }
+      return out;
+    }
+    var alphaSuave=blurAlphaSeparavel(alvoAlpha,w,h,1);
     for(var p2=0;p2<n;p2++){
-      if(!ehFundo[p2])continue;
-      var i5=p2*4;
-      // Usa a "brancura" real do pixel (não o limiar de espalhamento) pra
-      // decidir a opacidade final, mantendo a borda suave de antes.
-      var b=brancura[p2];
-      d[i5+3]=Math.round(d[i5+3]*(1-b));
+      d[p2*4+3]=Math.round(alphaSuave[p2]);
     }
 
     cx.putImageData(id,0,0);
