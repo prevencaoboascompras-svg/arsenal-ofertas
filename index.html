@@ -3036,7 +3036,7 @@ async function gerarEncarteDoDia(){
         // que os demais, não o dobro.
         var LARGURA_POR_QTD={1:36,2:33,3:29,4:23};
         var larguraPct=LARGURA_POR_QTD[qtdLinha]||Math.max(18,Math.floor(88/qtdLinha));
-        if(ehDestaque)larguraPct=Math.min(40,larguraPct+7);
+        if(ehDestaque)larguraPct=Math.min(46,larguraPct+11);
         // Escala do texto acompanha a largura, mas com teto bem mais
         // comedido — texto grande demais rouba a altura que devia ser da foto.
         var escala=Math.min(1.35,larguraPct/23);
@@ -3092,12 +3092,11 @@ async function gerarEncarteDoDia(){
   '.ed-header-img-wrap img{max-width:100%;max-height:140.4%;object-fit:contain}'+
   '.ed-badges-area{position:absolute;top:25.5%;left:1.5%;width:97%;height:61%;box-sizing:border-box;padding:2.2% 0;display:flex;flex-direction:column;justify-content:center;gap:2.2%;overflow:hidden}'+
   '.tema-badge{border-radius:22px;padding:2.6% 2%;display:flex;flex-direction:column;gap:2%;box-shadow:0 4px 14px rgba(0,0,0,.14)}'+
-  '.tema-row{display:flex;justify-content:center;align-items:stretch;gap:2%}'+
+  '.tema-row{display:flex;justify-content:center;align-items:flex-end;gap:2%}'+
   '.tema-row-destaque{justify-content:center}'+
-  '.tema-row-destaque .ed-card{transform:scale(1.16);z-index:2}'+
   '.ed-footer-overlay{position:absolute;top:87.9%;left:2.5%;width:95%;height:6.4%;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:clamp(8px,1.15vw,13px);padding:0 2%;background:var(--tema-cor-preco,#055405);border-radius:10px}'+
-  '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:100%;min-height:0;flex:0 0 auto}'+
-  '.ed-foto{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;margin:0 3%;padding:6%}'+
+  '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:auto;flex:0 0 auto}'+
+  '.ed-foto{width:94%;aspect-ratio:1/1;margin:0 3%;padding:6%;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0}'+
   '.ed-foto img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-dupla{display:flex;width:100%;height:100%;align-items:center;justify-content:center}'+
   '.ed-foto-dupla img{max-width:62%;max-height:98%;object-fit:contain}'+
