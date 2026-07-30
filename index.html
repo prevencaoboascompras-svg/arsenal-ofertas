@@ -250,11 +250,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
       <div class="f-row">
         <label for="pCod">Código interno, EAN ou produto</label>
-        <div class="search-wrap">
-          <input type="text" id="pCod" class="cod-input" placeholder="Digite código, EAN ou palavra-chave. Ex: coca" autocomplete="off">
-          <div id="prodSug" class="suggestions" role="listbox" aria-label="Sugestões de produtos"></div>
+        <div class="search-wrap" style="display:flex;gap:6px;align-items:flex-start">
+          <div style="position:relative;flex:1">
+            <input type="text" id="pCod" class="cod-input" placeholder="Digite código, EAN ou palavra-chave. Ex: coca" autocomplete="off">
+            <div id="prodSug" class="suggestions" role="listbox" aria-label="Sugestões de produtos"></div>
+          </div>
+          <button type="button" class="btn btn-sm btn-green" id="pAddUnirBtn" onclick="adicionarProdutoUnificado()" title="Adicionar este produto à união (mesmo preço/pack)"><i class="ti ti-plus"></i></button>
         </div>
-        <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN.</span>
+        <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN. Use o "+" para juntar mais produtos no mesmo preço/pack.</span>
       </div>
 
       <div class="prod-info" id="prodInfo">
@@ -361,8 +364,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <label style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pUnirOn" onchange="toggleUnir();drawPlaca()"> <i class="ti ti-git-merge" style="color:var(--green)"></i> Unir vários produtos / pack (mesmo preço)</label>
       </div>
       <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--tx2);margin-bottom:6px">Busque cada produto extra na caixa "Código interno, EAN ou produto" acima e clique no botão <strong>"+"</strong> ao lado dela pra adicioná-lo aqui, no mesmo preço/pack do produto principal.</div>
         <div id="unirLista"></div>
-        <button type="button" class="btn btn-sm" onclick="unirAdicionarProduto()" style="margin-top:2px;margin-bottom:4px"><i class="ti ti-plus"></i> Adicionar produto</button>
         <div class="f-row" style="margin-top:8px">
           <label for="pDescFinal">Descrição final da placa (editável)</label>
           <textarea id="pDescFinal" rows="2" placeholder="Ex: PEPINO CONSERVA PETRY OU PEPINO PETRY GREMIO" oninput="onDescFinalChange()" style="resize:vertical;font-family:inherit;font-size:13px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--bd);background:var(--bg);color:var(--tx);width:100%"></textarea>
@@ -1485,7 +1488,6 @@ function toggleUnir(){
     if(descFinalEl&&!descFinalEl.value.trim()){
       descFinalEl.value=(document.getElementById('pDescOverride').value||'').trim();
     }
-    if(!unirExtras.length)unirAdicionarProduto();
   }else{
     unirLimparTudo();
     unirDescManual=false;
@@ -1505,30 +1507,27 @@ function onDescFinalChange(){
 // quantidade. Cada linha vira um item em unirExtras com sua
 // própria busca de nome/foto (mesmas fontes de sempre).
 // ============================================================
-function unirRowTemplate(id){
+function unirRowTemplate(id,nome,cod){
   return ''+
-    '<div class="f-row unir-row" data-id="'+id+'" style="margin-bottom:8px">'+
-      '<label>Produto extra (código interno, EAN ou nome)</label>'+
-      '<div style="display:flex;gap:6px;align-items:flex-start">'+
-        '<div class="search-wrap" style="flex:1">'+
-          '<input type="text" class="cod-input unir-cod-input" data-id="'+id+'" placeholder="Digite código, EAN ou palavra-chave" autocomplete="off">'+
-          '<div class="suggestions unir-sug" data-id="'+id+'" role="listbox" aria-label="Sugestões de produtos (extra)"></div>'+
-        '</div>'+
+    '<div class="f-row unir-row" data-id="'+id+'" style="margin-bottom:8px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px">'+
+      '<div style="display:flex;gap:6px;align-items:center;justify-content:space-between">'+
+        '<div style="font-weight:600;font-size:13px;color:var(--tx)">'+escapeHtml(nome||'(sem descrição)')+(cod?' <span style="font-weight:400;color:var(--tx2);font-size:12px">— '+escapeHtml(cod)+'</span>':'')+'</div>'+
         '<button type="button" class="btn btn-sm" onclick="unirRemoverProduto(\''+id+'\')" title="Remover produto"><i class="ti ti-trash"></i></button>'+
       '</div>'+
-      '<div class="foto-status unir-status" data-id="'+id+'">Preencha o código para buscar nome e foto (Drive, Cosmos, Google, Open Food Facts).</div>'+
+      '<div class="foto-status unir-status" data-id="'+id+'">Buscando foto...</div>'+
     '</div>';
 }
 
-function unirAdicionarProduto(codPrefill){
+function unirAdicionarProdutoObj(prod){
   var id='u'+(++unirExtraSeq);
-  unirExtras.push({id:id,cod:'',nome:'',img:null,imgRecortada:null,token:0});
+  var cod=normalizarCodigo(prod.cod||'');
+  var nome=(prod.nome||prod.cod||'').trim();
+  unirExtras.push({id:id,cod:cod,nome:nome,img:null,imgRecortada:null,token:0});
   var container=document.getElementById('unirLista');
-  if(container)container.insertAdjacentHTML('beforeend',unirRowTemplate(id));
-  if(codPrefill){
-    var inp=container&&container.querySelector('.unir-cod-input[data-id="'+id+'"]');
-    if(inp){inp.value=codPrefill;unirBuscarExtra(id);}
-  }
+  if(container)container.insertAdjacentHTML('beforeend',unirRowTemplate(id,nome,cod));
+  atualizarDescFinalAuto();
+  drawPlaca();
+  unirBuscarExtraFoto(id,cod,nome);
   return id;
 }
 
@@ -1536,14 +1535,12 @@ function unirRemoverProduto(id){
   unirExtras=unirExtras.filter(function(x){return x.id!==id;});
   var row=document.querySelector('.unir-row[data-id="'+id+'"]');
   if(row)row.remove();
-  delete unirSugState[id];
   atualizarDescFinalAuto();
   drawPlaca();
 }
 
 function unirLimparTudo(){
   unirExtras=[];
-  unirSugState={};
   var container=document.getElementById('unirLista');
   if(container)container.innerHTML='';
 }
@@ -1563,24 +1560,17 @@ function atualizarDescFinalAuto(){
 
 var unirBuscaTimers={};
 
-async function unirBuscarExtra(id){
+async function unirBuscarExtraFoto(id,cod,nome){
   var ex=unirGetExtra(id);
   if(!ex)return;
   var token=++ex.token;
   var row=document.querySelector('.unir-row[data-id="'+id+'"]');
-  var input=row&&row.querySelector('.unir-cod-input');
   var statusEl=row&&row.querySelector('.unir-status');
-  var codRaw=(input&&input.value||'').trim();
-  var codNorm=normalizarCodigo(codRaw);
-  var prod=buscarPorCodigo(codNorm)||{};
-  var nome=(prod.nome||codRaw).trim();
-  ex.cod=codNorm;ex.nome=nome;
-  atualizarDescFinalAuto();
   if(statusEl)statusEl.textContent='Buscando foto ('+nome+')...';
   ex.img=null;ex.imgRecortada=null;
   drawPlaca();
   try{
-    var foto=await buscarFotoItemEncarte(codNorm,nome,'');
+    var foto=await buscarFotoItemEncarte(cod,nome,'');
     if(token!==ex.token)return;
     if(foto&&foto.src){
       ex.img=await carregarImagemUrl(foto.src);
@@ -1595,6 +1585,35 @@ async function unirBuscarExtra(id){
     if(statusEl)statusEl.textContent='Erro ao buscar: '+e.message;
   }
   drawPlaca();
+}
+
+// Chamado pelo botão "+" ao lado da caixa principal de busca: pega o
+// produto atualmente selecionado/digitado ali e adiciona como item da
+// união (mesmo preço/pack), reaproveitando a mesma busca e lista de
+// sugestões padrão. Depois limpa a caixa pra buscar o próximo produto.
+function adicionarProdutoUnificado(){
+  var input=document.getElementById('pCod');
+  var v=(input.value||'').trim();
+  if(!v){
+    mostrarToast('Digite ou selecione um produto na caixa de busca primeiro.','warn');
+    return;
+  }
+  var aberto=document.getElementById('prodSug').classList.contains('open');
+  var prod=null;
+  if(aberto&&sugestoesAtuais.length){
+    prod=sugestoesAtuais[Math.max(0,sugestaoAtiva)];
+  }else{
+    prod=buscarProduto(v);
+  }
+  if(!prod)prod={cod:'',nome:v};
+  if(!document.getElementById('pUnirOn').checked){
+    document.getElementById('pUnirOn').checked=true;
+    toggleUnir();
+  }
+  unirAdicionarProdutoObj(prod);
+  input.value='';
+  esconderSugestoes();
+  input.focus();
 }
 
 function limparCampos(){
@@ -2678,7 +2697,7 @@ async function editarEncarte(id){
     unirDescManual=!!it.descricaoFinal;
     if(unirOnEl)unirOnEl.checked=true;
     if(unirFieldsEl)unirFieldsEl.style.display='block';
-    listaExtraRestaurar.forEach(function(ex){unirAdicionarProduto(ex.codigo||'');});
+    listaExtraRestaurar.forEach(function(ex){unirAdicionarProdutoObj({cod:ex.codigo||'',nome:ex.nome||''});});
     if(descFinalEl)descFinalEl.value=it.descricaoFinal||'';
   }else{
     unirDescManual=false;
@@ -3600,117 +3619,14 @@ document.getElementById('prodSug').addEventListener('mousedown',function(e){
 document.addEventListener('click',function(e){
   if(!e.target.closest('.search-wrap')){
     esconderSugestoes();
-    document.querySelectorAll('.unir-sug').forEach(function(box){box.className='suggestions';box.innerHTML='';});
-    unirSugState={};
   }
 });
 
 // ============================================================
-// Linhas de produto extra (unir vários) — mesma busca por nome/
-// código e mesma navegação por teclado do campo principal, mas
-// via delegação de eventos em #unirLista, pra funcionar com
-// quantas linhas o usuário adicionar (2, 3, 4 ou mais produtos).
+// (Removido: cada linha "extra" tinha sua própria busca/sugestões.
+// Agora tudo passa pela caixa principal #pCod + botão "+", que
+// reaproveita a busca e a lista de sugestões padrão.)
 // ============================================================
-var unirSugState={}; // id da linha -> {lista, ativa}
-
-function renderSugestoesUnir(id,lista,termo,ativaIdx){
-  var box=document.querySelector('.unir-sug[data-id="'+id+'"]');
-  if(!box)return;
-  if(ativaIdx===undefined)ativaIdx=(lista&&lista.length)?0:-1;
-  unirSugState[id]={lista:lista||[],ativa:ativaIdx};
-  if(!termo||!String(termo).trim()){box.className='suggestions';box.innerHTML='';return;}
-  if(!lista||!lista.length){
-    box.className='suggestions open';
-    box.innerHTML='<div class="sg-empty">Nenhum produto encontrado para "'+escapeHtml(termo)+'".</div>';
-    return;
-  }
-  box.className='suggestions open';
-  box.innerHTML=lista.map(function(p,idx){
-    var preco=p.preco?fmtR(p.preco):'sem preço';
-    var meta=(p.cod?'Cód/EAN: '+escapeHtml(p.cod):'sem código');
-    return ''+
-      '<button type="button" class="sg-item '+(idx===ativaIdx?'active':'')+'" data-idx="'+idx+'" role="option" aria-selected="'+(idx===ativaIdx?'true':'false')+'">'+
-        '<span><span class="sg-name">'+escapeHtml(p.nome||'(sem descrição)')+'</span><span class="sg-meta">'+meta+'</span></span>'+
-        '<span class="sg-price">'+escapeHtml(preco)+'</span>'+
-      '</button>';
-  }).join('');
-}
-
-function esconderSugestaoUnir(id){
-  var box=document.querySelector('.unir-sug[data-id="'+id+'"]');
-  if(box){box.className='suggestions';box.innerHTML='';}
-  delete unirSugState[id];
-}
-
-function selecionarProdutoUnir(id,prod){
-  if(!prod)return;
-  var input=document.querySelector('.unir-cod-input[data-id="'+id+'"]');
-  if(input)input.value=prod.cod||prod.nome||'';
-  esconderSugestaoUnir(id);
-  unirBuscarExtra(id);
-}
-
-document.getElementById('unirLista').addEventListener('input',function(e){
-  var input=e.target.closest('.unir-cod-input');
-  if(!input)return;
-  var id=input.getAttribute('data-id');
-  clearTimeout(unirBuscaTimers[id]);
-  var v=input.value.trim();
-  if(!v){
-    esconderSugestaoUnir(id);
-    var ex=unirGetExtra(id);
-    if(ex){ex.cod='';ex.nome='';ex.img=null;ex.imgRecortada=null;++ex.token;}
-    atualizarDescFinalAuto();
-    var row=input.closest('.unir-row');
-    var statusEl=row&&row.querySelector('.unir-status');
-    if(statusEl)statusEl.textContent='Preencha o código para buscar nome e foto (Drive, Cosmos, Google, Open Food Facts).';
-    drawPlaca();
-    return;
-  }
-  unirBuscaTimers[id]=setTimeout(function(){
-    if(!temBaseProdutos()){
-      mostrarToast('Sincronize primeiro (clique em Sincronizar).','warn');
-      return;
-    }
-    var lista=buscarProdutos(v,40);
-    renderSugestoesUnir(id,lista,v);
-    if(ehBuscaCodigo(v)&&lista.length&&normalizarCodigo(lista[0].cod)===normalizarCodigo(v)){
-      selecionarProdutoUnir(id,lista[0]);
-    }
-  },140);
-});
-document.getElementById('unirLista').addEventListener('keydown',function(e){
-  var input=e.target.closest('.unir-cod-input');
-  if(!input)return;
-  var id=input.getAttribute('data-id');
-  var box=document.querySelector('.unir-sug[data-id="'+id+'"]');
-  var aberto=box&&box.classList.contains('open');
-  var state=unirSugState[id]||{lista:[],ativa:-1};
-  if(e.key==='ArrowDown'&&aberto){e.preventDefault();var novoIdx1=(state.ativa+1+state.lista.length)%state.lista.length;renderSugestoesUnir(id,state.lista,input.value,novoIdx1);return;}
-  if(e.key==='ArrowUp'&&aberto){e.preventDefault();var novoIdx2=(state.ativa-1+state.lista.length)%state.lista.length;renderSugestoesUnir(id,state.lista,input.value,novoIdx2);return;}
-  if(e.key==='Escape'){esconderSugestaoUnir(id);return;}
-  if(e.key==='Enter'){
-    e.preventDefault();
-    clearTimeout(unirBuscaTimers[id]);
-    if(aberto&&state.lista.length){
-      selecionarProdutoUnir(id,state.lista[Math.max(0,state.ativa)]);
-    }else{
-      esconderSugestaoUnir(id);
-      unirBuscarExtra(id);
-    }
-  }
-});
-document.getElementById('unirLista').addEventListener('mousedown',function(e){
-  var item=e.target.closest('.sg-item');
-  if(!item)return;
-  var box=e.target.closest('.unir-sug');
-  if(!box)return;
-  var id=box.getAttribute('data-id');
-  e.preventDefault();
-  var idx=parseInt(item.getAttribute('data-idx'),10);
-  var state=unirSugState[id];
-  if(state)selecionarProdutoUnir(id,state.lista[idx]);
-});
 
 document.getElementById('pFotoTermo').addEventListener('keydown',function(e){
   if(e.key==='Enter'){
