@@ -44,6 +44,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .row-3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
 @media(max-width:640px){.row-3{grid-template-columns:1fr}}
 .f-row label{font-size:12px;font-weight:600;color:var(--tx2)}
+.toggle-chip{display:flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.toggle-chip:hover{border-color:var(--green);color:var(--tx)}
+.toggle-chip i{font-size:16px}
+.toggle-chip.active{background:var(--green);border-color:var(--green);color:#fff}
 .f-row input,.f-row select{height:36px;padding:0 10px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:14px;outline:none;font-family:inherit}
 .f-row input:focus,.f-row select:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
 .f-row .hint{font-size:11px;color:var(--tx2)}
@@ -250,12 +254,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
       <div class="f-row">
         <label for="pCod">Código interno, EAN ou produto</label>
-        <div class="search-wrap" style="display:flex;gap:6px;align-items:flex-start">
-          <div style="position:relative;flex:1">
+        <div class="search-wrap" style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <div style="position:relative;flex:1;min-width:160px">
             <input type="text" id="pCod" class="cod-input" placeholder="Digite código, EAN ou palavra-chave. Ex: coca" autocomplete="off">
             <div id="prodSug" class="suggestions" role="listbox" aria-label="Sugestões de produtos"></div>
           </div>
           <button type="button" class="btn btn-sm btn-green" id="pAddUnirBtn" onclick="adicionarProdutoUnificado()" title="Adicionar este produto à união (mesmo preço/pack)"><i class="ti ti-plus"></i></button>
+          <button type="button" class="toggle-chip" id="pPackBtn" onclick="clicarTogglePack()" title="Ativar/desativar Modo Pack (leve X, pague Y)"><i class="ti ti-stack-2"></i><span>Pack</span></button>
+          <button type="button" class="toggle-chip" id="pUnirBtn" onclick="clicarToggleUnir()" title="Ativar/desativar união de vários produtos (mesmo preço/pack)"><i class="ti ti-git-merge"></i><span>Unir</span></button>
+          <input type="checkbox" id="pPackOn" style="display:none" onchange="togglePack();drawPlaca()">
+          <input type="checkbox" id="pUnirOn" style="display:none" onchange="toggleUnir();drawPlaca()">
         </div>
         <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN. Use o "+" para juntar mais produtos no mesmo preço/pack.</span>
       </div>
@@ -295,11 +303,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         </div>
         <div class="f-row">
           <label for="pDe">Valor de venda (De)</label>
-          <input type="text" id="pDe" placeholder="0,00" inputmode="decimal" oninput="onPrecoChange();drawPlaca()">
+          <input type="text" id="pDe" placeholder="0,00" inputmode="decimal" autocomplete="off" oninput="onPrecoChange();drawPlaca()">
         </div>
         <div class="f-row">
           <label for="pPor">Valor promocional (Por)</label>
-          <input type="text" id="pPor" placeholder="0,00" inputmode="decimal" oninput="onPrecoChange();drawPlaca()">
+          <input type="text" id="pPor" placeholder="0,00" inputmode="decimal" autocomplete="off" oninput="onPrecoChange();drawPlaca()">
         </div>
       </div>
 
@@ -339,9 +347,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
       <hr class="divider">
 
-      <div class="opts" style="margin-bottom:8px">
-        <label style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pPackOn" onchange="togglePack();drawPlaca()"> <i class="ti ti-stack-2" style="color:var(--green)"></i> Modo Pack (leve X, pague Y)</label>
-      </div>
       <div id="packFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
         <div class="row-3">
           <div class="f-row" style="margin-bottom:4px">
@@ -350,7 +355,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           </div>
           <div class="f-row" style="margin-bottom:4px">
             <label for="pPackTotal">Preço do pack (por R$)</label>
-            <input type="text" id="pPackTotal" placeholder="9,99" inputmode="decimal" oninput="onPackChange();drawPlaca()">
+            <input type="text" id="pPackTotal" placeholder="9,99" inputmode="decimal" autocomplete="off" oninput="onPackChange();drawPlaca()">
           </div>
           <div class="f-row" style="margin-bottom:4px">
             <label>Cada unidade</label>
@@ -360,9 +365,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <div style="font-size:11px;color:var(--tx2)">No modo Pack, o "Por" da placa é substituído pelo valor do pack.</div>
       </div>
 
-      <div class="opts" style="margin-bottom:8px">
-        <label style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pUnirOn" onchange="toggleUnir();drawPlaca()"> <i class="ti ti-git-merge" style="color:var(--green)"></i> Unir vários produtos / pack (mesmo preço)</label>
-      </div>
       <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
         <div style="font-size:11px;color:var(--tx2);margin-bottom:6px">Busque cada produto extra na caixa "Código interno, EAN ou produto" acima e clique no botão <strong>"+"</strong> ao lado dela pra adicioná-lo aqui, no mesmo preço/pack do produto principal.</div>
         <div id="unirLista"></div>
@@ -1418,6 +1420,24 @@ function preencherProduto(prod){
   buscarFotoCompleta(prod.cod,prod.nome);
 }
 
+function atualizarEstadoToggleChips(){
+  var packOn=document.getElementById('pPackOn').checked;
+  var unirOn=document.getElementById('pUnirOn').checked;
+  document.getElementById('pPackBtn').classList.toggle('active',packOn);
+  document.getElementById('pUnirBtn').classList.toggle('active',unirOn);
+}
+function clicarTogglePack(){
+  var cb=document.getElementById('pPackOn');
+  cb.checked=!cb.checked;
+  togglePack();drawPlaca();
+  atualizarEstadoToggleChips();
+}
+function clicarToggleUnir(){
+  var cb=document.getElementById('pUnirOn');
+  cb.checked=!cb.checked;
+  toggleUnir();drawPlaca();
+  atualizarEstadoToggleChips();
+}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function fmtR(v){if(!v)return'--';return 'R$ '+v.toFixed(2).replace('.',',');}
 function fmtDec(v){if(!v)return'';return v.toFixed(2).replace('.',',');}
@@ -1609,6 +1629,7 @@ function adicionarProdutoUnificado(){
   if(!document.getElementById('pUnirOn').checked){
     document.getElementById('pUnirOn').checked=true;
     toggleUnir();
+    atualizarEstadoToggleChips();
   }
   unirAdicionarProdutoObj(prod);
   input.value='';
@@ -1634,6 +1655,7 @@ function limparCampos(){
   unirDescManual=false;
   var unirOn=document.getElementById('pUnirOn');
   if(unirOn){unirOn.checked=false;document.getElementById('unirFields').style.display='none';}
+  atualizarEstadoToggleChips();
   limparFoto();
   document.getElementById('prodInfo').innerHTML='<div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>';
   onPrecoChange();
