@@ -3191,26 +3191,35 @@ async function gerarEncarteDoDia(){
         var imgATmp=await carregarImagemUrl(proxyImagemUrl(item.foto));
         if(imgATmp){
           var recortadaATmp=croparTransparente(removerFundoBranco(imgATmp));
-          if(recortadaATmp&&recortadaATmp.toDataURL)item.foto=recortadaATmp.toDataURL('image/png');
+          if(recortadaATmp&&recortadaATmp.toDataURL){
+            item.foto=recortadaATmp.toDataURL('image/png');
+            item.fotoRazao=recortadaATmp.width/recortadaATmp.height;
+          }
         }
       }catch(e){/* se falhar, mantém a foto original com fundo branco */}
     }
     if(item.unirOn&&item.produtosExtra&&item.produtosExtra.length){
       item.fotosExtra=[];
+      item.fotosExtraRazao=[];
       for(var k=0;k<item.produtosExtra.length;k++){
         var exK=item.produtosExtra[k];
         var fotoK=await buscarFotoItemEncarte(exK.codigo,exK.nome,'');
         var srcK=fotoK.src||'';
+        var razaoK=1;
         if(srcK){
           try{
             var imgKTmp=await carregarImagemUrl(proxyImagemUrl(srcK));
             if(imgKTmp){
               var recortadaKTmp=croparTransparente(removerFundoBranco(imgKTmp));
-              if(recortadaKTmp&&recortadaKTmp.toDataURL)srcK=recortadaKTmp.toDataURL('image/png');
+              if(recortadaKTmp&&recortadaKTmp.toDataURL){
+                srcK=recortadaKTmp.toDataURL('image/png');
+                razaoK=recortadaKTmp.width/recortadaKTmp.height;
+              }
             }
           }catch(e){/* se falhar, mantém a foto original com fundo branco */}
         }
         item.fotosExtra.push(srcK);
+        item.fotosExtraRazao.push(razaoK);
       }
     }
     concluidos++;
@@ -3301,24 +3310,34 @@ async function gerarEncarteDoDia(){
       precoDec=(precoNum-Math.floor(precoNum)).toFixed(2).substring(2);
     }
     var fotoSrcSegura=it.foto?(/^data:/i.test(it.foto)?it.foto:proxyImagemUrl(it.foto)):'';
-    var fotosExtraSeguras=(it.fotosExtra||[]).map(function(src){
-      return src?(/^data:/i.test(src)?src:proxyImagemUrl(src)):'';
+    var extrasPares=(it.fotosExtra||[]).map(function(src,idx){
+      var razao=(it.fotosExtraRazao&&it.fotosExtraRazao[idx])||0.5;
+      var srcSeguro=src?(/^data:/i.test(src)?src:proxyImagemUrl(src)):'';
+      return srcSeguro?{src:srcSeguro,razao:razao}:null;
     }).filter(Boolean);
     var fotoHtml;
-    if(it.unirOn&&fotosExtraSeguras.length){
-      var totalFotosMulti=1+fotosExtraSeguras.length;
-      var imgsMultiHtml='<img class="ed-foto-item" src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'+
-        fotosExtraSeguras.map(function(src){return '<img class="ed-foto-item" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="">';}).join('');
+    if(it.unirOn&&extrasPares.length){
+      var totalFotosMulti=1+extrasPares.length;
+      var todasRazoes=[it.fotoRazao||0.5].concat(extrasPares.map(function(p){return p.razao;}));
+      var todosSrcs=[fotoSrcSegura].concat(extrasPares.map(function(p){return p.src;}));
+      // A área da foto é aproximadamente quadrada (aspect-ratio 1/1), então
+      // a largura de cada item renderizado (object-fit:contain, altura
+      // limitada a maxAlturaFrac) é ~ maxAlturaFrac * razão (largura/altura)
+      // da própria foto já recortada — calculado com a proporção REAL de
+      // cada imagem, não um valor estimado igual pra todas.
+      var multiOverlap=0.08; // sobreposição de ~8% da largura de cada item
+      var maxAlturaFrac=0.98;
+      var basesW=todasRazoes.map(function(r){return maxAlturaFrac*r;});
+      var totalEstimado=basesW[0]+basesW.slice(1).reduce(function(s,w){return s+w*(1-multiOverlap);},0);
+      var fatorAjuste=totalEstimado>0.97?0.97/totalEstimado:1;
+      var imgsMultiHtml=todosSrcs.map(function(src,i){
+        var wPct=(basesW[i]*fatorAjuste*100).toFixed(2);
+        var estiloImg='max-width:none;width:'+wPct+'%;max-height:'+(maxAlturaFrac*fatorAjuste*100).toFixed(2)+'%;'+
+          (i>0?'margin-left:-'+(basesW[i]*fatorAjuste*multiOverlap*100).toFixed(2)+'%;':'');
+        return '<img class="ed-foto-item" style="'+estiloImg+'" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="'+(i===0?escapeHtml(it.descricao):'')+'">';
+      }).join('');
       var classeMulti=unirDeveUsarGrade(totalFotosMulti)?'ed-foto-multi ed-foto-multi-grade':'ed-foto-multi';
-      // Largura máxima e espaçamento de cada foto ajustados pela quantidade
-      // de itens, com uma folga mínima entre elas (não mais um valor fixo
-      // de sobreposição) — pra dar pra ver o rótulo/sabor de cada produto
-      // mesmo com vários itens juntos.
-      var multiOverlap=0.08;
-      var multiW=Math.max(10,Math.min(62,98/(1+(totalFotosMulti-1)*(1-multiOverlap))));
-      var multiGap=-(multiW*multiOverlap);
-      var estiloMulti='--multi-w:'+multiW.toFixed(1)+'%;--multi-gap:'+multiGap.toFixed(1)+'%;';
-      fotoHtml='<div class="'+classeMulti+'" style="'+estiloMulti+'">'+imgsMultiHtml+'</div>';
+      fotoHtml='<div class="'+classeMulti+'">'+imgsMultiHtml+'</div>';
     }else if(fotoSrcSegura){
       fotoHtml='<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">';
     }else{
@@ -3471,8 +3490,7 @@ async function gerarEncarteDoDia(){
   '.ed-foto::before{content:"";position:absolute;top:10%;left:10%;right:10%;bottom:10%;background:radial-gradient(circle,#fff 55%,rgba(255,255,255,.85) 72%,rgba(255,255,255,0) 100%);filter:blur(6px);border-radius:50%;z-index:0}'+
   '.ed-foto img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-multi{display:flex;width:100%;height:100%;align-items:flex-end;justify-content:center}'+
-  '.ed-foto-multi .ed-foto-item{position:relative;max-width:var(--multi-w,55%);max-height:98%;object-fit:contain;filter:drop-shadow(-4px 4px 8px rgba(0,0,0,.18))}'+
-  '.ed-foto-multi .ed-foto-item:not(:first-child){margin-left:var(--multi-gap,-14%)}'+
+  '.ed-foto-multi .ed-foto-item{position:relative;object-fit:contain;filter:drop-shadow(-4px 4px 8px rgba(0,0,0,.18))}'+
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
