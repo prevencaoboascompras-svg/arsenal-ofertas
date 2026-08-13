@@ -3325,15 +3325,20 @@ async function gerarEncarteDoDia(){
       // limitada a maxAlturaFrac) é ~ maxAlturaFrac * razão (largura/altura)
       // da própria foto já recortada — calculado com a proporção REAL de
       // cada imagem, não um valor estimado igual pra todas.
-      var multiOverlap=0.08; // sobreposição de ~8% da largura de cada item
+      // Sem sobreposição: as embalagens ficam uma do lado da outra, com uma
+      // folguinha fixa entre elas — só encostando, sem cobrir o rótulo de
+      // nenhuma. Se a soma não couber na largura disponível, encolhe todas
+      // proporcionalmente (mantendo elas do mesmo tamanho entre si).
+      var gapFrac=0.015; // ~1.5% da largura da área, fixo entre cada item
       var maxAlturaFrac=0.98;
       var basesW=todasRazoes.map(function(r){return maxAlturaFrac*r;});
-      var totalEstimado=basesW[0]+basesW.slice(1).reduce(function(s,w){return s+w*(1-multiOverlap);},0);
+      var totalEstimado=basesW.reduce(function(s,w){return s+w;},0)+gapFrac*(todasRazoes.length-1);
       var fatorAjuste=totalEstimado>0.97?0.97/totalEstimado:1;
+      var gapPct=(gapFrac*fatorAjuste*100).toFixed(2);
       var imgsMultiHtml=todosSrcs.map(function(src,i){
         var wPct=(basesW[i]*fatorAjuste*100).toFixed(2);
         var estiloImg='max-width:none;width:'+wPct+'%;max-height:'+(maxAlturaFrac*fatorAjuste*100).toFixed(2)+'%;'+
-          (i>0?'margin-left:-'+(basesW[i]*fatorAjuste*multiOverlap*100).toFixed(2)+'%;':'');
+          (i>0?'margin-left:'+gapPct+'%;':'');
         return '<img class="ed-foto-item" style="'+estiloImg+'" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="'+(i===0?escapeHtml(it.descricao):'')+'">';
       }).join('');
       var classeMulti=unirDeveUsarGrade(totalFotosMulti)?'ed-foto-multi ed-foto-multi-grade':'ed-foto-multi';
