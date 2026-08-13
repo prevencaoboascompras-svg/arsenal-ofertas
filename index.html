@@ -1963,7 +1963,7 @@ async function drawPlaca(){
       var maxHItemN=440;
       var overlapFracN=Math.min(0.45,0.30+(nUnirN-2)*0.04);
 
-      var dimsUnirN=imgsUnirN.map(function(img){
+      var dimsUnirN=imgsUnirN.map(croparTransparente).map(function(img){
         var asp=img.width/img.height;
         var fW,fH;
         // Prioriza igualar pela ALTURA — é isso que dá a sensação de "mesmo
@@ -2046,7 +2046,7 @@ async function drawPlaca(){
       var nPackN=imgsPackN.length;
       var maxWItemP=innerW2/(nPackN*0.62);
       var maxHItemP=innerH2;
-      var dimsPackN=imgsPackN.map(function(img){
+      var dimsPackN=imgsPackN.map(croparTransparente).map(function(img){
         var asp=img.width/img.height;
         var fW,fH;
         fH=maxHItemP;fW=maxHItemP*asp;
@@ -3190,7 +3190,7 @@ async function gerarEncarteDoDia(){
       try{
         var imgATmp=await carregarImagemUrl(proxyImagemUrl(item.foto));
         if(imgATmp){
-          var recortadaATmp=removerFundoBranco(imgATmp);
+          var recortadaATmp=croparTransparente(removerFundoBranco(imgATmp));
           if(recortadaATmp&&recortadaATmp.toDataURL)item.foto=recortadaATmp.toDataURL('image/png');
         }
       }catch(e){/* se falhar, mantém a foto original com fundo branco */}
@@ -3205,7 +3205,7 @@ async function gerarEncarteDoDia(){
           try{
             var imgKTmp=await carregarImagemUrl(proxyImagemUrl(srcK));
             if(imgKTmp){
-              var recortadaKTmp=removerFundoBranco(imgKTmp);
+              var recortadaKTmp=croparTransparente(removerFundoBranco(imgKTmp));
               if(recortadaKTmp&&recortadaKTmp.toDataURL)srcK=recortadaKTmp.toDataURL('image/png');
             }
           }catch(e){/* se falhar, mantém a foto original com fundo branco */}
