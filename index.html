@@ -1890,6 +1890,18 @@ async function drawPlaca(){
   // usado quando há muitos produtos unidos (4+), onde o layout "lado a
   // lado sobrepostos" ficaria apertado demais. Ex.: 9 produtos vira uma
   // grade 3x3 dentro de um único cartão branco, como uma vitrine.
+  // Compara o tamanho real (largura x altura já recortada) de cada foto
+  // com a maior do grupo, pra manter uma proporção visual coerente entre
+  // um produto grande (ex.: garrafa 2L) e um pequeno (ex.: mini 200ml) —
+  // sem isso, todos ficavam do mesmo tamanho e a composição ficava estranha.
+  function escalasRelativasFotos(imgs){
+    var areas=imgs.map(function(img){return img.width*img.height;});
+    var maxArea=Math.max.apply(null,areas);
+    return areas.map(function(a){
+      var r=Math.sqrt(a/maxArea);
+      return Math.max(0.55,Math.min(1,r));
+    });
+  }
   function desenharGradeFotos(imgsOriginais,boxX,boxY,boxW,boxH,cols){
     var imgs=imgsOriginais.map(croparTransparente);
     var n=imgs.length;
@@ -1949,17 +1961,25 @@ async function drawPlaca(){
       var areaTopY=605, areaH=460;
       var maxWItemN=Math.max(190,400-(nUnirN-2)*50);
       var maxHItemN=440;
-      var overlapFracN=Math.min(0.55,0.40+(nUnirN-2)*0.05);
+      var overlapFracN=Math.min(0.45,0.30+(nUnirN-2)*0.04);
+      var escalasN=escalasRelativasFotos(imgsUnirN);
 
-      var dimsUnirN=imgsUnirN.map(function(img){
+      var dimsUnirN=imgsUnirN.map(function(img,i){
         var asp=img.width/img.height;
+        var mW=maxWItemN*escalasN[i], mH=maxHItemN*escalasN[i];
         var fW,fH;
-        if(asp>maxWItemN/maxHItemN){fW=maxWItemN;fH=maxWItemN/asp;}
-        else{fH=maxHItemN;fW=maxHItemN*asp;}
+        if(asp>mW/mH){fW=mW;fH=mW/asp;}
+        else{fH=mH;fW=mH*asp;}
         return {img:img,fW:fW,fH:fH};
       });
       var gapN=-(maxWItemN*overlapFracN);
       var totalWN=dimsUnirN.reduce(function(s,d){return s+d.fW;},0)+gapN*(nUnirN-1);
+      if(totalWN>W-60){
+        var scaleFixN=(W-60)/totalWN;
+        dimsUnirN.forEach(function(d){d.fW*=scaleFixN;d.fH*=scaleFixN;});
+        gapN*=scaleFixN;
+        totalWN=W-60;
+      }
       var startXN=W/2-totalWN/2;
 
       ctx.save();
@@ -2024,11 +2044,13 @@ async function drawPlaca(){
       var nPackN=imgsPackN.length;
       var maxWItemP=innerW2/(nPackN*0.62);
       var maxHItemP=innerH2;
-      var dimsPackN=imgsPackN.map(function(img){
+      var escalasP=escalasRelativasFotos(imgsPackN);
+      var dimsPackN=imgsPackN.map(function(img,i){
         var asp=img.width/img.height;
+        var mW=maxWItemP*escalasP[i], mH=maxHItemP*escalasP[i];
         var fW,fH;
-        if(asp>maxWItemP/maxHItemP){fW=maxWItemP;fH=maxWItemP/asp;}
-        else{fH=maxHItemP;fW=maxHItemP*asp;}
+        if(asp>mW/mH){fW=mW;fH=mW/asp;}
+        else{fH=mH;fW=mH*asp;}
         return {img:img,fW:fW,fH:fH};
       });
       var overlapFracP=0.35;
