@@ -1966,8 +1966,12 @@ async function drawPlaca(){
       var dimsUnirN=imgsUnirN.map(function(img){
         var asp=img.width/img.height;
         var fW,fH;
-        if(asp>maxWItemN/maxHItemN){fW=maxWItemN;fH=maxWItemN/asp;}
-        else{fH=maxHItemN;fW=maxHItemN*asp;}
+        // Prioriza igualar pela ALTURA — é isso que dá a sensação de "mesmo
+        // tamanho" quando os produtos estão em pé, lado a lado. Só recua pra
+        // encaixar pela largura se a imagem for excepcionalmente larga
+        // (ex.: um pacote ou caixa deitada), pra não estourar o layout.
+        fH=maxHItemN;fW=maxHItemN*asp;
+        if(fW>maxWItemN*1.6){fW=maxWItemN*1.6;fH=fW/asp;}
         return {img:img,fW:fW,fH:fH};
       });
       var gapN=-(maxWItemN*overlapFracN);
@@ -2045,8 +2049,8 @@ async function drawPlaca(){
       var dimsPackN=imgsPackN.map(function(img){
         var asp=img.width/img.height;
         var fW,fH;
-        if(asp>maxWItemP/maxHItemP){fW=maxWItemP;fH=maxWItemP/asp;}
-        else{fH=maxHItemP;fW=maxHItemP*asp;}
+        fH=maxHItemP;fW=maxHItemP*asp;
+        if(fW>maxWItemP*1.6){fW=maxWItemP*1.6;fH=fW/asp;}
         return {img:img,fW:fW,fH:fH};
       });
       var overlapFracP=0.35;
