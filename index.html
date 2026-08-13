@@ -3314,8 +3314,8 @@ async function gerarEncarteDoDia(){
       // de itens, com uma folga mínima entre elas (não mais um valor fixo
       // de sobreposição) — pra dar pra ver o rótulo/sabor de cada produto
       // mesmo com vários itens juntos.
-      var multiOverlap=0.28;
-      var multiW=Math.max(14,Math.min(62,98/(1+(totalFotosMulti-1)*(1-multiOverlap))));
+      var multiOverlap=0.08;
+      var multiW=Math.max(10,Math.min(62,98/(1+(totalFotosMulti-1)*(1-multiOverlap))));
       var multiGap=-(multiW*multiOverlap);
       var estiloMulti='--multi-w:'+multiW.toFixed(1)+'%;--multi-gap:'+multiGap.toFixed(1)+'%;';
       fotoHtml='<div class="'+classeMulti+'" style="'+estiloMulti+'">'+imgsMultiHtml+'</div>';
