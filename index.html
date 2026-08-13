@@ -1070,7 +1070,7 @@ function croparTransparente(img){
     cx.drawImage(img,0,0,w,h);
     var d=cx.getImageData(0,0,w,h).data;
     var minX=w,minY=h,maxX=-1,maxY=-1;
-    var limiarAlpha=10;
+    var limiarAlpha=60;
     for(var y=0;y<h;y++){
       var rowOff=y*w;
       for(var x=0;x<w;x++){
@@ -1962,14 +1962,12 @@ async function drawPlaca(){
       var maxWItemN=Math.max(190,400-(nUnirN-2)*50);
       var maxHItemN=440;
       var overlapFracN=Math.min(0.45,0.30+(nUnirN-2)*0.04);
-      var escalasN=escalasRelativasFotos(imgsUnirN);
 
-      var dimsUnirN=imgsUnirN.map(function(img,i){
+      var dimsUnirN=imgsUnirN.map(function(img){
         var asp=img.width/img.height;
-        var mW=maxWItemN*escalasN[i], mH=maxHItemN*escalasN[i];
         var fW,fH;
-        if(asp>mW/mH){fW=mW;fH=mW/asp;}
-        else{fH=mH;fW=mH*asp;}
+        if(asp>maxWItemN/maxHItemN){fW=maxWItemN;fH=maxWItemN/asp;}
+        else{fH=maxHItemN;fW=maxHItemN*asp;}
         return {img:img,fW:fW,fH:fH};
       });
       var gapN=-(maxWItemN*overlapFracN);
@@ -2044,13 +2042,11 @@ async function drawPlaca(){
       var nPackN=imgsPackN.length;
       var maxWItemP=innerW2/(nPackN*0.62);
       var maxHItemP=innerH2;
-      var escalasP=escalasRelativasFotos(imgsPackN);
-      var dimsPackN=imgsPackN.map(function(img,i){
+      var dimsPackN=imgsPackN.map(function(img){
         var asp=img.width/img.height;
-        var mW=maxWItemP*escalasP[i], mH=maxHItemP*escalasP[i];
         var fW,fH;
-        if(asp>mW/mH){fW=mW;fH=mW/asp;}
-        else{fH=mH;fW=mH*asp;}
+        if(asp>maxWItemP/maxHItemP){fW=maxWItemP;fH=maxWItemP/asp;}
+        else{fH=maxHItemP;fW=maxHItemP*asp;}
         return {img:img,fW:fW,fH:fH};
       });
       var overlapFracP=0.35;
