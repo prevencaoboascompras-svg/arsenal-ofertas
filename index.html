@@ -3310,36 +3310,19 @@ async function gerarEncarteDoDia(){
       precoDec=(precoNum-Math.floor(precoNum)).toFixed(2).substring(2);
     }
     var fotoSrcSegura=it.foto?(/^data:/i.test(it.foto)?it.foto:proxyImagemUrl(it.foto)):'';
-    var extrasPares=(it.fotosExtra||[]).map(function(src,idx){
-      var razao=(it.fotosExtraRazao&&it.fotosExtraRazao[idx])||0.5;
-      var srcSeguro=src?(/^data:/i.test(src)?src:proxyImagemUrl(src)):'';
-      return srcSeguro?{src:srcSeguro,razao:razao}:null;
+    var extrasSrcs=(it.fotosExtra||[]).map(function(src){
+      return src?(/^data:/i.test(src)?src:proxyImagemUrl(src)):'';
     }).filter(Boolean);
     var fotoHtml;
-    if(it.unirOn&&extrasPares.length){
-      var totalFotosMulti=1+extrasPares.length;
-      var todasRazoes=[it.fotoRazao||0.5].concat(extrasPares.map(function(p){return p.razao;}));
-      var todosSrcs=[fotoSrcSegura].concat(extrasPares.map(function(p){return p.src;}));
-      // A área da foto é aproximadamente quadrada (aspect-ratio 1/1), então
-      // a largura de cada item renderizado (object-fit:contain, altura
-      // limitada a maxAlturaFrac) é ~ maxAlturaFrac * razão (largura/altura)
-      // da própria foto já recortada — calculado com a proporção REAL de
-      // cada imagem, não um valor estimado igual pra todas.
-      // Sem sobreposição: as embalagens ficam uma do lado da outra, com uma
-      // folguinha fixa entre elas — só encostando, sem cobrir o rótulo de
-      // nenhuma. Se a soma não couber na largura disponível, encolhe todas
-      // proporcionalmente (mantendo elas do mesmo tamanho entre si).
-      var gapFrac=0.015; // ~1.5% da largura da área, fixo entre cada item
-      var maxAlturaFrac=0.98;
-      var basesW=todasRazoes.map(function(r){return maxAlturaFrac*r;});
-      var totalEstimado=basesW.reduce(function(s,w){return s+w;},0)+gapFrac*(todasRazoes.length-1);
-      var fatorAjuste=totalEstimado>0.97?0.97/totalEstimado:1;
-      var gapPct=(gapFrac*fatorAjuste*100).toFixed(2);
+    if(it.unirOn&&extrasSrcs.length){
+      var todosSrcs=[fotoSrcSegura].concat(extrasSrcs);
+      var totalFotosMulti=todosSrcs.length;
+      // Cada foto ocupa uma fatia própria e igual da largura (flex:1), com
+      // um espaço fixo entre as fatias (gap do flex) — isso GARANTE que
+      // nenhuma embalagem sobreponha a outra, não importa a proporção
+      // (largura/altura) de cada imagem, porque as caixas nunca se tocam.
       var imgsMultiHtml=todosSrcs.map(function(src,i){
-        var wPct=(basesW[i]*fatorAjuste*100).toFixed(2);
-        var estiloImg='max-width:none;width:'+wPct+'%;max-height:'+(maxAlturaFrac*fatorAjuste*100).toFixed(2)+'%;'+
-          (i>0?'margin-left:'+gapPct+'%;':'');
-        return '<img class="ed-foto-item" style="'+estiloImg+'" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="'+(i===0?escapeHtml(it.descricao):'')+'">';
+        return '<div class="ed-foto-slot"><img class="ed-foto-item" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="'+(i===0?escapeHtml(it.descricao):'')+'"></div>';
       }).join('');
       var classeMulti=unirDeveUsarGrade(totalFotosMulti)?'ed-foto-multi ed-foto-multi-grade':'ed-foto-multi';
       fotoHtml='<div class="'+classeMulti+'">'+imgsMultiHtml+'</div>';
@@ -3494,8 +3477,9 @@ async function gerarEncarteDoDia(){
   '.ed-foto{width:94%;aspect-ratio:1/1;margin:0 3%;padding:6%;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0;position:relative}'+
   '.ed-foto::before{content:"";position:absolute;top:10%;left:10%;right:10%;bottom:10%;background:radial-gradient(circle,#fff 55%,rgba(255,255,255,.85) 72%,rgba(255,255,255,0) 100%);filter:blur(6px);border-radius:50%;z-index:0}'+
   '.ed-foto img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
-  '.ed-foto-multi{display:flex;width:100%;height:100%;align-items:flex-end;justify-content:center}'+
-  '.ed-foto-multi .ed-foto-item{position:relative;object-fit:contain;filter:drop-shadow(-4px 4px 8px rgba(0,0,0,.18))}'+
+  '.ed-foto-multi{display:flex;width:100%;height:100%;align-items:flex-end;justify-content:center;gap:1.2%}'+
+  '.ed-foto-slot{flex:1 1 0;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center}'+
+  '.ed-foto-multi .ed-foto-item{position:relative;max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(-4px 4px 8px rgba(0,0,0,.18))}'+
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
