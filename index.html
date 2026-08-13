@@ -1961,7 +1961,6 @@ async function drawPlaca(){
       var areaTopY=605, areaH=460;
       var maxWItemN=Math.max(190,400-(nUnirN-2)*50);
       var maxHItemN=440;
-      var overlapFracN=Math.min(0.45,0.30+(nUnirN-2)*0.04);
 
       var dimsUnirN=imgsUnirN.map(croparTransparente).map(function(img){
         var asp=img.width/img.height;
@@ -1974,7 +1973,9 @@ async function drawPlaca(){
         if(fW>maxWItemN*1.6){fW=maxWItemN*1.6;fH=fW/asp;}
         return {img:img,fW:fW,fH:fH};
       });
-      var gapN=-(maxWItemN*overlapFracN);
+      // Sem sobreposição: só uma folguinha fixa e positiva entre cada
+      // produto — eles ficam um do lado do outro, se encostando no máximo.
+      var gapN=16;
       var totalWN=dimsUnirN.reduce(function(s,d){return s+d.fW;},0)+gapN*(nUnirN-1);
       if(totalWN>W-60){
         var scaleFixN=(W-60)/totalWN;
@@ -2053,8 +2054,8 @@ async function drawPlaca(){
         if(fW>maxWItemP*1.6){fW=maxWItemP*1.6;fH=fW/asp;}
         return {img:img,fW:fW,fH:fH};
       });
-      var overlapFracP=0.35;
-      var gapP=-(maxWItemP*overlapFracP);
+      var overlapFracP=0; // sem sobreposição — só uma folguinha fixa
+      var gapP=10;
       var totalWP=dimsPackN.reduce(function(s,d){return s+d.fW;},0)+gapP*(nPackN-1);
       if(totalWP>innerW2){
         var scaleFixP=innerW2/totalWP;
