@@ -366,6 +366,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
 
       <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
+        <div class="f-row" style="margin-bottom:8px">
+          <label>Como organizar as fotos dos produtos</label>
+          <div style="display:flex;gap:6px">
+            <button type="button" class="toggle-chip" id="unirLayoutBtnJuntinho" onclick="unirSetLayout('juntinho')" title="Fotos sobrepostas, lado a lado"><i class="ti ti-layout-align-center"></i><span>Juntinho</span></button>
+            <button type="button" class="toggle-chip" id="unirLayoutBtnGrid" onclick="unirSetLayout('grid')" title="Fotos organizadas em grade dentro de um cartão"><i class="ti ti-layout-grid"></i><span>Grade</span></button>
+          </div>
+        </div>
         <div style="font-size:11px;color:var(--tx2);margin-bottom:6px">Busque cada produto extra na caixa "Código interno, EAN ou produto" acima e clique no botão <strong>"+"</strong> ao lado dela pra adicioná-lo aqui, no mesmo preço/pack do produto principal.</div>
         <div id="unirLista"></div>
         <div class="f-row" style="margin-top:8px">
@@ -1420,6 +1427,18 @@ function preencherProduto(prod){
   buscarFotoCompleta(prod.cod,prod.nome);
 }
 
+var unirLayoutPref='auto'; // 'auto' | 'juntinho' | 'grid'
+function unirSetLayout(modo){
+  unirLayoutPref=(unirLayoutPref===modo)?'auto':modo;
+  document.getElementById('unirLayoutBtnJuntinho').classList.toggle('active',unirLayoutPref==='juntinho');
+  document.getElementById('unirLayoutBtnGrid').classList.toggle('active',unirLayoutPref==='grid');
+  drawPlaca();
+}
+function unirDeveUsarGrade(n){
+  if(unirLayoutPref==='grid')return n>1;
+  if(unirLayoutPref==='juntinho')return false;
+  return n>3; // automático: 4+ produtos vira grade
+}
 function atualizarEstadoToggleChips(){
   var packOn=document.getElementById('pPackOn').checked;
   var unirOn=document.getElementById('pUnirOn').checked;
@@ -1655,6 +1674,9 @@ function limparCampos(){
   unirDescManual=false;
   var unirOn=document.getElementById('pUnirOn');
   if(unirOn){unirOn.checked=false;document.getElementById('unirFields').style.display='none';}
+  unirLayoutPref='auto';
+  document.getElementById('unirLayoutBtnJuntinho').classList.remove('active');
+  document.getElementById('unirLayoutBtnGrid').classList.remove('active');
   atualizarEstadoToggleChips();
   limparFoto();
   document.getElementById('prodInfo').innerHTML='<div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>';
@@ -1913,7 +1935,7 @@ async function drawPlaca(){
       fotoImgARecortadaFonte=fotoImg;
     }
     var imgsUnirN=(fotoImg?[fotoImgARecortada||fotoImg]:[]).concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
-    if(unirOn && imgsUnirN.length>3){
+    if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
       var areaTopYG=560, areaHG=670, padXG=30;
@@ -1992,7 +2014,7 @@ async function drawPlaca(){
     var innerW2=fW2-pad3*2, innerH2=fH2-pad3*2;
     var extrasComFotoP=unirOn?unirExtras.filter(function(x){return x.img;}):[];
     var imgsPackN=(imgPack?[imgPack]:[]).concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
-    if(unirOn && imgsPackN.length>3){
+    if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
       // 4 ou mais produtos: organiza em grade dentro da área de imagem
       // do template Pack (ex.: 9 produtos vira 3x3).
       desenharGradeFotos(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2);
@@ -3265,7 +3287,7 @@ async function gerarEncarteDoDia(){
       var totalFotosMulti=1+fotosExtraSeguras.length;
       var imgsMultiHtml='<img class="ed-foto-item" src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">'+
         fotosExtraSeguras.map(function(src){return '<img class="ed-foto-item" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="">';}).join('');
-      var classeMulti=totalFotosMulti>3?'ed-foto-multi ed-foto-multi-grade':'ed-foto-multi';
+      var classeMulti=unirDeveUsarGrade(totalFotosMulti)?'ed-foto-multi ed-foto-multi-grade':'ed-foto-multi';
       fotoHtml='<div class="'+classeMulti+'">'+imgsMultiHtml+'</div>';
     }else if(fotoSrcSegura){
       fotoHtml='<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">';
