@@ -3403,7 +3403,7 @@ async function gerarEncarteDoDia(){
     // já escala sozinha porque cresce junto com a largura do card.
     return ''+
       '<div class="ed-card" data-codigo="'+escapeHtml(it.codigo)+'" style="width:'+larguraPct+'%;max-width:'+larguraPct+'%;--escala:'+escala+'">'+
-        '<div class="ed-foto">'+fotoHtml+'</div>'+packHtml+
+      '<div class="ed-foto'+(it.unirOn&&extrasSrcs.length?' ed-foto-uniao':'')+'">'+fotoHtml+'</div>'+packHtml+
         '<div class="ed-desc">'+escapeHtml(it.descricao.toUpperCase())+'</div>'+
         '<div class="ed-badge">'+
           '<div class="ed-badge-label">no<br>Clube<br>Boas<br>Compras</div>'+
@@ -3540,6 +3540,7 @@ async function gerarEncarteDoDia(){
   '.ed-card{background:transparent;border-radius:0;overflow:visible;display:flex;flex-direction:column;align-items:stretch;position:relative;height:auto;flex:0 0 auto}'+
   '.ed-foto{width:94%;aspect-ratio:1/1;margin:0 3%;padding:6%;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent;border-radius:0;box-shadow:none;flex-shrink:0;position:relative}'+
   '.ed-foto::before{content:"";position:absolute;top:10%;left:10%;right:10%;bottom:10%;background:radial-gradient(circle,#fff 55%,rgba(255,255,255,.85) 72%,rgba(255,255,255,0) 100%);filter:blur(6px);border-radius:50%;z-index:0}'+
+  '.ed-foto-uniao::before{display:none}'+
   '.ed-foto img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-multi{display:flex;width:100%;height:100%;align-items:flex-end;justify-content:center;gap:1.2%}'+
   '.ed-foto-slot{flex:1 1 0;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center}'+
