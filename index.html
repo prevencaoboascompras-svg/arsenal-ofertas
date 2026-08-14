@@ -369,7 +369,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <div class="f-row" style="margin-bottom:8px">
           <label>Como organizar as fotos dos produtos</label>
           <div style="display:flex;gap:6px">
-            <button type="button" class="toggle-chip" id="unirLayoutBtnJuntinho" onclick="unirSetLayout('juntinho')" title="Fotos sobrepostas, lado a lado"><i class="ti ti-layout-align-center"></i><span>Juntinho</span></button>
+            <button type="button" class="toggle-chip" id="unirLayoutBtnJuntinho" onclick="unirSetLayout('juntinho')" title="Fotos posicionadas lado a lado, sem sobrepor"><i class="ti ti-layout-align-center"></i><span>Lado a lado</span></button>
             <button type="button" class="toggle-chip" id="unirLayoutBtnGrid" onclick="unirSetLayout('grid')" title="Fotos organizadas em grade dentro de um cartão"><i class="ti ti-layout-grid"></i><span>Grade</span></button>
           </div>
         </div>
@@ -1527,11 +1527,21 @@ function toggleUnir(){
     if(descFinalEl&&!descFinalEl.value.trim()){
       descFinalEl.value=(document.getElementById('pDescOverride').value||'').trim();
     }
+    // Padrão ao ativar: lado a lado (o mais usado). Se não fizer sentido
+    // pra quantidade de produtos, a pessoa troca pra "Grade" manualmente.
+    if(unirLayoutPref==='auto'){
+      unirLayoutPref='juntinho';
+      document.getElementById('unirLayoutBtnJuntinho').classList.add('active');
+      document.getElementById('unirLayoutBtnGrid').classList.remove('active');
+    }
   }else{
     unirLimparTudo();
     unirDescManual=false;
     var descFinalEl2=document.getElementById('pDescFinal');
     if(descFinalEl2)descFinalEl2.value='';
+    unirLayoutPref='auto';
+    document.getElementById('unirLayoutBtnJuntinho').classList.remove('active');
+    document.getElementById('unirLayoutBtnGrid').classList.remove('active');
     drawPlaca();
   }
 }
@@ -1950,7 +1960,7 @@ async function drawPlaca(){
     if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
-      var areaTopYG=560, areaHG=670, padXG=30;
+      var areaTopYG=635, areaHG=400, padXG=30;
       desenharGradeFotos(imgsUnirN,padXG,areaTopYG,W-padXG*2,areaHG);
     }else if(unirOn && imgsUnirN.length>1){
       // Modo "unir": nenhum produto tem cartão branco próprio. Todos os
