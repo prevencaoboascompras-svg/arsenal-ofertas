@@ -3424,9 +3424,6 @@ async function gerarEncarteDoDia(){
   // menos itens numa linha, maior o card (foto + texto) — proporcional
   // ao padrão de referência de 4 por linha (o layout original de 12).
   function montarBadgesPagina(grupo){
-    if(temaSelecionadoId==='hortifruti'&&grupo.length===5){
-      return montarBadgesHorti5(grupo);
-    }
     var layout=obterLayoutBadge(grupo.length);
     var idx=0;
     return layout.map(function(badgeCfg){
@@ -3468,6 +3465,21 @@ async function gerarEncarteDoDia(){
   for(var pgI=0;pgI<itens.length;pgI+=POR_PAGINA){
     paginas.push(itens.slice(pgI,pgI+POR_PAGINA));
   }
+  // Rebalanceia a última página se sobrar pouca coisa sozinha (ex.: 1 ou 2
+  // itens perdidos numa página só deles ficam com um layout desproporcional
+  // — o card fica gigante/estranho por não ter mais ninguém ao lado). Junta
+  // com a penúltima página e redistribui os itens de forma mais equilibrada
+  // entre as duas, em vez de deixar uma página quase vazia.
+  if(paginas.length>=2){
+    var ultimaPg=paginas[paginas.length-1];
+    if(ultimaPg.length>0&&ultimaPg.length<Math.max(3,POR_PAGINA*0.4)){
+      var penultimaPg=paginas[paginas.length-2];
+      var juntosPg=penultimaPg.concat(ultimaPg);
+      var meioPg=Math.ceil(juntosPg.length/2);
+      paginas[paginas.length-2]=juntosPg.slice(0,meioPg);
+      paginas[paginas.length-1]=juntosPg.slice(meioPg);
+    }
+  }
   if(!paginas.length)paginas.push([]);
 
   var tplUrl=new URL(temaAtual.fundo,location.href).href;
@@ -3479,9 +3491,7 @@ async function gerarEncarteDoDia(){
     return ''+
       '<div class="ed-page" style="'+estiloTema+'">'+
         '<div class="ed-header-img-wrap">'+(temaAtual.usaHeaderDia?'<img src="'+headerUrl+'" alt="'+escapeHtml(dt.dia)+' da economia">':'')+'</div>'+
-        (temaSelecionadoId==='hortifruti'&&grupo.length===5
-          ?montarBadgesHorti5(grupo)
-          :'<div class="ed-badges-area">'+montarBadgesPagina(grupo)+'</div>')+
+        '<div class="ed-badges-area">'+montarBadgesPagina(grupo)+'</div>'+
         '<div class="ed-footer-wrap">'+
           '<div class="ed-footer-row1">'+
             '<div class="ed-footer-col ed-footer-validade">OFERTAS VÁLIDAS PARA '+escapeHtml(dt.dia)+' '+escapeHtml(dt.dataCurta)+' OU ENQUANTO DURAREM OS ESTOQUES</div>'+
