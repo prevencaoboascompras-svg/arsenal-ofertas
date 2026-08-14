@@ -441,6 +441,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button class="btn btn-sm" onclick="carregarEncartes()"><i class="ti ti-refresh"></i> Atualizar lista</button>
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(true)"><i class="ti ti-checkbox"></i> Selecionar tudo</button>
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(false)"><i class="ti ti-square"></i> Limpar seleção</button>
+        <button class="btn btn-sm" id="btnExcluirSelecionados" onclick="excluirSelecionadosClick(event)" style="color:var(--red)"><i class="ti ti-trash-x"></i> Excluir selecionados</button>
         <button class="btn btn-sm" id="btnLimparLista" onclick="limparListaClick(event)" style="color:var(--red)"><i class="ti ti-trash"></i> Limpar lista toda</button>
       </div>
     </div>
@@ -2807,6 +2808,58 @@ function cancelarEdicaoEncarte(){
 // que em algumas visualizações embutidas fica bloqueado e nunca aparece,
 // fazendo o botão de excluir parecer que "não funciona").
 var pendenteExclusao={};
+
+// Exclui só as promoções marcadas (checkbox), com confirmação em dois
+// cliques no próprio botão — mesmo padrão do "Limpar lista toda".
+var pendenteExcluirSelecionados=null;
+function excluirSelecionadosClick(e){
+  e.stopPropagation();
+  var ids=Object.keys(encartesSelecionados);
+  if(!ids.length){mostrarToast('Nenhuma promoção selecionada.','warn');return;}
+  var btn=document.getElementById('btnExcluirSelecionados');
+  if(pendenteExcluirSelecionados){
+    clearTimeout(pendenteExcluirSelecionados);
+    pendenteExcluirSelecionados=null;
+    excluirSelecionadosEncartes();
+    return;
+  }
+  btn.innerHTML='<i class="ti ti-alert-triangle"></i> Confirmar excluir '+ids.length+'?';
+  pendenteExcluirSelecionados=setTimeout(function(){
+    pendenteExcluirSelecionados=null;
+    btn.innerHTML='<i class="ti ti-trash-x"></i> Excluir selecionados';
+  },3000);
+}
+
+async function excluirSelecionadosEncartes(){
+  var ids=Object.keys(encartesSelecionados);
+  if(!ids.length)return;
+  var btn=document.getElementById('btnExcluirSelecionados');
+  var cfg=loadCfg();
+  if(!cfg.url){mostrarToast('Configure o Google Sheets primeiro.','warn');return;}
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Excluindo...';}
+  try{
+    var atual=await _gasGet('buscarEncartes');
+    var lista=(atual&&atual.ok&&Array.isArray(atual.dados))?atual.dados:[];
+    var idsSet={};
+    ids.forEach(function(id){idsSet[id]=true;});
+    lista=lista.filter(function(x){return !idsSet[x.id];});
+    var res=await _gasPost('salvarEncartes',{dados:lista});
+    if(res&&res.ok){
+      mostrarToast(ids.length+' promoção(ões) excluída(s).','ok');
+      ids.forEach(function(id){
+        delete encartesSelecionados[id];
+        if(editingEncarteId===id)cancelarEdicaoEncarte();
+      });
+      carregarEncartes();
+    }else{
+      mostrarToast('Não consegui excluir: '+((res&&res.erro)||'verifique a conexão com o Apps Script.'),'err');
+    }
+  }catch(e){
+    mostrarToast('Erro ao excluir: '+e.message,'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-trash-x"></i> Excluir selecionados';}
+  }
+}
 
 function excluirEncarteClick(e,id){
   e.stopPropagation();
