@@ -389,10 +389,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <label>Como organizar as fotos dos produtos</label>
           <div style="display:flex;gap:6px">
             <button type="button" class="toggle-chip" id="unirLayoutBtnJuntinho" onclick="unirSetLayout('juntinho')" title="Fotos posicionadas lado a lado, sem sobrepor"><i class="ti ti-layout-align-center"></i><span>Lado a lado</span></button>
+            <button type="button" class="toggle-chip" id="unirLayoutBtnEmpilhado" onclick="unirSetLayout('empilhado')" title="Fotos uma embaixo da outra, empilhadas na vertical"><i class="ti ti-stack-2"></i><span>Empilhado</span></button>
             <button type="button" class="toggle-chip" id="unirLayoutBtnGrid" onclick="unirSetLayout('grid')" title="Fotos organizadas em grade dentro de um cartão"><i class="ti ti-layout-grid"></i><span>Grade</span></button>
           </div>
         </div>
         <div style="font-size:11px;color:var(--tx2);margin-bottom:6px">Busque cada produto extra na caixa "Código interno, EAN ou produto" acima e clique no botão <strong>"+"</strong> ao lado dela pra adicioná-lo aqui, no mesmo preço/pack do produto principal.</div>
+        <div class="foto-ajuste" title="Ajustar todas as fotos (principal + extras) juntas" style="margin-bottom:8px">
+          <span style="font-size:11px;color:var(--tx2);padding-right:4px">Todas juntas:</span>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('zoom-out')" title="Diminuir todas"><i class="ti ti-zoom-out"></i></button>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('zoom-in')" title="Aumentar todas"><i class="ti ti-zoom-in"></i></button>
+          <span class="sep"></span>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('left')" title="Mover todas para a esquerda"><i class="ti ti-arrow-left"></i></button>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('right')" title="Mover todas para a direita"><i class="ti ti-arrow-right"></i></button>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('up')" title="Mover todas para cima"><i class="ti ti-arrow-up"></i></button>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('down')" title="Mover todas para baixo"><i class="ti ti-arrow-down"></i></button>
+          <span class="sep"></span>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('rot-l')" title="Girar todas à esquerda"><i class="ti ti-rotate-2"></i></button>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('rot-r')" title="Girar todas à direita"><i class="ti ti-rotate"></i></button>
+          <span class="sep"></span>
+          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('reset')" title="Resetar ajuste de todas"><i class="ti ti-restore"></i></button>
+        </div>
         <div id="unirLista"></div>
         <div class="f-row" style="margin-top:8px">
           <label for="pDescFinal">Descrição final da placa (editável)</label>
@@ -1146,7 +1162,7 @@ function getTransformAlvo(alvo){
 function ajustarFoto(alvo,acao){
   var t=getTransformAlvo(alvo);
   if(!t)return;
-  var passoMove=14,passoZoom=0.06,passoRot=5;
+  var passoMove=40,passoZoom=0.2,passoRot=90;
   switch(acao){
     case 'zoom-in':t.scale=Math.min(3,(t.scale||1)+passoZoom);break;
     case 'zoom-out':t.scale=Math.max(0.2,(t.scale||1)-passoZoom);break;
@@ -1154,11 +1170,16 @@ function ajustarFoto(alvo,acao){
     case 'down':t.dy=(t.dy||0)+passoMove;break;
     case 'left':t.dx=(t.dx||0)-passoMove;break;
     case 'right':t.dx=(t.dx||0)+passoMove;break;
-    case 'rot-l':t.rot=(t.rot||0)-passoRot;break;
-    case 'rot-r':t.rot=(t.rot||0)+passoRot;break;
+    case 'rot-l':t.rot=((t.rot||0)-passoRot+360)%360;break;
+    case 'rot-r':t.rot=((t.rot||0)+passoRot)%360;break;
     case 'reset':t.scale=1;t.dx=0;t.dy=0;t.rot=0;break;
   }
   drawPlaca();
+}
+// aplica a mesma ação na foto principal + em todas as fotos extras do "unir" de uma vez só
+function ajustarFotoTodas(acao){
+  ajustarFoto('main',acao);
+  unirExtras.forEach(function(ex){ajustarFoto(ex.id,acao);});
 }
 function carregarImagemUrl(url,semProxy){
   return new Promise(function(resolve){
@@ -1493,16 +1514,31 @@ function preencherProduto(prod){
   buscarFotoCompleta(prod.cod,prod.nome);
 }
 
-var unirLayoutPref='auto'; // 'auto' | 'juntinho' | 'grid'
+var unirLayoutPref='auto'; // 'auto' | 'juntinho' | 'empilhado' | 'grid'
+var unirGroupScale=1, unirGroupOffX=0, unirGroupOffY=0;
+function unirGroupAjustar(acao){
+  var stepZ=0.1, stepM=20;
+  switch(acao){
+    case 'zoom-out':unirGroupScale=Math.max(0.3,+(unirGroupScale-stepZ).toFixed(2));break;
+    case 'zoom-in':unirGroupScale=Math.min(3,+(unirGroupScale+stepZ).toFixed(2));break;
+    case 'left':unirGroupOffX-=stepM;break;
+    case 'right':unirGroupOffX+=stepM;break;
+    case 'up':unirGroupOffY-=stepM;break;
+    case 'down':unirGroupOffY+=stepM;break;
+    case 'reset':unirGroupScale=1;unirGroupOffX=0;unirGroupOffY=0;break;
+  }
+  drawPlaca();
+}
 function unirSetLayout(modo){
   unirLayoutPref=(unirLayoutPref===modo)?'auto':modo;
   document.getElementById('unirLayoutBtnJuntinho').classList.toggle('active',unirLayoutPref==='juntinho');
+  document.getElementById('unirLayoutBtnEmpilhado').classList.toggle('active',unirLayoutPref==='empilhado');
   document.getElementById('unirLayoutBtnGrid').classList.toggle('active',unirLayoutPref==='grid');
   drawPlaca();
 }
 function unirDeveUsarGrade(n){
   if(unirLayoutPref==='grid')return n>1;
-  if(unirLayoutPref==='juntinho')return false;
+  if(unirLayoutPref==='juntinho'||unirLayoutPref==='empilhado')return false;
   return n>3; // automático: 4+ produtos vira grade
 }
 function atualizarEstadoToggleChips(){
@@ -2030,6 +2066,36 @@ async function drawPlaca(){
     });
     ctx.restore();
   }
+  function desenharEmpilhadoFotos(imgsOriginais,areaX,areaW,areaTopY,areaH,transforms){
+    var imgs=imgsOriginais.map(croparTransparente);
+    var n=imgs.length;
+    var gapV=-6; // negativo: fica bem pertinho, levemente sobreposto
+    var maxHItem=(areaH-gapV*(n-1))/n;
+    var maxWItem=areaW*0.9;
+    var dims=imgs.map(function(img){
+      var asp=img.width/img.height;
+      var fW,fH;
+      fW=maxWItem;fH=maxWItem/asp;
+      if(fH>maxHItem){fH=maxHItem;fW=maxHItem*asp;}
+      return {img:img,fW:fW,fH:fH};
+    });
+    var totalH=dims.reduce(function(s,d){return s+d.fH;},0)+gapV*(n-1);
+    var curY=areaTopY+areaH/2-totalH/2;
+    ctx.save();
+    ctx.imageSmoothingEnabled=true;
+    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+    dims.forEach(function(d,i){
+      var cy=curY+d.fH/2;
+      var cx=areaX+areaW/2;
+      ctx.shadowColor='rgba(0,0,0,0.28)';
+      ctx.shadowBlur=16;
+      ctx.shadowOffsetX=0;
+      ctx.shadowOffsetY=6;
+      desenharImgT(ctx,d.img,cx,cy,d.fW,d.fH,transforms[i]);
+      curY+=d.fH+gapV;
+    });
+    ctx.restore();
+  }
   if(!packOn){
     var extrasComFotoN=unirOn?unirExtras.filter(function(x){return x.img;}):[];
     if(fotoImg&&fotoImgARecortadaFonte!==fotoImg){
@@ -2038,7 +2104,18 @@ async function drawPlaca(){
     }
     var imgsUnirN=(fotoImg?[fotoImgARecortada||fotoImg]:[]).concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
     var transformsUnirN=(fotoImg?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoN.map(function(x){return x.transform||novoTransform();}));
-    if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
+    var grupoAtivoN=unirOn&&imgsUnirN.length>1;
+    if(grupoAtivoN){
+      ctx.save();
+      ctx.translate(W/2+unirGroupOffX,835+unirGroupOffY);
+      ctx.scale(unirGroupScale,unirGroupScale);
+      ctx.translate(-W/2,-835);
+    }
+    if(unirOn && unirLayoutPref==='empilhado' && imgsUnirN.length>1){
+      // Modo "empilhado": cada foto embaixo da outra, na vertical.
+      var areaTopYE=605, areaHE=460, padXE=140;
+      desenharEmpilhadoFotos(imgsUnirN,padXE,W-padXE*2,areaTopYE,areaHE,transformsUnirN);
+    }else if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
       var areaTopYG=635, areaHG=400, padXG=30;
@@ -2129,7 +2206,10 @@ async function drawPlaca(){
     var extrasComFotoP=unirOn?unirExtras.filter(function(x){return x.img;}):[];
     var imgsPackN=(imgPack?[imgPack]:[]).concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
     var transformsPackN=(imgPack?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoP.map(function(x){return x.transform||novoTransform();}));
-    if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
+    if(unirOn && unirLayoutPref==='empilhado' && imgsPackN.length>1){
+      // Modo "empilhado": cada foto embaixo da outra, na vertical.
+      desenharEmpilhadoFotos(imgsPackN,fX2+pad3,innerW2,fY2+pad3,innerH2,transformsPackN);
+    }else if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
       // 4 ou mais produtos: organiza em grade dentro da área de imagem
       // do template Pack (ex.: 9 produtos vira 3x3).
       desenharGradeFotos(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2,null,transformsPackN);
