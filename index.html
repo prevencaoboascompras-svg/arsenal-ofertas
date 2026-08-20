@@ -84,6 +84,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .foto-search input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
 .foto-actions{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:640px){.foto-panel{align-items:stretch}.foto-search{grid-template-columns:1fr}.foto-preview{width:56px;height:56px}}
+.foto-ajuste{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;align-items:center}
+.foto-ajuste .sep{width:1px;align-self:stretch;background:var(--bds);margin:0 2px}
+.btn-ico{width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--bds);border-radius:6px;background:var(--bg);color:var(--tx);cursor:pointer;font-size:13px;padding:0}
+.btn-ico:hover{background:var(--bg2);border-color:var(--green);color:var(--green)}
+.btn-ico:active{transform:scale(.9)}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pct-badge{font-size:12px;font-weight:700;color:var(--green);background:rgba(29,158,117,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
 .canvas-wrap{background:var(--bg2);border-radius:var(--rl);padding:10px;display:flex;flex-direction:column;align-items:center;gap:8px}
@@ -292,6 +297,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <button type="button" class="btn btn-sm" onclick="abrirGoogleImagens()"><i class="ti ti-brand-google"></i> Abrir Google</button>
             <label class="btn btn-sm" for="pFoto"><i class="ti ti-upload"></i> Enviar manual</label>
             <input type="file" id="pFoto" accept="image/*" onchange="loadFoto(this)" style="display:none">
+          </div>
+          <div class="foto-ajuste" title="Ajustar a foto na placa">
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','zoom-out')" title="Diminuir"><i class="ti ti-zoom-out"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','zoom-in')" title="Aumentar"><i class="ti ti-zoom-in"></i></button>
+            <span class="sep"></span>
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','left')" title="Mover para a esquerda"><i class="ti ti-arrow-left"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','right')" title="Mover para a direita"><i class="ti ti-arrow-right"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','up')" title="Mover para cima"><i class="ti ti-arrow-up"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','down')" title="Mover para baixo"><i class="ti ti-arrow-down"></i></button>
+            <span class="sep"></span>
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','rot-l')" title="Girar à esquerda"><i class="ti ti-rotate-2"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','rot-r')" title="Girar à direita"><i class="ti ti-rotate"></i></button>
+            <span class="sep"></span>
+            <button type="button" class="btn-ico" onclick="ajustarFoto('main','reset')" title="Resetar ajuste"><i class="ti ti-restore"></i></button>
           </div>
         </div>
       </div>
@@ -538,6 +557,7 @@ function aplicarTemaPlaca(){
 var templatePackReady=false;
 var fotoImg=null;
 var fotoToken=0;
+var fotoTransform=null; // {scale,dx,dy,rot} ajuste manual da foto principal
 var prodAtualCod='';
 var unirExtras=[];   // produtos extras unidos ao principal: cada item {id,cod,nome,img,imgRecortada,token}
 var unirExtraSeq=0;  // gerador de ids únicos pras linhas de produto extra
@@ -926,6 +946,7 @@ function setFotoStatus(msg,tipo){
 }
 function setFotoPreview(img){
   var box=document.getElementById('fotoPreview');
+  fotoTransform=novoTransform();
   if(!box)return;
   if(img){
     box.innerHTML='';
@@ -939,6 +960,7 @@ function setFotoPreview(img){
 }
 function limparFoto(msg){
   fotoImg=null;
+  fotoTransform=null;
   setFotoPreview(null);
   setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada no Drive, Cosmos, Google Imagens e Open Food Facts.');
 }
@@ -1094,6 +1116,49 @@ function croparTransparente(img){
   }catch(e){
     return img;
   }
+}
+// ============================================================
+// AJUSTE MANUAL DE FOTO (zoom, mover, girar) — cada foto (a
+// principal e cada extra do "unir") tem seu próprio objeto de
+// transform, aplicado por cima do posicionamento automático que
+// o resto do código já calcula.
+// ============================================================
+function novoTransform(){return {scale:1,dx:0,dy:0,rot:0};}
+function desenharImgT(ctx,img,cx,cy,w,h,t){
+  t=t||novoTransform();
+  ctx.save();
+  ctx.translate(cx+(t.dx||0),cy+(t.dy||0));
+  if(t.rot)ctx.rotate((t.rot||0)*Math.PI/180);
+  ctx.drawImage(img,-(w*(t.scale||1))/2,-(h*(t.scale||1))/2,w*(t.scale||1),h*(t.scale||1));
+  ctx.restore();
+}
+// alvo: 'main' (foto principal) ou o id de um item de unirExtras
+function getTransformAlvo(alvo){
+  if(alvo==='main'){
+    if(!fotoTransform)fotoTransform=novoTransform();
+    return fotoTransform;
+  }
+  var ex=unirGetExtra(alvo);
+  if(!ex)return null;
+  if(!ex.transform)ex.transform=novoTransform();
+  return ex.transform;
+}
+function ajustarFoto(alvo,acao){
+  var t=getTransformAlvo(alvo);
+  if(!t)return;
+  var passoMove=14,passoZoom=0.06,passoRot=5;
+  switch(acao){
+    case 'zoom-in':t.scale=Math.min(3,(t.scale||1)+passoZoom);break;
+    case 'zoom-out':t.scale=Math.max(0.2,(t.scale||1)-passoZoom);break;
+    case 'up':t.dy=(t.dy||0)-passoMove;break;
+    case 'down':t.dy=(t.dy||0)+passoMove;break;
+    case 'left':t.dx=(t.dx||0)-passoMove;break;
+    case 'right':t.dx=(t.dx||0)+passoMove;break;
+    case 'rot-l':t.rot=(t.rot||0)-passoRot;break;
+    case 'rot-r':t.rot=(t.rot||0)+passoRot;break;
+    case 'reset':t.scale=1;t.dx=0;t.dy=0;t.rot=0;break;
+  }
+  drawPlaca();
 }
 function carregarImagemUrl(url,semProxy){
   return new Promise(function(resolve){
@@ -1565,6 +1630,20 @@ function unirRowTemplate(id,nome,cod){
         '<button type="button" class="btn btn-sm" onclick="unirRemoverProduto(\''+id+'\')" title="Remover produto"><i class="ti ti-trash"></i></button>'+
       '</div>'+
       '<div class="foto-status unir-status" data-id="'+id+'">Buscando foto...</div>'+
+      '<div class="foto-ajuste" title="Ajustar a foto na placa">'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'zoom-out\')" title="Diminuir"><i class="ti ti-zoom-out"></i></button>'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'zoom-in\')" title="Aumentar"><i class="ti ti-zoom-in"></i></button>'+
+        '<span class="sep"></span>'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'left\')" title="Mover para a esquerda"><i class="ti ti-arrow-left"></i></button>'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'right\')" title="Mover para a direita"><i class="ti ti-arrow-right"></i></button>'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'up\')" title="Mover para cima"><i class="ti ti-arrow-up"></i></button>'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'down\')" title="Mover para baixo"><i class="ti ti-arrow-down"></i></button>'+
+        '<span class="sep"></span>'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'rot-l\')" title="Girar à esquerda"><i class="ti ti-rotate-2"></i></button>'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'rot-r\')" title="Girar à direita"><i class="ti ti-rotate"></i></button>'+
+        '<span class="sep"></span>'+
+        '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'reset\')" title="Resetar ajuste"><i class="ti ti-restore"></i></button>'+
+      '</div>'+
     '</div>';
 }
 
@@ -1572,7 +1651,7 @@ function unirAdicionarProdutoObj(prod){
   var id='u'+(++unirExtraSeq);
   var cod=normalizarCodigo(prod.cod||'');
   var nome=(prod.nome||prod.cod||'').trim();
-  unirExtras.push({id:id,cod:cod,nome:nome,img:null,imgRecortada:null,token:0});
+  unirExtras.push({id:id,cod:cod,nome:nome,img:null,imgRecortada:null,token:0,transform:novoTransform()});
   var container=document.getElementById('unirLista');
   if(container)container.insertAdjacentHTML('beforeend',unirRowTemplate(id,nome,cod));
   atualizarDescFinalAuto();
@@ -1617,7 +1696,7 @@ async function unirBuscarExtraFoto(id,cod,nome){
   var row=document.querySelector('.unir-row[data-id="'+id+'"]');
   var statusEl=row&&row.querySelector('.unir-status');
   if(statusEl)statusEl.textContent='Buscando foto ('+nome+')...';
-  ex.img=null;ex.imgRecortada=null;
+  ex.img=null;ex.imgRecortada=null;ex.transform=novoTransform();
   drawPlaca();
   try{
     var foto=await buscarFotoItemEncarte(cod,nome,'');
@@ -1913,7 +1992,7 @@ async function drawPlaca(){
       return Math.max(0.55,Math.min(1,r));
     });
   }
-  function desenharGradeFotos(imgsOriginais,boxX,boxY,boxW,boxH,cols){
+  function desenharGradeFotos(imgsOriginais,boxX,boxY,boxW,boxH,cols,transforms){
     var imgs=imgsOriginais.map(croparTransparente);
     var n=imgs.length;
     cols=cols||Math.ceil(Math.sqrt(n));
@@ -1947,7 +2026,7 @@ async function drawPlaca(){
       ctx.shadowBlur=8;
       ctx.shadowOffsetX=0;
       ctx.shadowOffsetY=4;
-      ctx.drawImage(img,cx-fW/2,cy-fH/2,fW,fH);
+      desenharImgT(ctx,img,cx,cy,fW,fH,transforms&&transforms[i]);
     });
     ctx.restore();
   }
@@ -1958,11 +2037,12 @@ async function drawPlaca(){
       fotoImgARecortadaFonte=fotoImg;
     }
     var imgsUnirN=(fotoImg?[fotoImgARecortada||fotoImg]:[]).concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
+    var transformsUnirN=(fotoImg?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoN.map(function(x){return x.transform||novoTransform();}));
     if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
       var areaTopYG=635, areaHG=400, padXG=30;
-      desenharGradeFotos(imgsUnirN,padXG,areaTopYG,W-padXG*2,areaHG);
+      desenharGradeFotos(imgsUnirN,padXG,areaTopYG,W-padXG*2,areaHG,null,transformsUnirN);
     }else if(unirOn && imgsUnirN.length>1){
       // Modo "unir": nenhum produto tem cartão branco próprio. Todos os
       // objetos são recortados (fundo removido) e desenhados lado a lado,
@@ -2007,7 +2087,7 @@ async function drawPlaca(){
         ctx.shadowBlur=i===0?18:20;
         ctx.shadowOffsetX=i===0?0:-6;
         ctx.shadowOffsetY=8;
-        ctx.drawImage(d.img,cx-d.fW/2,by,d.fW,d.fH);
+        desenharImgT(ctx,d.img,cx,by+d.fH/2,d.fW,d.fH,transformsUnirN[i]);
         curXN+=d.fW+gapN;
       });
       ctx.restore();
@@ -2029,7 +2109,7 @@ async function drawPlaca(){
       ctx.shadowOffsetY=8;
       ctx.imageSmoothingEnabled=true;
       if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
-      ctx.drawImage(imgSolo,cxSolo-fWSolo/2,bySolo,fWSolo,fHSolo);
+      desenharImgT(ctx,imgSolo,cxSolo,bySolo+fHSolo/2,fWSolo,fHSolo,transformsUnirN[0]);
       ctx.restore();
     }
   }
@@ -2048,10 +2128,11 @@ async function drawPlaca(){
     var innerW2=fW2-pad3*2, innerH2=fH2-pad3*2;
     var extrasComFotoP=unirOn?unirExtras.filter(function(x){return x.img;}):[];
     var imgsPackN=(imgPack?[imgPack]:[]).concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
+    var transformsPackN=(imgPack?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoP.map(function(x){return x.transform||novoTransform();}));
     if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
       // 4 ou mais produtos: organiza em grade dentro da área de imagem
       // do template Pack (ex.: 9 produtos vira 3x3).
-      desenharGradeFotos(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2);
+      desenharGradeFotos(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2,null,transformsPackN);
     }else if(unirOn && imgsPackN.length>1){
       // Mesma lógica de "unir" do modo padrão, só que encaixada dentro
       // da área de imagem do template Pack.
@@ -2085,7 +2166,7 @@ async function drawPlaca(){
         ctx.shadowBlur=18;
         ctx.shadowOffsetX=i===0?0:-6;
         ctx.shadowOffsetY=8;
-        ctx.drawImage(d.img,curXP,byP,d.fW,d.fH);
+        desenharImgT(ctx,d.img,curXP+d.fW/2,byP+d.fH/2,d.fW,d.fH,transformsPackN[i]);
         curXP+=d.fW+gapP;
       });
       ctx.restore();
@@ -2104,7 +2185,7 @@ async function drawPlaca(){
       ctx.shadowOffsetY=8;
       ctx.imageSmoothingEnabled=true;
       if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
-      ctx.drawImage(imgPackSolo,dx2,dy2,dw2,dh2);
+      desenharImgT(ctx,imgPackSolo,dx2+dw2/2,dy2+dh2/2,dw2,dh2,transformsPackN[0]);
       ctx.restore();
     }
   }
