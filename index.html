@@ -2138,31 +2138,66 @@ async function drawPlaca(){
     ctx.restore();
   }
 
-  // Modo Empilhado: distribui as fotos de cima para baixo dentro da mesma
-  // área, sem cartão branco individual. Mantém proporção e ajustes manuais.
-  function desenharFotosVerticais(imgsOriginais,boxX,boxY,boxW,boxH,transforms){
-    var imgs=imgsOriginais.map(croparTransparente);
+  // Modo Empilhado: pilha central com SOBREPOSIÇÃO vertical, como uma
+  // sequência de sabores/variações do mesmo produto. As embalagens continuam
+  // grandes e cada próxima imagem desce só uma fração da altura da anterior.
+  // A sobreposição aumenta automaticamente conforme a quantidade para a pilha
+  // inteira continuar dentro da área disponível.
+  function desenharFotosEmpilhadas(imgsOriginais,boxX,boxY,boxW,boxH,transforms){
+    var imgs=imgsOriginais.map(croparTransparente).filter(Boolean);
     var n=imgs.length;
     if(!n)return;
-    var gap=Math.max(2,Math.min(10,boxH*0.018));
-    var slotH=(boxH-gap*(n-1))/n;
-    var maxW=boxW*0.92;
+
+    // Quanto mais itens, menor um pouco a largura individual. Para 7 sabores,
+    // fica perto de 56% da largura útil — proporção semelhante ao exemplo.
+    var larguraPct=n<=2?0.78:n<=4?0.70:n<=6?0.62:n<=8?0.56:n<=10?0.51:0.46;
+    var maxW=boxW*larguraPct;
+    var maxH=boxH*(n<=3?0.52:n<=5?0.40:n<=8?0.34:0.30);
+
+    var medidas=imgs.map(function(img){
+      var asp=(img.width||1)/(img.height||1);
+      var fW=maxW, fH=maxW/asp;
+      if(fH>maxH){fH=maxH;fW=maxH*asp;}
+      return {w:fW,h:fH};
+    });
+
+    // A partir de 7 itens usamos sobreposição forte (~68%). Isso mantém cada
+    // embalagem grande, mas deixa visível uma faixa suficiente de cada sabor.
+    var overlap=n<=2?0.38:n<=4?0.50:n<=6?0.60:n<=8?0.68:n<=10?0.72:0.76;
+    var maiorH=Math.max.apply(null,medidas.map(function(m){return m.h;}));
+    var passo=maiorH*(1-overlap);
+    var pilhaH=maiorH+passo*(n-1);
+    var limiteH=boxH*0.92;
+
+    // Se, por proporção da foto, a pilha ainda ultrapassar a área, reduz tudo
+    // proporcionalmente sem mudar o grau de sobreposição.
+    if(pilhaH>limiteH&&pilhaH>0){
+      var fator=limiteH/pilhaH;
+      medidas.forEach(function(m){m.w*=fator;m.h*=fator;});
+      maiorH*=fator;
+      passo*=fator;
+      pilhaH*=fator;
+    }
+
+    // Centraliza a pilha inteira vertical e horizontalmente.
+    var topo=boxY+(boxH-pilhaH)/2;
+    var cx=boxX+boxW/2;
+
     ctx.save();
     ctx.imageSmoothingEnabled=true;
     if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+
     imgs.forEach(function(img,i){
-      var asp=img.width/img.height;
-      var maxH=slotH*0.98;
-      var fW,fH;
-      if(asp>maxW/maxH){fW=maxW;fH=maxW/asp;}
-      else{fH=maxH;fW=maxH*asp;}
-      var cx=boxX+boxW/2;
-      var cy=boxY+i*(slotH+gap)+slotH/2;
-      ctx.shadowColor='rgba(0,0,0,0.24)';
-      ctx.shadowBlur=12;
+      var m=medidas[i];
+      var cy=topo+maiorH/2+i*passo;
+
+      // Desenha de cima para baixo: o item seguinte fica por cima da borda
+      // inferior do anterior, criando a pilha/escada vista no exemplo.
+      ctx.shadowColor='rgba(0,0,0,0.22)';
+      ctx.shadowBlur=10;
       ctx.shadowOffsetX=0;
-      ctx.shadowOffsetY=5;
-      desenharImgT(ctx,img,cx,cy,fW,fH,transforms&&transforms[i]);
+      ctx.shadowOffsetY=4;
+      desenharImgT(ctx,img,cx,cy,m.w,m.h,transforms&&transforms[i]);
     });
     ctx.restore();
   }
@@ -2176,9 +2211,9 @@ async function drawPlaca(){
     var imgsUnirN=(fotoImg?[fotoImgARecortada||fotoImg]:[]).concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
     var transformsUnirN=(fotoImg?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoN.map(function(x){return x.transform||novoTransform();}));
     if(unirOn && unirDeveEmpilhar(imgsUnirN.length)){
-      // Empilhado vertical: uma foto por faixa, de cima para baixo.
+      // Empilhado vertical sobreposto: pilha central compacta, de cima para baixo.
       var areaTopYV=605, areaHV=460, padXV=45;
-      desenharFotosVerticais(imgsUnirN,padXV,areaTopYV,W-padXV*2,areaHV,transformsUnirN);
+      desenharFotosEmpilhadas(imgsUnirN,padXV,areaTopYV,W-padXV*2,areaHV,transformsUnirN);
     }else if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
@@ -2271,7 +2306,7 @@ async function drawPlaca(){
     var imgsPackN=(imgPack?[imgPack]:[]).concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
     var transformsPackN=(imgPack?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoP.map(function(x){return x.transform||novoTransform();}));
     if(unirOn && unirDeveEmpilhar(imgsPackN.length)){
-      desenharFotosVerticais(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2,transformsPackN);
+      desenharFotosEmpilhadas(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2,transformsPackN);
     }else if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
       // 4 ou mais produtos: organiza em grade dentro da área de imagem
       // do template Pack (ex.: 9 produtos vira 3x3).
