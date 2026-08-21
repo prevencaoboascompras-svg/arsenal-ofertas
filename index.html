@@ -406,9 +406,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
         <div class="f-row" style="margin-bottom:8px">
           <label>Como organizar as fotos dos produtos</label>
-          <div style="display:flex;gap:6px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button type="button" class="toggle-chip" id="unirLayoutBtnJuntinho" onclick="unirSetLayout('juntinho')" title="Fotos posicionadas lado a lado, sem sobrepor"><i class="ti ti-layout-align-center"></i><span>Lado a lado</span></button>
-            <button type="button" class="toggle-chip" id="unirLayoutBtnGrid" onclick="unirSetLayout('grid')" title="Fotos organizadas em grade dentro de um cartão"><i class="ti ti-layout-grid"></i><span>Grade</span></button>
+            <button type="button" class="toggle-chip" id="unirLayoutBtnVertical" onclick="unirSetLayout('vertical')" title="Fotos empilhadas verticalmente, uma sobre a outra"><i class="ti ti-layout-rows"></i><span>Empilhado</span></button>
+            <button type="button" class="toggle-chip" id="unirLayoutBtnGrid" onclick="unirSetLayout('grid')" title="Fotos organizadas em grade"><i class="ti ti-layout-grid"></i><span>Grade</span></button>
           </div>
         </div>
         <div style="font-size:11px;color:var(--tx2);margin-bottom:6px">Busque cada produto extra na caixa "Código interno, EAN ou produto" acima e clique no botão <strong>"+"</strong> ao lado dela pra adicioná-lo aqui, no mesmo preço/pack do produto principal.</div>
@@ -417,7 +418,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <label for="pDescFinal">Descrição final da placa (editável)</label>
           <textarea id="pDescFinal" rows="2" placeholder="Ex: PEPINO CONSERVA PETRY OU PEPINO PETRY GREMIO" oninput="onDescFinalChange()" style="resize:vertical;font-family:inherit;font-size:13px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--bd);background:var(--bg);color:var(--tx);width:100%"></textarea>
         </div>
-        <div style="font-size:11px;color:var(--tx2)">Este texto substitui a descrição na placa/encarte — edite livremente, inclusive os nomes dos produtos extras. É preenchido automaticamente ao buscar os produtos, mas fica sob seu controle depois disso. As fotos aparecem lado a lado (na placa padrão e na placa Pack); o preço usado continua sendo o do produto principal.</div>
+        <div style="font-size:11px;color:var(--tx2)">Este texto substitui a descrição na placa/encarte — edite livremente, inclusive os nomes dos produtos extras. É preenchido automaticamente ao buscar os produtos, mas fica sob seu controle depois disso. Escolha como as fotos serão organizadas: lado a lado, empilhadas verticalmente ou em grade. O preço usado continua sendo o do produto principal.</div>
       </div>
 
       <div class="f-row">
@@ -1563,18 +1564,28 @@ function preencherProduto(prod){
   buscarFotoCompleta(prod.cod,prod.nome);
 }
 
-var unirLayoutPref='auto'; // 'auto' | 'juntinho' | 'grid'
+var unirLayoutPref='auto'; // 'auto' | 'juntinho' | 'vertical' | 'grid'
+function unirAtualizarBotoesLayout(){
+  var b1=document.getElementById('unirLayoutBtnJuntinho');
+  var b2=document.getElementById('unirLayoutBtnVertical');
+  var b3=document.getElementById('unirLayoutBtnGrid');
+  if(b1)b1.classList.toggle('active',unirLayoutPref==='juntinho');
+  if(b2)b2.classList.toggle('active',unirLayoutPref==='vertical');
+  if(b3)b3.classList.toggle('active',unirLayoutPref==='grid');
+}
 function unirSetLayout(modo){
   unirLayoutPref=(unirLayoutPref===modo)?'auto':modo;
-  document.getElementById('unirLayoutBtnJuntinho').classList.toggle('active',unirLayoutPref==='juntinho');
-  document.getElementById('unirLayoutBtnGrid').classList.toggle('active',unirLayoutPref==='grid');
+  unirAtualizarBotoesLayout();
   drawPlaca();
 }
-function unirDeveUsarGrade(n){
-  if(unirLayoutPref==='grid')return n>1;
-  if(unirLayoutPref==='juntinho')return false;
-  return n>3; // automático: 4+ produtos vira grade
+function unirLayoutEfetivo(n){
+  if(unirLayoutPref==='vertical')return n>1?'vertical':'juntinho';
+  if(unirLayoutPref==='grid')return n>1?'grid':'juntinho';
+  if(unirLayoutPref==='juntinho')return 'juntinho';
+  return n>3?'grid':'juntinho'; // automático: 4+ produtos vira grade
 }
+function unirDeveUsarGrade(n){return unirLayoutEfetivo(n)==='grid';}
+function unirDeveEmpilhar(n){return unirLayoutEfetivo(n)==='vertical';}
 function atualizarEstadoToggleChips(){
   var packOn=document.getElementById('pPackOn').checked;
   var unirOn=document.getElementById('pUnirOn').checked;
@@ -1694,8 +1705,7 @@ function toggleUnir(){
     // pra quantidade de produtos, a pessoa troca pra "Grade" manualmente.
     if(unirLayoutPref==='auto'){
       unirLayoutPref='juntinho';
-      document.getElementById('unirLayoutBtnJuntinho').classList.add('active');
-      document.getElementById('unirLayoutBtnGrid').classList.remove('active');
+      unirAtualizarBotoesLayout();
     }
   }else{
     unirLimparTudo();
@@ -1703,8 +1713,7 @@ function toggleUnir(){
     var descFinalEl2=document.getElementById('pDescFinal');
     if(descFinalEl2)descFinalEl2.value='';
     unirLayoutPref='auto';
-    document.getElementById('unirLayoutBtnJuntinho').classList.remove('active');
-    document.getElementById('unirLayoutBtnGrid').classList.remove('active');
+    unirAtualizarBotoesLayout();
     drawPlaca();
   }
 }
@@ -1862,8 +1871,7 @@ function limparCampos(){
   var unirOn=document.getElementById('pUnirOn');
   if(unirOn){unirOn.checked=false;document.getElementById('unirFields').style.display='none';}
   unirLayoutPref='auto';
-  document.getElementById('unirLayoutBtnJuntinho').classList.remove('active');
-  document.getElementById('unirLayoutBtnGrid').classList.remove('active');
+  unirAtualizarBotoesLayout();
   atualizarEstadoToggleChips();
   limparFoto();
   document.getElementById('prodInfo').innerHTML='<div class="empty"><i class="ti ti-info-circle"></i> Nenhum produto carregado. Digite um código acima.</div>';
@@ -2129,6 +2137,36 @@ async function drawPlaca(){
     });
     ctx.restore();
   }
+
+  // Modo Empilhado: distribui as fotos de cima para baixo dentro da mesma
+  // área, sem cartão branco individual. Mantém proporção e ajustes manuais.
+  function desenharFotosVerticais(imgsOriginais,boxX,boxY,boxW,boxH,transforms){
+    var imgs=imgsOriginais.map(croparTransparente);
+    var n=imgs.length;
+    if(!n)return;
+    var gap=Math.max(2,Math.min(10,boxH*0.018));
+    var slotH=(boxH-gap*(n-1))/n;
+    var maxW=boxW*0.92;
+    ctx.save();
+    ctx.imageSmoothingEnabled=true;
+    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
+    imgs.forEach(function(img,i){
+      var asp=img.width/img.height;
+      var maxH=slotH*0.98;
+      var fW,fH;
+      if(asp>maxW/maxH){fW=maxW;fH=maxW/asp;}
+      else{fH=maxH;fW=maxH*asp;}
+      var cx=boxX+boxW/2;
+      var cy=boxY+i*(slotH+gap)+slotH/2;
+      ctx.shadowColor='rgba(0,0,0,0.24)';
+      ctx.shadowBlur=12;
+      ctx.shadowOffsetX=0;
+      ctx.shadowOffsetY=5;
+      desenharImgT(ctx,img,cx,cy,fW,fH,transforms&&transforms[i]);
+    });
+    ctx.restore();
+  }
+
   if(!packOn){
     var extrasComFotoN=unirOn?unirExtras.filter(function(x){return x.img;}):[];
     if(fotoImg&&fotoImgARecortadaFonte!==fotoImg){
@@ -2137,7 +2175,11 @@ async function drawPlaca(){
     }
     var imgsUnirN=(fotoImg?[fotoImgARecortada||fotoImg]:[]).concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
     var transformsUnirN=(fotoImg?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoN.map(function(x){return x.transform||novoTransform();}));
-    if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
+    if(unirOn && unirDeveEmpilhar(imgsUnirN.length)){
+      // Empilhado vertical: uma foto por faixa, de cima para baixo.
+      var areaTopYV=605, areaHV=460, padXV=45;
+      desenharFotosVerticais(imgsUnirN,padXV,areaTopYV,W-padXV*2,areaHV,transformsUnirN);
+    }else if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
       var areaTopYG=635, areaHG=400, padXG=30;
@@ -2228,7 +2270,9 @@ async function drawPlaca(){
     var extrasComFotoP=unirOn?unirExtras.filter(function(x){return x.img;}):[];
     var imgsPackN=(imgPack?[imgPack]:[]).concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
     var transformsPackN=(imgPack?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoP.map(function(x){return x.transform||novoTransform();}));
-    if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
+    if(unirOn && unirDeveEmpilhar(imgsPackN.length)){
+      desenharFotosVerticais(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2,transformsPackN);
+    }else if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
       // 4 ou mais produtos: organiza em grade dentro da área de imagem
       // do template Pack (ex.: 9 produtos vira 3x3).
       desenharGradeFotos(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2,null,transformsPackN);
@@ -2794,7 +2838,7 @@ async function adicionarNaListaAuto(){
     // no backend: não lê/regrava a lista inteira e não perde alterações de outro PC.
     var registro={
       id:editingEncarteId||gerarIdEncarte(),
-      versaoRegistro:5,
+      versaoRegistro:6,
       codigo:cod,
       produto:produtoBanco,
       produtoDigitado:produtoDigitado,
@@ -2810,6 +2854,7 @@ async function adicionarNaListaAuto(){
       packTipo:packOn?(packTipo||'leve'):'',
       packUnidade:packOn&&packTipo==='apartir'?((document.getElementById('pPackUnidade')||{}).value||'UN'):'',
       unirOn:unirOn,
+      unirLayout:unirOn?(unirLayoutPref==='auto'?'juntinho':unirLayoutPref):'',
       cod2:produtosExtra[0]?produtosExtra[0].codigo:'', // compat com leitores antigos (versaoRegistro<4)
       produtoB:produtosExtra[0]?produtosExtra[0].nome:'', // idem
       produtosExtra:produtosExtra,
@@ -2982,6 +3027,8 @@ async function editarEncarte(id){
     unirDescManual=!!it.descricaoFinal;
     if(unirOnEl)unirOnEl.checked=true;
     if(unirFieldsEl)unirFieldsEl.style.display='block';
+    unirLayoutPref=it.unirLayout||'juntinho';
+    unirAtualizarBotoesLayout();
     listaExtraRestaurar.forEach(function(ex){unirAdicionarProdutoObj({cod:ex.codigo||'',nome:ex.nome||''});});
     if(descFinalEl)descFinalEl.value=it.descricaoFinal||'';
   }else{
@@ -2989,6 +3036,8 @@ async function editarEncarte(id){
     if(unirOnEl)unirOnEl.checked=false;
     if(unirFieldsEl)unirFieldsEl.style.display='none';
     if(descFinalEl)descFinalEl.value='';
+    unirLayoutPref='auto';
+    unirAtualizarBotoesLayout();
   }
 
   var btn=document.getElementById('btnSalvarNuvem');
@@ -3250,13 +3299,17 @@ async function gerarImagemPlacaItem(it){
       elDe=document.getElementById('pDe'),elPor=document.getElementById('pPor'),
       elPackOn=document.getElementById('pPackOn'),elPackQtd=document.getElementById('pPackQtd'),
       elPackTotal=document.getElementById('pPackTotal'),elValidade=document.getElementById('pValidade'),
-      elUnidade=document.getElementById('pUnidade');
+      elUnidade=document.getElementById('pUnidade'),elUnirOn=document.getElementById('pUnirOn'),
+      elDescFinal=document.getElementById('pDescFinal');
 
   var backup={
     cod:elCod.value,desc:elDesc.value,de:elDe.value,por:elPor.value,
     packOn:elPackOn.checked,packQtd:elPackQtd.value,packTotal:elPackTotal.value,
     packTipo:packTipo,packUnidade:(document.getElementById('pPackUnidade')||{}).value||'UN',
     validade:elValidade.value,unidade:elUnidade.value,
+    unirOn:elUnirOn?elUnirOn.checked:false,unirLayoutPref:unirLayoutPref,
+    unirExtras:unirExtras.slice(),unirDescManual:unirDescManual,
+    descFinal:elDescFinal?elDescFinal.value:'',
     fotoImg:fotoImg,fotoOrigemDrive:fotoOrigemDrive,prodAtualCod:prodAtualCod
   };
 
@@ -3275,6 +3328,35 @@ async function gerarImagemPlacaItem(it){
     elUnidade.value=unidade;
     prodAtualCod=cod;
 
+    var unirOnTmp=!!it.unirOn;
+    if(elUnirOn)elUnirOn.checked=unirOnTmp;
+    unirLayoutPref=unirOnTmp?(it.unirLayout||'juntinho'):'auto';
+    unirAtualizarBotoesLayout();
+    unirExtras=[];
+    unirDescManual=!!it.descricaoFinal;
+    if(elDescFinal)elDescFinal.value=unirOnTmp?(it.descricaoFinal||descricao):'';
+    if(unirOnTmp){
+      var extrasTmp=Array.isArray(it.produtosExtra)&&it.produtosExtra.length
+        ?it.produtosExtra
+        :(it.cod2?[{codigo:it.cod2,nome:it.produtoB||''}]:[]);
+      for(var ux=0;ux<extrasTmp.length;ux++){
+        var exTmp=extrasTmp[ux]||{};
+        var codTmp=normalizarCodigo(exTmp.codigo||'');
+        var nomeTmp=(exTmp.nome||((buscarPorCodigo(codTmp)||{}).nome)||'').trim();
+        var fotoTmp=await buscarFotoItemEncarte(codTmp,nomeTmp,'');
+        var imgTmp=fotoTmp.src?await carregarImagemUrl(fotoTmp.src):null;
+        unirExtras.push({
+          id:'print_'+ux,
+          cod:codTmp,
+          nome:nomeTmp,
+          img:imgTmp,
+          imgRecortada:imgTmp?croparTransparente(removerFundoBranco(imgTmp)):null,
+          token:0,
+          transform:novoTransform()
+        });
+      }
+    }
+
     var foto=await buscarFotoItemEncarte(cod,descricao,'');
     fotoImg=foto.src?await carregarImagemUrl(foto.src):null;
     fotoOrigemDrive=(foto.origem==='Google Drive');
@@ -3287,6 +3369,12 @@ async function gerarImagemPlacaItem(it){
     packTipo=backup.packTipo;
     var packUniRestore=document.getElementById('pPackUnidade');if(packUniRestore)packUniRestore.value=backup.packUnidade;
     elValidade.value=backup.validade;elUnidade.value=backup.unidade;
+    if(elUnirOn)elUnirOn.checked=backup.unirOn;
+    unirLayoutPref=backup.unirLayoutPref;
+    unirExtras=backup.unirExtras;
+    unirDescManual=backup.unirDescManual;
+    if(elDescFinal)elDescFinal.value=backup.descFinal;
+    unirAtualizarBotoesLayout();
     fotoImg=backup.fotoImg;fotoOrigemDrive=backup.fotoOrigemDrive;prodAtualCod=backup.prodAtualCod;
     drawPlaca();
   }
@@ -3443,6 +3531,7 @@ function prepararItemEncarte(it){
     packUnidade:it.packUnidade||'UN',
     fallbackFoto:it.foto||'',
     unirOn:unirOn,
+    unirLayout:it.unirLayout||'juntinho',
     produtosExtra:produtosExtraPrep,
     semDescricaoBanco:!banco[cod]&&!produtoBanco.nome,
     semUnidadeBanco:!unidadeBanco,
@@ -3600,17 +3689,22 @@ async function gerarEncarteDoDia(){
     }).filter(Boolean);
     var fotoHtml;
     if(it.unirOn&&extrasSrcs.length){
-      var todosSrcs=[fotoSrcSegura].concat(extrasSrcs);
+      var todosSrcs=[fotoSrcSegura].concat(extrasSrcs).filter(Boolean);
       var totalFotosMulti=todosSrcs.length;
-      // Cada foto ocupa uma fatia própria e igual da largura (flex:1), com
-      // um espaço fixo entre as fatias (gap do flex) — isso GARANTE que
-      // nenhuma embalagem sobreponha a outra, não importa a proporção
-      // (largura/altura) de cada imagem, porque as caixas nunca se tocam.
       var imgsMultiHtml=todosSrcs.map(function(src,i){
         return '<div class="ed-foto-slot"><img class="ed-foto-item" src="'+escapeHtml(src)+'" crossorigin="anonymous" alt="'+(i===0?escapeHtml(it.descricao):'')+'"></div>';
       }).join('');
-      var classeMulti=unirDeveUsarGrade(totalFotosMulti)?'ed-foto-multi ed-foto-multi-grade':'ed-foto-multi';
-      fotoHtml='<div class="'+classeMulti+'">'+imgsMultiHtml+'</div>';
+      var layoutMulti=it.unirLayout||'juntinho';
+      var classeMulti='ed-foto-multi';
+      var styleMulti='';
+      if(layoutMulti==='vertical'){
+        classeMulti+=' ed-foto-multi-vertical';
+      }else if(layoutMulti==='grid'||(layoutMulti==='auto'&&totalFotosMulti>3)){
+        classeMulti+=' ed-foto-multi-grid';
+        var colsMulti=Math.ceil(Math.sqrt(totalFotosMulti));
+        styleMulti=' style="grid-template-columns:repeat('+colsMulti+',minmax(0,1fr))"';
+      }
+      fotoHtml='<div class="'+classeMulti+'"'+styleMulti+'>'+imgsMultiHtml+'</div>';
     }else if(fotoSrcSegura){
       fotoHtml='<img src="'+escapeHtml(fotoSrcSegura)+'" crossorigin="anonymous" alt="'+escapeHtml(it.descricao)+'">';
     }else{
@@ -3778,6 +3872,10 @@ async function gerarEncarteDoDia(){
   '.ed-foto img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.22))}'+
   '.ed-foto-multi{display:flex;width:100%;height:100%;align-items:flex-end;justify-content:center;gap:1.2%}'+
   '.ed-foto-slot{flex:1 1 0;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center}'+
+  '.ed-foto-multi-vertical{flex-direction:column;align-items:center;justify-content:center;gap:1%}'+
+  '.ed-foto-multi-vertical .ed-foto-slot{width:100%;height:auto;min-height:0;flex:1 1 0;align-items:center;justify-content:center}'+
+  '.ed-foto-multi-grid{display:grid;align-items:center;justify-items:center;gap:1.2%}'+
+  '.ed-foto-multi-grid .ed-foto-slot{width:100%;height:100%;min-width:0;min-height:0;align-items:center;justify-content:center}'+
   '.ed-foto-multi .ed-foto-item{position:relative;max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(-4px 4px 8px rgba(0,0,0,.18))}'+
   '.ed-sem-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,.25);color:#7a5c00;border-radius:8px;gap:4px;background:rgba(255,255,255,.5)}'+
   '.ed-sem-foto span{font-size:clamp(7px,1vw,11px);font-weight:900}.ed-sem-foto small{font-size:clamp(5px,.7vw,8px)}'+
