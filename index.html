@@ -1612,7 +1612,9 @@ function onPackChange(){
     cadaEl.textContent='R$ '+cada.toFixed(2).replace('.',',')+(unidade?' / '+unidade:'');
     // preenche mensagem automaticamente (padrão do template Pack do Líder)
     if(apartir){
-      msg.value='A PARTIR DE '+qtd+'UN PAGUE R$ '+cada.toFixed(2).replace('.',',')+' (CADA'+(unidade?' '+unidade:'')+')';
+      // Evita repetir a palavra quando a unidade escolhida já é "CADA" (ex: "(CADA CADA)")
+      var unidadeMsg=(unidade&&unidade!=='CADA')?(' '+unidade):'';
+      msg.value='A PARTIR DE '+qtd+'UN PAGUE R$ '+cada.toFixed(2).replace('.',',')+' (CADA'+unidadeMsg+')';
     }else{
       msg.value='LEVE '+qtd+'UN POR R$ '+total.toFixed(2).replace('.',',')+' (R$ '+cada.toFixed(2).replace('.',',')+' CADA)';
     }
@@ -2266,7 +2268,7 @@ async function drawPlaca(){
     // "R$ 0,00" grande em branco, sobre o escudo vermelho.
     // ═══════════════════════════════════════════════════════════
     (function drawPackPreco(){
-      var qtdTxt=packQtd>0?(packQtd+''):'0';
+      var qtdTxt=packQtd>0?(packQtd+(apartir?'UN':'')):'0';
       var valTxt=packTotal>0?packTotal.toFixed(2).replace('.',','):'0,00';
       var partes=valTxt.split(',');
       var inteiro=partes[0], centavos=','+(partes[1]||'00');
@@ -2298,7 +2300,7 @@ async function drawPlaca(){
       }
 
       var txtLeve=apartir?'A PARTIR DE':'LEVE';
-      var txtPor=apartir?(unidadeSel+' PAGUE'):'POR';
+      var txtPor=apartir?'PAGUE':'POR';
 
       // "LEVE"/"A PARTIR DE" e "POR"/"UN PAGUE" sempre no mesmo tamanho —
       // se um dos dois precisar encolher para caber, os dois encolhem juntos
