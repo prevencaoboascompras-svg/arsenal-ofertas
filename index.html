@@ -367,13 +367,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <hr class="divider">
 
       <div id="packFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
+        <div class="f-row" style="margin-bottom:8px">
+          <label>Tipo de oferta do Pack</label>
+          <div style="display:flex;gap:6px">
+            <button type="button" class="toggle-chip active" id="packTipoBtnLeve" onclick="packSetTipo('leve')" title="LEVE X POR R$ Y (total do pack)"><i class="ti ti-tag"></i><span>Leve X por</span></button>
+            <button type="button" class="toggle-chip" id="packTipoBtnApartir" onclick="packSetTipo('apartir')" title="A PARTIR DE X UN PAGUE R$ Y (CADA)"><i class="ti ti-stack-2"></i><span>A partir de</span></button>
+          </div>
+        </div>
         <div class="row-3">
           <div class="f-row" style="margin-bottom:4px">
-            <label for="pPackQtd">Quantidade (leve)</label>
+            <label for="pPackQtd" id="pPackQtdLabel">Quantidade (leve)</label>
             <input type="number" id="pPackQtd" min="1" step="1" value="3" oninput="onPackChange();drawPlaca()">
           </div>
           <div class="f-row" style="margin-bottom:4px">
-            <label for="pPackTotal">Preço do pack (por R$)</label>
+            <label for="pPackTotal" id="pPackTotalLabel">Preço do pack (por R$)</label>
             <input type="text" id="pPackTotal" placeholder="9,99" inputmode="decimal" autocomplete="off" oninput="onPackChange();drawPlaca()">
           </div>
           <div class="f-row" style="margin-bottom:4px">
@@ -381,7 +388,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <div style="padding-top:6px;font-size:12px;color:var(--tx2)"><strong id="pPackCada" style="color:var(--green)">--</strong></div>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--tx2)">No modo Pack, o "Por" da placa é substituído pelo valor do pack.</div>
+        <div class="f-row" id="pPackUnidadeRow" style="margin-bottom:4px;display:none">
+          <label for="pPackUnidade">Unidade de medida (aparece do lado do preço)</label>
+          <select id="pPackUnidade" oninput="onPackChange();drawPlaca()" onchange="onPackChange();drawPlaca()">
+            <option value="UN">UN</option>
+            <option value="KG">KG</option>
+            <option value="CADA">CADA</option>
+            <option value="L">L</option>
+            <option value="PC">PC</option>
+            <option value="CX">CX</option>
+            <option value="PCT">PCT</option>
+          </select>
+        </div>
+        <div style="font-size:11px;color:var(--tx2)" id="packFieldsHint">No modo Pack, o "Por" da placa é substituído pelo valor do pack.</div>
       </div>
 
       <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
@@ -389,26 +408,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <label>Como organizar as fotos dos produtos</label>
           <div style="display:flex;gap:6px">
             <button type="button" class="toggle-chip" id="unirLayoutBtnJuntinho" onclick="unirSetLayout('juntinho')" title="Fotos posicionadas lado a lado, sem sobrepor"><i class="ti ti-layout-align-center"></i><span>Lado a lado</span></button>
-            <button type="button" class="toggle-chip" id="unirLayoutBtnEmpilhado" onclick="unirSetLayout('empilhado')" title="Fotos uma embaixo da outra, empilhadas na vertical"><i class="ti ti-stack-2"></i><span>Empilhado</span></button>
             <button type="button" class="toggle-chip" id="unirLayoutBtnGrid" onclick="unirSetLayout('grid')" title="Fotos organizadas em grade dentro de um cartão"><i class="ti ti-layout-grid"></i><span>Grade</span></button>
           </div>
         </div>
         <div style="font-size:11px;color:var(--tx2);margin-bottom:6px">Busque cada produto extra na caixa "Código interno, EAN ou produto" acima e clique no botão <strong>"+"</strong> ao lado dela pra adicioná-lo aqui, no mesmo preço/pack do produto principal.</div>
-        <div class="foto-ajuste" title="Ajustar todas as fotos (principal + extras) juntas" style="margin-bottom:8px">
-          <span style="font-size:11px;color:var(--tx2);padding-right:4px">Todas juntas:</span>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('zoom-out')" title="Diminuir todas"><i class="ti ti-zoom-out"></i></button>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('zoom-in')" title="Aumentar todas"><i class="ti ti-zoom-in"></i></button>
-          <span class="sep"></span>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('left')" title="Mover todas para a esquerda"><i class="ti ti-arrow-left"></i></button>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('right')" title="Mover todas para a direita"><i class="ti ti-arrow-right"></i></button>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('up')" title="Mover todas para cima"><i class="ti ti-arrow-up"></i></button>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('down')" title="Mover todas para baixo"><i class="ti ti-arrow-down"></i></button>
-          <span class="sep"></span>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('rot-l')" title="Girar todas à esquerda"><i class="ti ti-rotate-2"></i></button>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('rot-r')" title="Girar todas à direita"><i class="ti ti-rotate"></i></button>
-          <span class="sep"></span>
-          <button type="button" class="btn-ico" onclick="ajustarFotoTodas('reset')" title="Resetar ajuste de todas"><i class="ti ti-restore"></i></button>
-        </div>
         <div id="unirLista"></div>
         <div class="f-row" style="margin-top:8px">
           <label for="pDescFinal">Descrição final da placa (editável)</label>
@@ -527,6 +530,7 @@ var PACK_MAP={
   rs:{fontSize:4.5},
   preco:{y:43.0,fontSize:12.0},
   centavos:{fontSize:5.0},
+  cadaUnidade:{y:46.0,fontSize:2.1},
   titulo:{x:4.93,y:47.0,width:90.13,height:5.5,fontSize:2.6,lineHeight:3.0,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
   imagem:{x:10.00,y:52.5,width:80.00,height:35.80,fit:'contain'},
   oferta:{x:15.00,y:88.6,width:70.00,height:2.28,fontSize:1.6,weight:800,align:'center'}
@@ -1162,7 +1166,7 @@ function getTransformAlvo(alvo){
 function ajustarFoto(alvo,acao){
   var t=getTransformAlvo(alvo);
   if(!t)return;
-  var passoMove=40,passoZoom=0.2,passoRot=90;
+  var passoMove=14,passoZoom=0.06,passoRot=5;
   switch(acao){
     case 'zoom-in':t.scale=Math.min(3,(t.scale||1)+passoZoom);break;
     case 'zoom-out':t.scale=Math.max(0.2,(t.scale||1)-passoZoom);break;
@@ -1170,16 +1174,11 @@ function ajustarFoto(alvo,acao){
     case 'down':t.dy=(t.dy||0)+passoMove;break;
     case 'left':t.dx=(t.dx||0)-passoMove;break;
     case 'right':t.dx=(t.dx||0)+passoMove;break;
-    case 'rot-l':t.rot=((t.rot||0)-passoRot+360)%360;break;
-    case 'rot-r':t.rot=((t.rot||0)+passoRot)%360;break;
+    case 'rot-l':t.rot=(t.rot||0)-passoRot;break;
+    case 'rot-r':t.rot=(t.rot||0)+passoRot;break;
     case 'reset':t.scale=1;t.dx=0;t.dy=0;t.rot=0;break;
   }
   drawPlaca();
-}
-// aplica a mesma ação na foto principal + em todas as fotos extras do "unir" de uma vez só
-function ajustarFotoTodas(acao){
-  ajustarFoto('main',acao);
-  unirExtras.forEach(function(ex){ajustarFoto(ex.id,acao);});
 }
 function carregarImagemUrl(url,semProxy){
   return new Promise(function(resolve){
@@ -1514,31 +1513,16 @@ function preencherProduto(prod){
   buscarFotoCompleta(prod.cod,prod.nome);
 }
 
-var unirLayoutPref='auto'; // 'auto' | 'juntinho' | 'empilhado' | 'grid'
-var unirGroupScale=1, unirGroupOffX=0, unirGroupOffY=0;
-function unirGroupAjustar(acao){
-  var stepZ=0.1, stepM=20;
-  switch(acao){
-    case 'zoom-out':unirGroupScale=Math.max(0.3,+(unirGroupScale-stepZ).toFixed(2));break;
-    case 'zoom-in':unirGroupScale=Math.min(3,+(unirGroupScale+stepZ).toFixed(2));break;
-    case 'left':unirGroupOffX-=stepM;break;
-    case 'right':unirGroupOffX+=stepM;break;
-    case 'up':unirGroupOffY-=stepM;break;
-    case 'down':unirGroupOffY+=stepM;break;
-    case 'reset':unirGroupScale=1;unirGroupOffX=0;unirGroupOffY=0;break;
-  }
-  drawPlaca();
-}
+var unirLayoutPref='auto'; // 'auto' | 'juntinho' | 'grid'
 function unirSetLayout(modo){
   unirLayoutPref=(unirLayoutPref===modo)?'auto':modo;
   document.getElementById('unirLayoutBtnJuntinho').classList.toggle('active',unirLayoutPref==='juntinho');
-  document.getElementById('unirLayoutBtnEmpilhado').classList.toggle('active',unirLayoutPref==='empilhado');
   document.getElementById('unirLayoutBtnGrid').classList.toggle('active',unirLayoutPref==='grid');
   drawPlaca();
 }
 function unirDeveUsarGrade(n){
   if(unirLayoutPref==='grid')return n>1;
-  if(unirLayoutPref==='juntinho'||unirLayoutPref==='empilhado')return false;
+  if(unirLayoutPref==='juntinho')return false;
   return n>3; // automático: 4+ produtos vira grade
 }
 function atualizarEstadoToggleChips(){
@@ -1582,6 +1566,21 @@ function onPrecoChange(){
   }
 }
 
+var packTipo='leve'; // 'leve' (LEVE X POR R$Y) ou 'apartir' (A PARTIR DE X UN PAGUE R$Y CADA)
+function packSetTipo(tipo){
+  packTipo=tipo;
+  document.getElementById('packTipoBtnLeve').classList.toggle('active',tipo==='leve');
+  document.getElementById('packTipoBtnApartir').classList.toggle('active',tipo==='apartir');
+  var apartir=tipo==='apartir';
+  document.getElementById('pPackUnidadeRow').style.display=apartir?'block':'none';
+  document.getElementById('pPackQtdLabel').textContent=apartir?'A partir de (qtd)':'Quantidade (leve)';
+  document.getElementById('pPackTotalLabel').textContent=apartir?'Preço por unidade (R$)':'Preço do pack (por R$)';
+  document.getElementById('packFieldsHint').textContent=apartir
+    ?'No modo "A partir de", o valor digitado é o total do pack — o "cada" é calculado dividindo pela quantidade, e a unidade escolhida aparece do lado do preço na placa.'
+    :'No modo Pack, o "Por" da placa é substituído pelo valor do pack.';
+  onPackChange();
+  drawPlaca();
+}
 function togglePack(){
   var on=document.getElementById('pPackOn').checked;
   document.getElementById('packFields').style.display=on?'block':'none';
@@ -1590,7 +1589,7 @@ function togglePack(){
   }else{
     // limpa a mensagem auto-preenchida
     var msg=document.getElementById('pMsg');
-    if(msg && /^LEVE \d+UN POR R\$/.test(msg.value)) msg.value='';
+    if(msg && /^(LEVE \d+UN POR R\$|A PARTIR DE \d+UN PAGUE R\$)/.test(msg.value)) msg.value='';
     onPrecoChange();
   }
 }
@@ -1602,11 +1601,21 @@ function onPackChange(){
   var cadaEl=document.getElementById('pPackCada');
   var badge=document.getElementById('pPctBadge');
   var msg=document.getElementById('pMsg');
+  var unidadeEl=document.getElementById('pPackUnidade');
+  var unidade=(packTipo==='apartir'&&unidadeEl)?unidadeEl.value:'';
+  var apartir=packTipo==='apartir';
   if(qtd>0 && total>0){
-    var cada=total/qtd;
-    cadaEl.textContent='R$ '+cada.toFixed(2).replace('.',',');
+    // No modo "Leve X por", o campo é o TOTAL do pack, dividido pela
+    // quantidade pra achar o "cada". No modo "A partir de", o campo já
+    // é o preço POR UNIDADE — não se divide por nada.
+    var cada=apartir?total:(total/qtd);
+    cadaEl.textContent='R$ '+cada.toFixed(2).replace('.',',')+(unidade?' / '+unidade:'');
     // preenche mensagem automaticamente (padrão do template Pack do Líder)
-    msg.value='LEVE '+qtd+'UN POR R$ '+total.toFixed(2).replace('.',',')+' (R$ '+cada.toFixed(2).replace('.',',')+' CADA)';
+    if(apartir){
+      msg.value='A PARTIR DE '+qtd+'UN PAGUE R$ '+cada.toFixed(2).replace('.',',')+' (CADA'+(unidade?' '+unidade:'')+')';
+    }else{
+      msg.value='LEVE '+qtd+'UN POR R$ '+total.toFixed(2).replace('.',',')+' (R$ '+cada.toFixed(2).replace('.',',')+' CADA)';
+    }
     // % de desconto baseado no preço original vs "cada"
     if(de>0 && cada<de){
       var pct=((de-cada)/de)*100;
@@ -1872,7 +1881,9 @@ async function drawPlaca(){
     packQtd=parseInt(document.getElementById('pPackQtd').value)||0;
     packTotal=parseDec(document.getElementById('pPackTotal').value);
     if(packQtd>0 && packTotal>0){
-      packCada=packTotal/packQtd;
+      // "Leve X por": packTotal é o total, divide pela quantidade.
+      // "A partir de": packTotal já é o preço por unidade, sem dividir.
+      packCada=(packTipo==='apartir')?packTotal:(packTotal/packQtd);
       por=packTotal.toFixed(2).replace('.',',');
       porN=packTotal;
     }
@@ -2066,36 +2077,6 @@ async function drawPlaca(){
     });
     ctx.restore();
   }
-  function desenharEmpilhadoFotos(imgsOriginais,areaX,areaW,areaTopY,areaH,transforms){
-    var imgs=imgsOriginais.map(croparTransparente);
-    var n=imgs.length;
-    var gapV=-6; // negativo: fica bem pertinho, levemente sobreposto
-    var maxHItem=(areaH-gapV*(n-1))/n;
-    var maxWItem=areaW*0.9;
-    var dims=imgs.map(function(img){
-      var asp=img.width/img.height;
-      var fW,fH;
-      fW=maxWItem;fH=maxWItem/asp;
-      if(fH>maxHItem){fH=maxHItem;fW=maxHItem*asp;}
-      return {img:img,fW:fW,fH:fH};
-    });
-    var totalH=dims.reduce(function(s,d){return s+d.fH;},0)+gapV*(n-1);
-    var curY=areaTopY+areaH/2-totalH/2;
-    ctx.save();
-    ctx.imageSmoothingEnabled=true;
-    if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
-    dims.forEach(function(d,i){
-      var cy=curY+d.fH/2;
-      var cx=areaX+areaW/2;
-      ctx.shadowColor='rgba(0,0,0,0.28)';
-      ctx.shadowBlur=16;
-      ctx.shadowOffsetX=0;
-      ctx.shadowOffsetY=6;
-      desenharImgT(ctx,d.img,cx,cy,d.fW,d.fH,transforms[i]);
-      curY+=d.fH+gapV;
-    });
-    ctx.restore();
-  }
   if(!packOn){
     var extrasComFotoN=unirOn?unirExtras.filter(function(x){return x.img;}):[];
     if(fotoImg&&fotoImgARecortadaFonte!==fotoImg){
@@ -2104,18 +2085,7 @@ async function drawPlaca(){
     }
     var imgsUnirN=(fotoImg?[fotoImgARecortada||fotoImg]:[]).concat(extrasComFotoN.map(function(x){return x.imgRecortada||x.img;}));
     var transformsUnirN=(fotoImg?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoN.map(function(x){return x.transform||novoTransform();}));
-    var grupoAtivoN=unirOn&&imgsUnirN.length>1;
-    if(grupoAtivoN){
-      ctx.save();
-      ctx.translate(W/2+unirGroupOffX,835+unirGroupOffY);
-      ctx.scale(unirGroupScale,unirGroupScale);
-      ctx.translate(-W/2,-835);
-    }
-    if(unirOn && unirLayoutPref==='empilhado' && imgsUnirN.length>1){
-      // Modo "empilhado": cada foto embaixo da outra, na vertical.
-      var areaTopYE=605, areaHE=460, padXE=140;
-      desenharEmpilhadoFotos(imgsUnirN,padXE,W-padXE*2,areaTopYE,areaHE,transformsUnirN);
-    }else if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
+    if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
       var areaTopYG=635, areaHG=400, padXG=30;
@@ -2206,10 +2176,7 @@ async function drawPlaca(){
     var extrasComFotoP=unirOn?unirExtras.filter(function(x){return x.img;}):[];
     var imgsPackN=(imgPack?[imgPack]:[]).concat(extrasComFotoP.map(function(x){return x.imgRecortada||x.img;}));
     var transformsPackN=(imgPack?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoP.map(function(x){return x.transform||novoTransform();}));
-    if(unirOn && unirLayoutPref==='empilhado' && imgsPackN.length>1){
-      // Modo "empilhado": cada foto embaixo da outra, na vertical.
-      desenharEmpilhadoFotos(imgsPackN,fX2+pad3,innerW2,fY2+pad3,innerH2,transformsPackN);
-    }else if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
+    if(unirOn && unirDeveUsarGrade(imgsPackN.length)){
       // 4 ou mais produtos: organiza em grade dentro da área de imagem
       // do template Pack (ex.: 9 produtos vira 3x3).
       desenharGradeFotos(imgsPackN,fX2+pad3,fY2+pad3,innerW2,innerH2,null,transformsPackN);
@@ -2303,9 +2270,16 @@ async function drawPlaca(){
       var valTxt=packTotal>0?packTotal.toFixed(2).replace('.',','):'0,00';
       var partes=valTxt.split(',');
       var inteiro=partes[0], centavos=','+(partes[1]||'00');
+      var apartir=packTipo==='apartir';
+      var unidadeSel=(document.getElementById('pPackUnidade')&&document.getElementById('pPackUnidade').value)||'UN';
+      var cadaValor=packCada;
+      var precoPartes=cadaValor>0?cadaValor.toFixed(2).replace('.',',').split(','):['0','00'];
+      var inteiroFinal=apartir?precoPartes[0]:inteiro;
+      var centavosFinal=apartir?(','+(precoPartes[1]||'00')):centavos;
 
-      // 1. LEVE / QTD / POR (Centralizado na Bandeira Amarela, com auto-ajuste
-      //    para nunca estourar a largura da faixa amarela do template)
+      // 1. LEVE / QTD / POR (ou "A PARTIR DE" / QTD / "PAGUE" no modo alternativo)
+      //    Centralizado na Bandeira Amarela, com auto-ajuste para nunca
+      //    estourar a largura da faixa amarela do template
       ctx.textAlign='center';
       ctx.textBaseline='middle';
       ctx.fillStyle='#1a1a18'; // Coroa texto preto
@@ -2323,15 +2297,18 @@ async function drawPlaca(){
         return fs;
       }
 
-      // "LEVE" e "POR" sempre no mesmo tamanho — se um dos dois precisar encolher
-      // para caber, os dois encolhem juntos
+      var txtLeve=apartir?'A PARTIR DE':'LEVE';
+      var txtPor=apartir?(unidadeSel+' PAGUE'):'POR';
+
+      // "LEVE"/"A PARTIR DE" e "POR"/"UN PAGUE" sempre no mesmo tamanho —
+      // se um dos dois precisar encolher para caber, os dois encolhem juntos
       var fsLeveBase=my(PACK_MAP.leve.fontSize), fsPorBase=my(PACK_MAP.por.fontSize);
-      var fsLeveFit=fitFont('LEVE',fsLeveBase,bandeiraW);
-      var fsPorFit=fitFont('POR',fsPorBase,bandeiraW);
+      var fsLeveFit=fitFont(txtLeve,fsLeveBase,bandeiraW);
+      var fsPorFit=fitFont(txtPor,fsPorBase,bandeiraW);
       var fsLevePor=Math.min(fsLeveFit,fsPorFit);
 
       ctx.font='900 '+fsLevePor+'px '+fonte;
-      ctx.fillText('LEVE', W/2, my(PACK_MAP.leve.y));
+      ctx.fillText(txtLeve, W/2, my(PACK_MAP.leve.y));
 
       // Quantidade (o número) — encolhe de forma independente, se precisar
       var fsQtd=fitFont(qtdTxt,my(PACK_MAP.quantidade.fontSize),bandeiraW,24);
@@ -2339,7 +2316,7 @@ async function drawPlaca(){
       ctx.fillText(qtdTxt, W/2, my(PACK_MAP.quantidade.y));
 
       ctx.font='900 '+fsLevePor+'px '+fonte;
-      ctx.fillText('POR', W/2, my(PACK_MAP.por.y));
+      ctx.fillText(txtPor, W/2, my(PACK_MAP.por.y));
 
       // 2. PREÇO (Cálculo dinâmico para ficar SEMPRE centralizado no escudo vermelho)
       var fsRs = my(PACK_MAP.rs.fontSize);
@@ -2351,13 +2328,24 @@ async function drawPlaca(){
       var wRs = ctx.measureText('R$ ').width;
 
       ctx.font='900 '+fsPreco+'px '+fonte;
-      var wPreco = ctx.measureText(inteiro).width;
+      var wPreco = ctx.measureText(inteiroFinal).width;
 
       ctx.font='900 '+fsCents+'px '+fonte;
-      var wCents = ctx.measureText(centavos).width;
+      var wCents = ctx.measureText(centavosFinal).width;
+
+      // No modo "A partir de", a unidade de medida vai coladinha do lado
+      // do preço (ex.: "R$ 19,99/UN"), não mais embaixo.
+      var unidadeTxt = apartir ? ('/'+unidadeSel) : '';
+      var fsUnidade = Math.round(fsCents*0.72);
+      var gapUnidade = unidadeTxt ? 6 : 0;
+      var wUnidade = 0;
+      if(unidadeTxt){
+        ctx.font='800 '+fsUnidade+'px '+fonte;
+        wUnidade = ctx.measureText(unidadeTxt).width;
+      }
 
       // Descobre onde começar a desenhar para que o bloco todo fique no centro (W/2)
-      var totalW = wRs + wPreco + wCents;
+      var totalW = wRs + wPreco + wCents + gapUnidade + wUnidade;
       var startX = (W - totalW) / 2;
       var priceY = my(PACK_MAP.preco.y); // Linha de base do preço (rebaixado)
       var topAlignY = priceY - (fsPreco * 0.38); // Altura padronizada para o R$ e Centavos
@@ -2372,11 +2360,17 @@ async function drawPlaca(){
 
       // Valor principal (Inteiro)
       ctx.font='900 '+fsPreco+'px '+fonte;
-      ctx.fillText(inteiro, startX + wRs, priceY);
+      ctx.fillText(inteiroFinal, startX + wRs, priceY);
 
       // Centavos ",00"
       ctx.font='900 '+fsCents+'px '+fonte;
-      ctx.fillText(centavos, startX + wRs + wPreco, topAlignY);
+      ctx.fillText(centavosFinal, startX + wRs + wPreco, topAlignY);
+
+      // Unidade de medida — do ladinho do preço, alinhada pela base (ex.: /UN, /KG)
+      if(unidadeTxt){
+        ctx.font='800 '+fsUnidade+'px '+fonte;
+        ctx.fillText(unidadeTxt, startX + wRs + wPreco + wCents + gapUnidade, priceY);
+      }
     })();
   }else{
   (function drawPrecoBox(){
