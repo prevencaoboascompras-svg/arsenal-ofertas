@@ -531,7 +531,7 @@ var PACK_MAP={
   preco:{y:43.0,fontSize:12.0},
   centavos:{fontSize:5.0},
   cadaUnidade:{y:46.0,fontSize:2.1},
-  unidadeBadge:{x:66.0,y:47.5,fontSize:3.6},
+  unidadeBadge:{x:78.0,y:44.0,fontSize:4.5},
   titulo:{x:4.93,y:47.0,width:90.13,height:5.5,fontSize:2.6,lineHeight:3.0,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
   imagem:{x:10.00,y:52.5,width:80.00,height:35.80,fit:'contain'},
   oferta:{x:15.00,y:88.6,width:70.00,height:2.28,fontSize:1.6,weight:800,align:'center'}
@@ -2362,12 +2362,17 @@ async function drawPlaca(){
       // Unidade de medida — selo próprio, ancorado num ponto fixo perto do
       // canto do preço (não interfere na centralização do preço).
       if(apartir){
-        var unidadeTxt='/'+unidadeSel;
+        var unidadeTxt=unidadeSel;
         var fsUnidade=my(PACK_MAP.unidadeBadge.fontSize);
-        ctx.font='800 '+fsUnidade+'px '+fonte;
+        ctx.save();
+        ctx.font='900 italic '+fsUnidade+'px '+fonte;
         ctx.textAlign='left';
         ctx.textBaseline='alphabetic';
-        ctx.fillText(unidadeTxt, mx(PACK_MAP.unidadeBadge.x), my(PACK_MAP.unidadeBadge.y));
+        ctx.fillStyle='#FFD600';
+        ctx.translate(mx(PACK_MAP.unidadeBadge.x),my(PACK_MAP.unidadeBadge.y));
+        ctx.rotate(-8*Math.PI/180);
+        ctx.fillText(unidadeTxt,0,0);
+        ctx.restore();
       }
     })();
   }else{
