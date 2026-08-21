@@ -531,6 +531,7 @@ var PACK_MAP={
   preco:{y:43.0,fontSize:12.0},
   centavos:{fontSize:5.0},
   cadaUnidade:{y:46.0,fontSize:2.1},
+  unidadeBadge:{x:66.0,y:47.5,fontSize:3.6},
   titulo:{x:4.93,y:47.0,width:90.13,height:5.5,fontSize:2.6,lineHeight:3.0,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
   imagem:{x:10.00,y:52.5,width:80.00,height:35.80,fit:'contain'},
   oferta:{x:15.00,y:88.6,width:70.00,height:2.28,fontSize:1.6,weight:800,align:'center'}
@@ -2335,19 +2336,9 @@ async function drawPlaca(){
       ctx.font='900 '+fsCents+'px '+fonte;
       var wCents = ctx.measureText(centavosFinal).width;
 
-      // No modo "A partir de", a unidade de medida vai coladinha do lado
-      // do preço (ex.: "R$ 19,99/UN"), não mais embaixo.
-      var unidadeTxt = apartir ? ('/'+unidadeSel) : '';
-      var fsUnidade = Math.round(fsCents*0.72);
-      var gapUnidade = unidadeTxt ? 6 : 0;
-      var wUnidade = 0;
-      if(unidadeTxt){
-        ctx.font='800 '+fsUnidade+'px '+fonte;
-        wUnidade = ctx.measureText(unidadeTxt).width;
-      }
-
       // Descobre onde começar a desenhar para que o bloco todo fique no centro (W/2)
-      var totalW = wRs + wPreco + wCents + gapUnidade + wUnidade;
+      // O preço fica SEMPRE centralizado no escudo — a unidade (abaixo) não entra nessa conta.
+      var totalW = wRs + wPreco + wCents;
       var startX = (W - totalW) / 2;
       var priceY = my(PACK_MAP.preco.y); // Linha de base do preço (rebaixado)
       var topAlignY = priceY - (fsPreco * 0.38); // Altura padronizada para o R$ e Centavos
@@ -2368,10 +2359,15 @@ async function drawPlaca(){
       ctx.font='900 '+fsCents+'px '+fonte;
       ctx.fillText(centavosFinal, startX + wRs + wPreco, topAlignY);
 
-      // Unidade de medida — do ladinho do preço, alinhada pela base (ex.: /UN, /KG)
-      if(unidadeTxt){
+      // Unidade de medida — selo próprio, ancorado num ponto fixo perto do
+      // canto do preço (não interfere na centralização do preço).
+      if(apartir){
+        var unidadeTxt='/'+unidadeSel;
+        var fsUnidade=my(PACK_MAP.unidadeBadge.fontSize);
         ctx.font='800 '+fsUnidade+'px '+fonte;
-        ctx.fillText(unidadeTxt, startX + wRs + wPreco + wCents + gapUnidade, priceY);
+        ctx.textAlign='left';
+        ctx.textBaseline='alphabetic';
+        ctx.fillText(unidadeTxt, mx(PACK_MAP.unidadeBadge.x), my(PACK_MAP.unidadeBadge.y));
       }
     })();
   }else{
