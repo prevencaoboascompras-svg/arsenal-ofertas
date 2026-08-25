@@ -1265,46 +1265,9 @@ async function buscarFotoDrive(codigoBarras,tipo){
   }
   return null;
 }
-async function buscarFotoGoogleCSE(query){
-  query=String(query||'').trim();
-  if(!query||!GCSE_API_KEY||!GCSE_CX)return null;
-  var url='https://www.googleapis.com/customsearch/v1?key='+encodeURIComponent(GCSE_API_KEY)+
-    '&cx='+encodeURIComponent(GCSE_CX)+
-    '&searchType=image&num=6&safe=active&imgSize=medium&q='+encodeURIComponent(query);
-  try{
-    var r=await fetchComTimeout(url,{cache:'no-store'},5000);
-    if(!r.ok)return null;
-    var j=await r.json();
-    var items=j.items||[];
-    for(var i=0;i<items.length;i++){
-      var links=[items[i].link,items[i].image&&items[i].image.thumbnailLink].filter(Boolean);
-      for(var li=0;li<links.length;li++){
-        var img=await carregarImagemUrl(links[li]);
-        if(img)return img;
-      }
-    }
-  }catch(e){}
-  return null;
-}
-async function buscarFotoOpenverse(query){
-  query=String(query||'').trim();
-  if(!query)return null;
-  try{
-    var url='https://api.openverse.engineering/v1/images/?mature=false&page_size=12&q='+encodeURIComponent(query);
-    var r=await fetchComTimeout(url,{cache:'no-store'},5000);
-    if(!r.ok)return null;
-    var j=await r.json();
-    var items=j.results||[];
-    for(var i=0;i<items.length;i++){
-      var links=[items[i].thumbnail,items[i].thumbnail_url,items[i].url].filter(Boolean);
-      for(var li=0;li<links.length;li++){
-        var img=await carregarImagemUrl(links[li]);
-        if(img)return img;
-      }
-    }
-  }catch(e){}
-  return null;
-}
+// buscarFotoGoogleCSE e buscarFotoOpenverse foram removidas: a primeira sempre retornava
+// 400 (chave/cota) e a segunda é bloqueada por CORS nesta origem — nunca traziam foto,
+// só deixavam a busca lenta. Wikimedia Commons (abaixo) aceita CORS e assumiu o lugar.
 async function buscarFotoWikimedia(query){
   query=String(query||'').trim();
   if(!query)return null;
@@ -1327,15 +1290,40 @@ async function buscarFotoWikimedia(query){
   }catch(e){}
   return null;
 }
+var FOTO_CACHE_KEY='arsenalFotoCacheV1';
+var FOTO_CACHE_TTL_MS=1000*60*60*24*7; // 7 dias
+function fotoCacheLer(chave){
+  try{
+    var c=JSON.parse(localStorage.getItem(FOTO_CACHE_KEY)||'{}');
+    var item=c[chave];
+    if(item&&(Date.now()-item.ts)<FOTO_CACHE_TTL_MS)return item;
+  }catch(e){}
+  return null;
+}
+function fotoCacheGravar(chave,valor){
+  try{
+    var c=JSON.parse(localStorage.getItem(FOTO_CACHE_KEY)||'{}');
+    c[chave]={achou:!!valor,url:valor||null,ts:Date.now()};
+    var chaves=Object.keys(c);
+    if(chaves.length>500){chaves.sort(function(a,b){return c[a].ts-c[b].ts;});for(var i=0;i<chaves.length-500;i++)delete c[chaves[i]];}
+    localStorage.setItem(FOTO_CACHE_KEY,JSON.stringify(c));
+  }catch(e){}
+}
 async function buscarFotoWeb(query,statusFn){
   query=String(query||'').trim();
   if(!query)return null;
-  if(statusFn)statusFn('Buscando no Google Imagens por: "'+query+'"...');
-  var img=await buscarFotoGoogleCSE(query);
-  if(img)return {img:img,fonte:'Google Imagens'};
-  if(statusFn)statusFn('Google não retornou imagem. Tentando Openverse...');
-  img=await buscarFotoOpenverse(query);
-  if(img)return {img:img,fonte:'Openverse'};
+  var chaveCache='web:'+query.toLowerCase();
+  var cache=fotoCacheLer(chaveCache);
+  if(cache){
+    if(!cache.achou)return null;
+    if(cache.url){var imgC=await carregarImagemUrl(cache.url);if(imgC)return {img:imgC,fonte:'cache'};}
+  }
+  if(statusFn)statusFn('Buscando imagem por: "'+query+'"...');
+  // Google CSE e Openverse removidos: nesta origem sempre falham (CSE retorna 400 de cota/config,
+  // Openverse é bloqueado por CORS) e só deixavam a busca lenta sem nunca achar nada.
+  var img=await buscarFotoWikimedia(query);
+  if(img){fotoCacheGravar(chaveCache,img.src||true);return {img:img,fonte:'Wikimedia Commons'};}
+  fotoCacheGravar(chaveCache,null);
   return null;
 }
 async function buscarFotoOpenFoodFacts(ean,nomeProduto){
@@ -1355,36 +1343,11 @@ async function buscarFotoOpenFoodFacts(ean,nomeProduto){
       }
     }catch(e){}
   }
-  var nome=String(nomeProduto||'').trim();
-  if(nome){
-    try{
-      var sUrl='https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(nome)+'&search_simple=1&action=process&json=1&page_size=5';
-      var sr=await fetchComTimeout(sUrl,{cache:'no-store'},5000);
-      if(sr.ok){
-        var sj=await sr.json();
-        var prods=sj.products||[];
-        for(var pi=0;pi<prods.length;pi++){
-          var p=prods[pi];
-          var urls2=[p.image_front_url,p.image_url,p.image_front_small_url].filter(Boolean);
-          for(var ui=0;ui<urls2.length;ui++){
-            var img2=await carregarImagemUrl(urls2[ui]);
-            if(img2)return img2;
-          }
-        }
-      }
-    }catch(e){}
-  }
+  // Busca por nome (/cgi/search.pl) removida: bloqueada por CORS nesta origem, nunca retornava nada.
   return null;
 }
-async function buscarFotoCosmos(ean){
-  var cod=normalizarCodigo(ean);
-  if(!cod||!/^\d{8,14}$/.test(cod))return null;
-  try{
-    var url='https://cdn-cosmos.bluesoft.com.br/products/'+cod;
-    var img=await carregarImagemUrl(url);
-    return img;
-  }catch(e){return null;}
-}
+// buscarFotoCosmos removida: o CDN da Bluesoft bloqueia CORS nesta origem e a chamada
+// (com fallback pelo proxy weserv, que também falhava) nunca trazia imagem.
 async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   var token=++fotoToken;
   var cod=normalizarCodigo(ean);
@@ -1402,14 +1365,8 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     }
   }
 
-  if(cod){
-    setFotoStatus('Não achou no Drive. Buscando no catálogo Bluesoft Cosmos...');
-    img=await buscarFotoCosmos(cod);
-    if(token!==fotoToken)return false;
-    if(img){
-      fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no catálogo Bluesoft Cosmos.','ok');drawPlaca();return true;
-    }
-  }
+  // Busca no catálogo Bluesoft Cosmos removida: o CDN bloqueia CORS para este domínio
+  // e a chamada nunca completava, apenas consumia tempo em toda geração de placa.
 
   if(termo){
     var achadoTermo=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
@@ -1419,7 +1376,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     }
   }
 
-  setFotoStatus('Não achou no Drive/Cosmos'+(termo?' nem pelo termo manual':'')+'. Tentando busca pelo nome do produto no Google...');
+  setFotoStatus('Não achou no Drive'+(termo?' nem pelo termo manual':'')+'. Tentando pelo nome do produto...');
   if(nome){
     var achadoNome=await buscarFotoWeb(nome,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
@@ -1435,11 +1392,20 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     }
   }
 
-  setFotoStatus('Não achou no Google. Buscando no Open Food Facts...');
-  img=await buscarFotoOpenFoodFacts(cod,nome);
-  if(token!==fotoToken)return false;
-  if(img){
-    fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no Open Food Facts.','ok');drawPlaca();return true;
+  if(cod){
+    var chaveOff='off:'+cod;
+    var cacheOff=fotoCacheLer(chaveOff);
+    if(cacheOff&&!cacheOff.achou){
+      // já sabemos que este código não tem foto no Open Food Facts; não perde tempo tentando de novo
+    } else {
+      setFotoStatus('Buscando no Open Food Facts...');
+      img=await buscarFotoOpenFoodFacts(cod,nome);
+      if(token!==fotoToken)return false;
+      fotoCacheGravar(chaveOff,img&&img.src?img.src:null);
+      if(img){
+        fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no Open Food Facts.','ok');drawPlaca();return true;
+      }
+    }
   }
 
   limparFoto('Foto não encontrada automaticamente. Clique em Abrir Google, copie a URL da imagem e use o campo URL.');
@@ -3485,9 +3451,7 @@ async function buscarFotoItemEncarte(codigo,nome,fallbackFoto){
   if(cod){
     img=await buscarFotoDrive(cod,'produto');
     if(img){if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;return {src:img.src,origem:'Google Drive'};}
-
-    img=await buscarFotoCosmos(cod);
-    if(img){if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;return {src:img.src,origem:'Bluesoft Cosmos'};}
+    // Bluesoft Cosmos removido: CDN bloqueia CORS nesta origem, nunca completava.
   }
 
   if(nome){
