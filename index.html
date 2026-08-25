@@ -1348,8 +1348,24 @@ async function buscarFotoOpenFoodFacts(ean,nomeProduto){
   // Busca por nome (/cgi/search.pl) removida: bloqueada por CORS nesta origem, nunca retornava nada.
   return null;
 }
-// buscarFotoCosmos removida: o CDN da Bluesoft bloqueia CORS nesta origem e a chamada
-// (com fallback pelo proxy weserv, que também falhava) nunca trazia imagem.
+// Busca a foto do produto direto no CDN público do Cosmos (Bluesoft), pelo GTIN/EAN.
+// Não precisa de token: o CDN de imagens é aberto, só a API de dados (JSON) exige token.
+// Se a imagem travar por CORS no <img>, carregarImagemUrl() já cai automaticamente no
+// proxy images.weserv.nl, que resolve o bloqueio.
+async function buscarFotoCosmos(ean){
+  var cod=normalizarCodigo(ean);
+  if(!cod)return null;
+  var chaveCache='cosmos:'+cod;
+  var cache=fotoCacheLer(chaveCache);
+  if(cache){
+    if(!cache.achou)return null;
+    if(cache.url){var imgC=await carregarImagemUrl(cache.url);if(imgC)return imgC;}
+  }
+  var url='https://cdn-cosmos.bluesoft.com.br/products/'+encodeURIComponent(cod);
+  var img=await carregarImagemUrl(url);
+  fotoCacheGravar(chaveCache,img&&img.src?img.src:null);
+  return img||null;
+}
 async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   var token=++fotoToken;
   var cod=normalizarCodigo(ean);
@@ -1367,8 +1383,14 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
     }
   }
 
-  // Busca no catálogo Bluesoft Cosmos removida: o CDN bloqueia CORS para este domínio
-  // e a chamada nunca completava, apenas consumia tempo em toda geração de placa.
+  if(cod){
+    setFotoStatus('Buscando foto no catálogo Cosmos (Bluesoft)...');
+    img=await buscarFotoCosmos(cod);
+    if(token!==fotoToken)return false;
+    if(img){
+      fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no catálogo Cosmos.','ok');drawPlaca();return true;
+    }
+  }
 
   if(termo){
     var achadoTermo=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
