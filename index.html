@@ -2195,12 +2195,16 @@ async function drawPlaca(){
     });
 
     var maiorH=Math.max.apply(null,medidas.map(function(m){return m.h;}));
-    var passo=maiorH+GAP_FOTOS;
+    // Sobreposição moderada e fixa (as embalagens se sobrepõem parcialmente,
+    // tipo uma pilha de cartas) — não cresce muito com a quantidade, só o
+    // suficiente pra continuar cabendo quando há muitos itens.
+    var overlap=n<=6?0.42:n<=8?0.48:n<=10?0.54:0.60;
+    var passo=maiorH*(1-overlap);
     var pilhaH=maiorH+passo*(n-1);
     var limiteH=boxH*0.92;
 
     // Se, por proporção da foto, a pilha ainda ultrapassar a área, reduz tudo
-    // proporcionalmente (imagens e folga) mantendo a mesma regra de espaçamento.
+    // proporcionalmente sem mudar o grau de sobreposição.
     if(pilhaH>limiteH&&pilhaH>0){
       var fator=limiteH/pilhaH;
       medidas.forEach(function(m){m.w*=fator;m.h*=fator;});
