@@ -2730,8 +2730,12 @@ async function downloadPlaca(){
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
   },'image/png');
-  // entra/atualiza automaticamente na lista de promoções. A própria rotina
-  // salva a foto no Drive UMA vez após confirmar o registro na nuvem.
+  // Salva a foto atual no banco de imagens do Drive (se ainda não veio de lá),
+  // independente de haver Sheets configurado ou preço promocional preenchido —
+  // antes isso só acontecia dentro de adicionarNaListaAuto() e ficava pulado
+  // sempre que faltava algum desses outros dados.
+  salvarFotoAtualNoDrive(false);
+  // entra/atualiza automaticamente na lista de promoções, quando aplicável.
   adicionarNaListaAuto();
 }
 
@@ -2865,7 +2869,8 @@ async function adicionarNaListaAuto(){
 
     var res=await _gasPost('upsertEncarte',{registro:registro});
     if(res&&res.ok){
-      // Alimenta o banco de imagens do Drive em segundo plano (não bloqueia a lista).
+      // Também cobre o botão "Salvar edição" (não passa pelo downloadPlaca).
+      // Não duplica gravação: fica no-op se a foto já veio do Drive.
       salvarFotoAtualNoDrive(false);
       mostrarToast(estavaEditando?'Promoção atualizada na lista.':'Adicionado à lista de promoções.','ok');
       if(estavaEditando){
