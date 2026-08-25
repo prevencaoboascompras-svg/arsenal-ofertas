@@ -509,6 +509,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div id="printArea"></div>
 
 <script>
+console.info('[Boss Vision] Arsenal de Ofertas build DUP-FIX-20260825-1140 — bloqueio de duplicados no modo Unir');
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -582,6 +583,7 @@ var fotoImg=null;
 var fotoToken=0;
 var fotoTransform=null; // {scale,dx,dy,rot} ajuste manual da foto principal
 var prodAtualCod='';
+var unirPrincipalCod=''; // código estável do produto principal enquanto o modo Unir estiver sendo montado
 var unirExtras=[];   // produtos extras unidos ao principal: cada item {id,cod,nome,img,imgRecortada,token}
 var unirExtraSeq=0;  // gerador de ids únicos pras linhas de produto extra
 var fotoImgARecortada=null;       // versão de fotoImg (produto 1) com fundo removido, cacheada por referência
@@ -1507,6 +1509,11 @@ function preencherProduto(prod){
     return;
   }
   prodAtualCod=normalizarCodigo(prod.cod)||'';
+  // Enquanto o modo Unir estiver desligado, o produto carregado é o principal.
+  // Guardamos esse código separadamente porque o campo de busca é reutilizado
+  // para procurar os sabores/extras e o evento de input limpa prodAtualCod.
+  var unirAtivoAgora=document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked;
+  if(!unirAtivoAgora)unirPrincipalCod=prodAtualCod;
   var precoTxt=prod.preco?fmtR(prod.preco):'--';
   info.innerHTML=''+
     '<div><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+escapeHtml(prod.cod||'(sem código)')+'</div></div>'+
@@ -1662,6 +1669,9 @@ function toggleUnir(){
   var on=document.getElementById('pUnirOn').checked;
   document.getElementById('unirFields').style.display=on?'block':'none';
   if(on){
+    // Congela o código do produto principal antes que a mesma caixa de busca
+    // passe a ser usada para localizar os produtos extras.
+    if(!unirPrincipalCod)unirPrincipalCod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value||'');
     // ao ligar, sugere a descrição atual do 1º produto como ponto de partida editável
     var descFinalEl=document.getElementById('pDescFinal');
     if(descFinalEl&&!descFinalEl.value.trim()){
@@ -1675,6 +1685,7 @@ function toggleUnir(){
     }
   }else{
     unirLimparTudo();
+    unirPrincipalCod='';
     unirDescManual=false;
     var descFinalEl2=document.getElementById('pDescFinal');
     if(descFinalEl2)descFinalEl2.value='';
@@ -1720,9 +1731,31 @@ function unirRowTemplate(id,nome,cod){
 }
 
 function unirAdicionarProdutoObj(prod){
-  var id='u'+(++unirExtraSeq);
   var cod=normalizarCodigo(prod.cod||'');
   var nome=(prod.nome||prod.cod||'').trim();
+  var principalCod=normalizarCodigo(unirPrincipalCod||prodAtualCod||'');
+
+  // 1) O produto principal nunca pode entrar novamente como extra.
+  if(cod&&principalCod&&cod===principalCod){
+    mostrarToast('Esse produto já é o produto principal da placa e não pode ser adicionado novamente.','warn');
+    return null;
+  }
+
+  // 2) O mesmo EAN/código não pode aparecer duas vezes na lista de extras.
+  // Para itens sem código, usa o nome normalizado como segunda proteção.
+  var nomeKey=normalizarTexto(nome||'');
+  var repetido=unirExtras.some(function(x){
+    var codX=normalizarCodigo(x.cod||'');
+    if(cod&&codX)return cod===codX;
+    if(!cod&&!codX&&nomeKey)return normalizarTexto(x.nome||'')===nomeKey;
+    return false;
+  });
+  if(repetido){
+    mostrarToast('Esse produto já foi adicionado na união.','warn');
+    return null;
+  }
+
+  var id='u'+(++unirExtraSeq);
   unirExtras.push({id:id,cod:cod,nome:nome,img:null,imgRecortada:null,token:0,transform:novoTransform()});
   var container=document.getElementById('unirLista');
   if(container)container.insertAdjacentHTML('beforeend',unirRowTemplate(id,nome,cod));
@@ -1812,7 +1845,11 @@ function adicionarProdutoUnificado(){
     toggleUnir();
     atualizarEstadoToggleChips();
   }
-  unirAdicionarProdutoObj(prod);
+  var novoUnirId=unirAdicionarProdutoObj(prod);
+  if(!novoUnirId){
+    input.focus();
+    return;
+  }
   input.value='';
   esconderSugestoes();
   input.focus();
@@ -1823,6 +1860,7 @@ function limparCampos(){
   ++fotoToken;
   unirLimparTudo();
   prodAtualCod='';
+  unirPrincipalCod='';
   fotoOrigemDrive=false;
   document.getElementById('pCod').value='';
   document.getElementById('pDescOverride').value='';
@@ -2996,6 +3034,7 @@ async function editarEncarte(id){
   var packOn=it.tipoPromocao==='PACK';
 
   prodAtualCod=cod;
+  unirPrincipalCod=cod;
   document.getElementById('pCod').value=cod||it.codigo||'';
   document.getElementById('pDescOverride').value=descricaoBanco;
   document.getElementById('pDe').value=it.de||'';
@@ -3316,7 +3355,7 @@ async function gerarImagemPlacaItem(it){
     unirOn:elUnirOn?elUnirOn.checked:false,unirLayoutPref:unirLayoutPref,
     unirExtras:unirExtras.slice(),unirDescManual:unirDescManual,
     descFinal:elDescFinal?elDescFinal.value:'',
-    fotoImg:fotoImg,fotoOrigemDrive:fotoOrigemDrive,prodAtualCod:prodAtualCod
+    fotoImg:fotoImg,fotoOrigemDrive:fotoOrigemDrive,prodAtualCod:prodAtualCod,unirPrincipalCod:unirPrincipalCod
   };
 
   try{
@@ -3333,6 +3372,7 @@ async function gerarImagemPlacaItem(it){
     elValidade.value=it.validade||'';
     elUnidade.value=unidade;
     prodAtualCod=cod;
+    unirPrincipalCod=cod;
 
     var unirOnTmp=!!it.unirOn;
     if(elUnirOn)elUnirOn.checked=unirOnTmp;
@@ -3345,10 +3385,14 @@ async function gerarImagemPlacaItem(it){
       var extrasTmp=Array.isArray(it.produtosExtra)&&it.produtosExtra.length
         ?it.produtosExtra
         :(it.cod2?[{codigo:it.cod2,nome:it.produtoB||''}]:[]);
+      var extrasVistosTmp={};
       for(var ux=0;ux<extrasTmp.length;ux++){
         var exTmp=extrasTmp[ux]||{};
         var codTmp=normalizarCodigo(exTmp.codigo||'');
         var nomeTmp=(exTmp.nome||((buscarPorCodigo(codTmp)||{}).nome)||'').trim();
+        var chaveTmp=codTmp?('C:'+codTmp):('N:'+normalizarTexto(nomeTmp));
+        if((codTmp&&codTmp===cod)||extrasVistosTmp[chaveTmp])continue;
+        extrasVistosTmp[chaveTmp]=true;
         var fotoTmp=await buscarFotoItemEncarte(codTmp,nomeTmp,'');
         var imgTmp=fotoTmp.src?await carregarImagemUrl(fotoTmp.src):null;
         unirExtras.push({
@@ -3381,7 +3425,7 @@ async function gerarImagemPlacaItem(it){
     unirDescManual=backup.unirDescManual;
     if(elDescFinal)elDescFinal.value=backup.descFinal;
     unirAtualizarBotoesLayout();
-    fotoImg=backup.fotoImg;fotoOrigemDrive=backup.fotoOrigemDrive;prodAtualCod=backup.prodAtualCod;
+    fotoImg=backup.fotoImg;fotoOrigemDrive=backup.fotoOrigemDrive;prodAtualCod=backup.prodAtualCod;unirPrincipalCod=backup.unirPrincipalCod;
     drawPlaca();
   }
 }
@@ -3512,11 +3556,15 @@ function prepararItemEncarte(it){
     : (unirOn&&it.cod2?[{codigo:it.cod2,nome:it.produtoB||''}]:[]);
   var produtosExtraPrep=[];
   if(unirOn&&listaExtraPrep.length){
-    produtosExtraPrep=listaExtraPrep.map(function(ex){
+    var extrasVistosPrep={};
+    listaExtraPrep.forEach(function(ex){
       var codEx=normalizarCodigo(ex.codigo||'');
       var prodBancoEx=codEx?(buscarPorCodigo(codEx)||{}):{};
-      var nomeEx=(codEx&&banco[codEx])||prodBancoEx.nome||ex.nome||'';
-      return {codigo:codEx,nome:(nomeEx||'').trim()};
+      var nomeEx=((codEx&&banco[codEx])||prodBancoEx.nome||ex.nome||'').trim();
+      var chaveEx=codEx?('C:'+codEx):('N:'+normalizarTexto(nomeEx));
+      if((codEx&&codEx===cod)||extrasVistosPrep[chaveEx])return;
+      extrasVistosPrep[chaveEx]=true;
+      produtosExtraPrep.push({codigo:codEx,nome:nomeEx});
     });
   }
   var nomesExtraPrep=produtosExtraPrep.map(function(x){return x.nome;}).filter(Boolean);
