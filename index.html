@@ -283,7 +283,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         </div>
         <div class="foto-meta">
           <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
-          <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada no Drive, Cosmos, Google Imagens e Open Food Facts.</div>
+          <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada primeiro no Google Drive e depois no Bluesoft Cosmos via proxy seguro.</div>
           <div class="foto-search">
             <input type="text" id="pFotoTermo" placeholder="Termo manual. Ex: peça de presunto para fatiar" autocomplete="off">
             <button type="button" class="btn btn-sm btn-green" onclick="buscarFotoPorTermoManual()"><i class="ti ti-search"></i> Pesquisar termo</button>
@@ -509,7 +509,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div id="printArea"></div>
 
 <script>
-console.info('[Boss Vision] Arsenal de Ofertas build DUP-FIX-20260825-1140 — bloqueio de duplicados no modo Unir');
+console.info('[Boss Vision] Arsenal de Ofertas build COSMOS-PROXY-20260825-1225 — imagens automáticas: Drive > Cosmos via Apps Script');
+window.ARSENAL_BUILD='COSMOS-PROXY-20260825-1225';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -590,6 +591,11 @@ var fotoImgARecortada=null;       // versão de fotoImg (produto 1) com fundo re
 var fotoImgARecortadaFonte=null;  // guarda qual fotoImg gerou o cache acima, pra saber quando recalcular
 var unirDescManual=false; // true assim que o usuário edita manualmente o campo pDescFinal
 var fotoOrigemDrive=false;
+// Cache em memória da sessão para o proxy Cosmos. Evita baixar a mesma imagem
+// repetidamente enquanto o operador monta/edita placas e encartes.
+var cosmosProxyMemCache=Object.create(null); // ean -> dataURL | false
+var cosmosProxyUltimoErro='';
+
 
 function loadCfg(){
   var d={
@@ -1021,7 +1027,7 @@ function limparFoto(msg){
   fotoImg=null;
   fotoTransform=null;
   setFotoPreview(null);
-  setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada no Drive, Cosmos, Google Imagens e Open Food Facts.');
+  setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada primeiro no Google Drive e depois no Bluesoft Cosmos via proxy seguro.');
 }
 function proxyImagemUrl(url){
   url=String(url||'').trim();
@@ -1328,43 +1334,56 @@ async function buscarFotoWeb(query,statusFn){
   fotoCacheGravar(chaveCache,null);
   return null;
 }
-async function buscarFotoOpenFoodFacts(ean,nomeProduto){
-  var cod=normalizarCodigo(ean);
-  if(cod){
-    try{
-      var r=await fetchComTimeout('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(cod)+'.json?fields=product_name,image_url,image_front_url,image_front_small_url',{cache:'no-store'},5000);
-      if(r.ok){
-        var j=await r.json();
-        if(j&&j.status===1&&j.product){
-          var urls=[j.product.image_front_url,j.product.image_url,j.product.image_front_small_url].filter(Boolean);
-          for(var i=0;i<urls.length;i++){
-            var img=await carregarImagemUrl(urls[i]);
-            if(img)return img;
-          }
-        }
-      }
-    }catch(e){}
-  }
-  // Busca por nome (/cgi/search.pl) removida: bloqueada por CORS nesta origem, nunca retornava nada.
-  return null;
-}
-// Busca a foto do produto direto no CDN público do Cosmos (Bluesoft), pelo GTIN/EAN.
-// Não precisa de token: o CDN de imagens é aberto, só a API de dados (JSON) exige token.
-// Se a imagem travar por CORS no <img>, carregarImagemUrl() já cai automaticamente no
-// proxy images.weserv.nl, que resolve o bloqueio.
+// Busca a foto do Cosmos SEM acessar o CDN direto pelo navegador.
+// O navegador chama o nosso Google Apps Script; o Apps Script baixa a imagem
+// do CDN da Bluesoft no servidor e devolve base64. Assim o canvas não fica
+// bloqueado por CORS e a foto pode ser recortada/exportada normalmente.
 async function buscarFotoCosmos(ean){
   var cod=normalizarCodigo(ean);
   if(!cod)return null;
-  var chaveCache='cosmos:'+cod;
-  var cache=fotoCacheLer(chaveCache);
-  if(cache){
-    if(!cache.achou)return null;
-    if(cache.url){var imgC=await carregarImagemUrl(cache.url);if(imgC)return imgC;}
+  cosmosProxyUltimoErro='';
+
+  if(Object.prototype.hasOwnProperty.call(cosmosProxyMemCache,cod)){
+    var mem=cosmosProxyMemCache[cod];
+    if(!mem)return null;
+    return await carregarImagemUrl(mem,true);
   }
-  var url='https://cdn-cosmos.bluesoft.com.br/products/'+encodeURIComponent(cod);
-  var img=await carregarImagemUrl(url);
-  fotoCacheGravar(chaveCache,img&&img.src?img.src:null);
-  return img||null;
+
+  var extra='&codigoBarras='+encodeURIComponent(cod)+
+    '&folderId='+encodeURIComponent(DRIVE_FOLDER_ID);
+  var res=await _gasGet('buscarImagemCosmosProxy',extra);
+
+  if(!res||!res.ok){
+    cosmosProxyUltimoErro=(res&&res.erro)||'Proxy Cosmos indisponível';
+    console.warn('[Cosmos Proxy] '+cod+': '+cosmosProxyUltimoErro);
+    return null;
+  }
+  if(!res.encontrado){
+    cosmosProxyMemCache[cod]=false;
+    return null;
+  }
+
+  var dataUrl='';
+  if(res.base64){
+    dataUrl='data:'+(res.mimeType||'image/jpeg')+';base64,'+res.base64;
+  }else if(res.dataUrl){
+    dataUrl=res.dataUrl;
+  }
+  // Por segurança, não usamos uma URL direta do CDN aqui: ela voltaria a
+  // sofrer CORS no canvas. O backend deve devolver base64/dataUrl.
+  if(!dataUrl){
+    cosmosProxyUltimoErro='O proxy respondeu sem base64/dataUrl';
+    console.warn('[Cosmos Proxy] '+cod+': '+cosmosProxyUltimoErro,res);
+    return null;
+  }
+
+  var img=await carregarImagemUrl(dataUrl,true);
+  if(img){
+    cosmosProxyMemCache[cod]=dataUrl;
+    return img;
+  }
+  cosmosProxyUltimoErro='A imagem retornada pelo proxy não pôde ser carregada';
+  return null;
 }
 async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   var token=++fotoToken;
@@ -1375,64 +1394,44 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   limparFoto(cod?'Buscando foto no Google Drive pelo código de barras...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
   drawPlaca();
 
+  // 1) DRIVE — fonte principal
   if(cod){
     img=await buscarFotoDrive(cod,'produto');
     if(token!==fotoToken)return false;
     if(img){
-      fotoImg=img;fotoOrigemDrive=true;setFotoPreview(img);setFotoStatus('Foto encontrada no Google Drive.','ok');drawPlaca();return true;
+      fotoImg=img;fotoOrigemDrive=true;setFotoPreview(img);
+      setFotoStatus('Foto encontrada no Google Drive.','ok');drawPlaca();return true;
     }
   }
 
+  // 2) COSMOS — somente via nosso backend/proxy, nunca CDN direto no browser
   if(cod){
-    setFotoStatus('Buscando foto no catálogo Cosmos (Bluesoft)...');
+    setFotoStatus('Não achou no Drive. Buscando no Bluesoft Cosmos...');
     img=await buscarFotoCosmos(cod);
     if(token!==fotoToken)return false;
     if(img){
-      fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no catálogo Cosmos.','ok');drawPlaca();return true;
+      fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);
+      setFotoStatus('Foto encontrada no Bluesoft Cosmos via proxy seguro.','ok');drawPlaca();return true;
+    }
+    if(cosmosProxyUltimoErro){
+      setFotoStatus('Cosmos indisponível: '+cosmosProxyUltimoErro+'.','warn');
     }
   }
 
+  // Pesquisa por termo continua disponível, mas só quando o operador digitou
+  // explicitamente um termo manual. Ela não faz parte da cascata automática.
   if(termo){
     var achadoTermo=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
     if(achadoTermo&&achadoTermo.img){
-      fotoImg=achadoTermo.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo termo manual em '+achadoTermo.fonte+'.','ok');drawPlaca();return true;
+      fotoImg=achadoTermo.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);
+      setFotoStatus('Foto encontrada pelo termo manual em '+achadoTermo.fonte+'.','ok');drawPlaca();return true;
     }
   }
 
-  setFotoStatus('Não achou no Drive'+(termo?' nem pelo termo manual':'')+'. Tentando pelo nome do produto...');
-  if(nome){
-    var achadoNome=await buscarFotoWeb(nome,function(msg){if(token===fotoToken)setFotoStatus(msg);});
-    if(token!==fotoToken)return false;
-    if(achadoNome&&achadoNome.img){
-      fotoImg=achadoNome.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo nome em '+achadoNome.fonte+'.','ok');drawPlaca();return true;
-    }
-  }
-  if(cod){
-    var achadoCod=await buscarFotoWeb(cod,function(msg){if(token===fotoToken)setFotoStatus(msg);});
-    if(token!==fotoToken)return false;
-    if(achadoCod&&achadoCod.img){
-      fotoImg=achadoCod.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);setFotoStatus('Foto encontrada pelo código em '+achadoCod.fonte+'.','ok');drawPlaca();return true;
-    }
-  }
-
-  if(cod){
-    var chaveOff='off:'+cod;
-    var cacheOff=fotoCacheLer(chaveOff);
-    if(cacheOff&&!cacheOff.achou){
-      // já sabemos que este código não tem foto no Open Food Facts; não perde tempo tentando de novo
-    } else {
-      setFotoStatus('Buscando no Open Food Facts...');
-      img=await buscarFotoOpenFoodFacts(cod,nome);
-      if(token!==fotoToken)return false;
-      fotoCacheGravar(chaveOff,img&&img.src?img.src:null);
-      if(img){
-        fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);setFotoStatus('Foto encontrada no Open Food Facts.','ok');drawPlaca();return true;
-      }
-    }
-  }
-
-  limparFoto('Foto não encontrada automaticamente. Clique em Abrir Google, copie a URL da imagem e use o campo URL.');
+  limparFoto(cosmosProxyUltimoErro
+    ?'Foto não encontrada. O Drive não possui o item e o proxy Cosmos respondeu: '+cosmosProxyUltimoErro+'.'
+    :'Foto não encontrada automaticamente no Drive nem no Bluesoft Cosmos.');
   drawPlaca();
   return false;
 }
@@ -3520,39 +3519,38 @@ async function buscarFotoItemEncarte(codigo,nome,fallbackFoto){
   var cod=normalizarCodigo(codigo);
   var img=null;
 
-  // Reaproveita inclusive resultado negativo (false), evitando repetir toda a
-  // cascata Drive/Cosmos/Web em cada re-renderização da lista.
+  // Reaproveita inclusive resultado negativo durante esta sessão.
   if(cod&&typeof encartesFotoCache!=='undefined'&&Object.prototype.hasOwnProperty.call(encartesFotoCache,cod)){
     var cached=encartesFotoCache[cod];
     return {src:(typeof cached==='string'?cached:''),origem:cached?'cache da sessão':'não encontrada (cache)'};
   }
 
+  // 1) Drive
   if(cod){
     img=await buscarFotoDrive(cod,'produto');
-    if(img){if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;return {src:img.src,origem:'Google Drive'};}
-    // Bluesoft Cosmos removido: CDN bloqueia CORS nesta origem, nunca completava.
+    if(img){
+      if(typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;
+      return {src:img.src,origem:'Google Drive'};
+    }
   }
 
-  if(nome){
-    var achadoNome=await buscarFotoWeb(nome);
-    if(achadoNome&&achadoNome.img){if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=achadoNome.img.src;return {src:achadoNome.img.src,origem:achadoNome.fonte};}
-  }
-
+  // 2) Cosmos via proxy Apps Script — sem chamadas automáticas a outras fontes
   if(cod){
-    var achadoCod=await buscarFotoWeb(cod);
-    if(achadoCod&&achadoCod.img){if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=achadoCod.img.src;return {src:achadoCod.img.src,origem:achadoCod.fonte};}
+    img=await buscarFotoCosmos(cod);
+    if(img){
+      if(typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;
+      return {src:img.src,origem:'Bluesoft Cosmos (proxy)'};
+    }
   }
 
-  img=await buscarFotoOpenFoodFacts(cod,nome);
-  if(img){if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;return {src:img.src,origem:'Open Food Facts'};}
-
-  // Compatibilidade com promoções antigas: usa a foto do produto salva, nunca a imagem da placa.
+  // Compatibilidade com promoções antigas: usa foto individual salva, se houver.
   if(fallbackFoto){
     img=await carregarImagemUrl(fallbackFoto);
     if(img)return {src:img.src,origem:'foto salva da promoção'};
   }
+
   if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=false;
-  return {src:'',origem:'não encontrada'};
+  return {src:'',origem:cosmosProxyUltimoErro?'Cosmos indisponível: '+cosmosProxyUltimoErro:'não encontrada'};
 }
 
 async function mapComLimite(lista,limite,fn){
