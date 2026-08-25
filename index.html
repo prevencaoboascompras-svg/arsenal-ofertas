@@ -2143,13 +2143,16 @@ async function drawPlaca(){
     var innerX=boxX+padCard, innerY=boxY+padCard;
     var innerW=boxW-padCard*2, innerH=boxH-padCard*2;
     var cellW=innerW/cols, cellH=innerH/rows;
+    // Mesma folguinha fixa usada nos outros modos (lado a lado / empilhado):
+    // cada foto fica no máximo até a metade do espaçamento da célula vizinha,
+    // então a distância real entre duas fotos é sempre ~GAP_FOTOS px.
+    var maxW=Math.max(20,cellW-GAP_FOTOS), maxH=Math.max(20,cellH-GAP_FOTOS);
     ctx.save();
     ctx.imageSmoothingEnabled=true;
     if('imageSmoothingQuality' in ctx)ctx.imageSmoothingQuality='high';
     imgs.forEach(function(img,i){
       var col=i%cols, row=Math.floor(i/cols);
       var cellX=innerX+col*cellW, cellY=innerY+row*cellH;
-      var maxW=cellW*0.96, maxH=cellH*0.96;
       var asp=img.width/img.height;
       var fW,fH;
       if(asp>maxW/maxH){fW=maxW;fH=maxW/asp;}
@@ -2164,11 +2167,15 @@ async function drawPlaca(){
     ctx.restore();
   }
 
-  // Modo Empilhado: pilha central com SOBREPOSIÇÃO vertical, como uma
-  // sequência de sabores/variações do mesmo produto. As embalagens continuam
-  // grandes e cada próxima imagem desce só uma fração da altura da anterior.
-  // A sobreposição aumenta automaticamente conforme a quantidade para a pilha
-  // inteira continuar dentro da área disponível.
+  // Folguinha fixa (em px do canvas) usada entre fotos em TODOS os modos de
+  // combinação (grade, empilhado, lado a lado) — mesma regra de espaçamento
+  // não importa a quantidade de produtos escolhida.
+  var GAP_FOTOS=16;
+
+  // Modo Empilhado: cada produto fica abaixo do anterior, na mesma ordem da
+  // lista, com a mesma folguinha fixa (GAP_FOTOS) usada nos outros modos —
+  // nunca encostam nem se sobrepõem. Se a pilha não couber na área
+  // disponível, tudo é reduzido proporcionalmente (mantendo a folga relativa).
   function desenharFotosEmpilhadas(imgsOriginais,boxX,boxY,boxW,boxH,transforms){
     var imgs=imgsOriginais.map(croparTransparente).filter(Boolean);
     var n=imgs.length;
@@ -2187,16 +2194,13 @@ async function drawPlaca(){
       return {w:fW,h:fH};
     });
 
-    // A partir de 7 itens usamos sobreposição forte (~68%). Isso mantém cada
-    // embalagem grande, mas deixa visível uma faixa suficiente de cada sabor.
-    var overlap=n<=2?0.38:n<=4?0.50:n<=6?0.60:n<=8?0.68:n<=10?0.72:0.76;
     var maiorH=Math.max.apply(null,medidas.map(function(m){return m.h;}));
-    var passo=maiorH*(1-overlap);
+    var passo=maiorH+GAP_FOTOS;
     var pilhaH=maiorH+passo*(n-1);
     var limiteH=boxH*0.92;
 
     // Se, por proporção da foto, a pilha ainda ultrapassar a área, reduz tudo
-    // proporcionalmente sem mudar o grau de sobreposição.
+    // proporcionalmente (imagens e folga) mantendo a mesma regra de espaçamento.
     if(pilhaH>limiteH&&pilhaH>0){
       var fator=limiteH/pilhaH;
       medidas.forEach(function(m){m.w*=fator;m.h*=fator;});
@@ -2268,7 +2272,7 @@ async function drawPlaca(){
       });
       // Sem sobreposição: só uma folguinha fixa e positiva entre cada
       // produto — eles ficam um do lado do outro, se encostando no máximo.
-      var gapN=16;
+      var gapN=GAP_FOTOS;
       var totalWN=dimsUnirN.reduce(function(s,d){return s+d.fW;},0)+gapN*(nUnirN-1);
       if(totalWN>W-60){
         var scaleFixN=(W-60)/totalWN;
@@ -2351,7 +2355,7 @@ async function drawPlaca(){
         return {img:img,fW:fW,fH:fH};
       });
       var overlapFracP=0; // sem sobreposição — só uma folguinha fixa
-      var gapP=10;
+      var gapP=GAP_FOTOS;
       var totalWP=dimsPackN.reduce(function(s,d){return s+d.fW;},0)+gapP*(nPackN-1);
       if(totalWP>innerW2){
         var scaleFixP=innerW2/totalWP;
