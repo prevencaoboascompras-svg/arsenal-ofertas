@@ -509,7 +509,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div id="printArea"></div>
 
 <script>
-console.info('[Boss Vision] Arsenal de Ofertas build COSMOS-PROXY-20260825-1225 — imagens automáticas: Drive > Cosmos via Apps Script');
+console.info('[Boss Vision] Arsenal de Ofertas build COSMOS-JSONP-20260825-1517 — imagens: AURA API (Drive > Cosmos) via JSONP');
 window.ARSENAL_BUILD='COSMOS-PROXY-20260825-1225';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
@@ -672,6 +672,36 @@ function _gasGet(action,extra){
   return fetchComTimeout(url,{cache:'no-store'},10000)
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .catch(function(e){return{ok:false,erro:e&&e.message?e.message:'Falha de conexão'};});
+}
+
+// GET por JSONP para rotas do Apps Script chamadas a partir do GitHub Pages.
+// O Web App da AURA já suporta callback nessa action; assim evitamos o CORS
+// que bloqueia fetch() mesmo quando o Apps Script responde HTTP 200.
+function _gasGetJsonp(action,extra,timeoutMs){
+  timeoutMs=timeoutMs||12000;
+  return new Promise(function(resolve){
+    var cfg=loadCfg();
+    if(!cfg.url){resolve({ok:false,erro:'URL do Apps Script não configurada'});return;}
+    var cb='__auraJsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    var s=document.createElement('script');
+    var terminou=false;
+    var timer=null;
+    function finalizar(valor){
+      if(terminou)return;
+      terminou=true;
+      if(timer)clearTimeout(timer);
+      try{delete window[cb];}catch(e){window[cb]=undefined;}
+      if(s&&s.parentNode)s.parentNode.removeChild(s);
+      resolve(valor);
+    }
+    window[cb]=function(data){finalizar(data||{ok:false,erro:'Resposta vazia do Apps Script'});};
+    var sep=cfg.url.indexOf('?')>=0?'&':'?';
+    s.src=cfg.url+sep+'action='+encodeURIComponent(action)+(extra||'')+'&callback='+encodeURIComponent(cb)+'&_ts='+Date.now();
+    s.async=true;
+    s.onerror=function(){finalizar({ok:false,erro:'Falha ao carregar JSONP do Apps Script'});};
+    timer=setTimeout(function(){finalizar({ok:false,erro:'Timeout ao consultar Apps Script'});},timeoutMs);
+    document.head.appendChild(s);
+  });
 }
 function _gasPost(action,payload){
   var cfg=loadCfg();
@@ -1262,15 +1292,27 @@ async function buscarFotoDrive(codigoBarras,tipo){
   var extra='&codigoBarras='+encodeURIComponent(cod)+
     '&tipo='+encodeURIComponent(tipo||'produto')+
     '&folderId='+encodeURIComponent(DRIVE_FOLDER_ID);
-  var res=await _gasGet('buscarImagemProduto',extra);
+
+  // A action buscarImagemProduto do backend AURA agora resolve tudo no servidor:
+  // 1) procura no Drive; 2) se não achar, consulta Cosmos; 3) salva no Drive.
+  // JSONP evita o CORS do Apps Script no GitHub Pages.
+  var res=await _gasGetJsonp('buscarImagemProduto',extra,15000);
   if(res&&res.ok&&res.encontrado){
+    var img=null;
     if(res.base64){
-      return await carregarImagemUrl('data:'+(res.mimeType||'image/png')+';base64,'+res.base64);
+      img=await carregarImagemUrl('data:'+(res.mimeType||'image/png')+';base64,'+res.base64,true);
+    }else if(res.dataUrl){
+      img=await carregarImagemUrl(res.dataUrl,true);
+    }else if(res.url||res.imageUrl){
+      img=await carregarImagemUrl(res.url||res.imageUrl);
     }
-    if(res.url||res.imageUrl){
-      return await carregarImagemUrl(res.url||res.imageUrl);
+    if(img){
+      img._auraOrigem=String(res.origem||'drive').toLowerCase();
+      img._auraSalvoNoDrive=!!res.salvoNoDrive;
+      return img;
     }
   }
+  if(res&&res.erro)cosmosProxyUltimoErro=res.erro;
   return null;
 }
 // buscarFotoGoogleCSE e buscarFotoOpenverse foram removidas: a primeira sempre retornava
@@ -1339,87 +1381,43 @@ async function buscarFotoWeb(query,statusFn){
 // do CDN da Bluesoft no servidor e devolve base64. Assim o canvas não fica
 // bloqueado por CORS e a foto pode ser recortada/exportada normalmente.
 async function buscarFotoCosmos(ean){
-  var cod=normalizarCodigo(ean);
-  if(!cod)return null;
-  cosmosProxyUltimoErro='';
-
-  if(Object.prototype.hasOwnProperty.call(cosmosProxyMemCache,cod)){
-    var mem=cosmosProxyMemCache[cod];
-    if(!mem)return null;
-    return await carregarImagemUrl(mem,true);
-  }
-
-  var extra='&codigoBarras='+encodeURIComponent(cod)+
-    '&folderId='+encodeURIComponent(DRIVE_FOLDER_ID);
-  var res=await _gasGet('buscarImagemCosmosProxy',extra);
-
-  if(!res||!res.ok){
-    cosmosProxyUltimoErro=(res&&res.erro)||'Proxy Cosmos indisponível';
-    console.warn('[Cosmos Proxy] '+cod+': '+cosmosProxyUltimoErro);
-    return null;
-  }
-  if(!res.encontrado){
-    cosmosProxyMemCache[cod]=false;
-    return null;
-  }
-
-  var dataUrl='';
-  if(res.base64){
-    dataUrl='data:'+(res.mimeType||'image/jpeg')+';base64,'+res.base64;
-  }else if(res.dataUrl){
-    dataUrl=res.dataUrl;
-  }
-  // Por segurança, não usamos uma URL direta do CDN aqui: ela voltaria a
-  // sofrer CORS no canvas. O backend deve devolver base64/dataUrl.
-  if(!dataUrl){
-    cosmosProxyUltimoErro='O proxy respondeu sem base64/dataUrl';
-    console.warn('[Cosmos Proxy] '+cod+': '+cosmosProxyUltimoErro,res);
-    return null;
-  }
-
-  var img=await carregarImagemUrl(dataUrl,true);
-  if(img){
-    cosmosProxyMemCache[cod]=dataUrl;
-    return img;
-  }
-  cosmosProxyUltimoErro='A imagem retornada pelo proxy não pôde ser carregada';
-  return null;
+  // Compatibilidade: não existe mais uma segunda rota Cosmos no frontend.
+  // O próprio buscarImagemProduto do backend já executa Drive -> Cosmos.
+  var img=await buscarFotoDrive(ean,'produto');
+  return img;
 }
 async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   var token=++fotoToken;
   var cod=normalizarCodigo(ean);
-  var nome=String(nomeProduto||'').trim();
   var termo=String(termoManual||'').trim();
   var img=null;
-  limparFoto(cod?'Buscando foto no Google Drive pelo código de barras...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
+  cosmosProxyUltimoErro='';
+  limparFoto(cod?'Buscando foto no banco AURA: Drive → Bluesoft Cosmos...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
   drawPlaca();
 
-  // 1) DRIVE — fonte principal
+  // Uma única chamada ao backend. O servidor decide Drive -> Cosmos e,
+  // quando vem do Cosmos, já salva no Drive para a próxima consulta.
   if(cod){
     img=await buscarFotoDrive(cod,'produto');
     if(token!==fotoToken)return false;
     if(img){
-      fotoImg=img;fotoOrigemDrive=true;setFotoPreview(img);
-      setFotoStatus('Foto encontrada no Google Drive.','ok');drawPlaca();return true;
+      var origem=String(img._auraOrigem||'drive').toLowerCase();
+      fotoImg=img;
+      fotoOrigemDrive=(origem==='drive');
+      setFotoPreview(img);
+      if(origem==='cosmos'){
+        setFotoStatus(img._auraSalvoNoDrive
+          ?'Foto encontrada no Bluesoft Cosmos e salva no Google Drive.'
+          :'Foto encontrada no Bluesoft Cosmos.','ok');
+      }else{
+        setFotoStatus('Foto encontrada no Google Drive.','ok');
+      }
+      drawPlaca();
+      return true;
     }
   }
 
-  // 2) COSMOS — somente via nosso backend/proxy, nunca CDN direto no browser
-  if(cod){
-    setFotoStatus('Não achou no Drive. Buscando no Bluesoft Cosmos...');
-    img=await buscarFotoCosmos(cod);
-    if(token!==fotoToken)return false;
-    if(img){
-      fotoImg=img;fotoOrigemDrive=false;setFotoPreview(img);
-      setFotoStatus('Foto encontrada no Bluesoft Cosmos via proxy seguro.','ok');drawPlaca();return true;
-    }
-    if(cosmosProxyUltimoErro){
-      setFotoStatus('Cosmos indisponível: '+cosmosProxyUltimoErro+'.','warn');
-    }
-  }
-
-  // Pesquisa por termo continua disponível, mas só quando o operador digitou
-  // explicitamente um termo manual. Ela não faz parte da cascata automática.
+  // Pesquisa por termo continua somente quando o operador pede manualmente.
   if(termo){
     var achadoTermo=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
     if(token!==fotoToken)return false;
@@ -1430,8 +1428,8 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   }
 
   limparFoto(cosmosProxyUltimoErro
-    ?'Foto não encontrada. O Drive não possui o item e o proxy Cosmos respondeu: '+cosmosProxyUltimoErro+'.'
-    :'Foto não encontrada automaticamente no Drive nem no Bluesoft Cosmos.');
+    ?'Foto não encontrada automaticamente. A API AURA respondeu: '+cosmosProxyUltimoErro+'.'
+    :'Foto não encontrada automaticamente no Google Drive nem no Bluesoft Cosmos.');
   drawPlaca();
   return false;
 }
@@ -3519,38 +3517,28 @@ async function buscarFotoItemEncarte(codigo,nome,fallbackFoto){
   var cod=normalizarCodigo(codigo);
   var img=null;
 
-  // Reaproveita inclusive resultado negativo durante esta sessão.
   if(cod&&typeof encartesFotoCache!=='undefined'&&Object.prototype.hasOwnProperty.call(encartesFotoCache,cod)){
     var cached=encartesFotoCache[cod];
     return {src:(typeof cached==='string'?cached:''),origem:cached?'cache da sessão':'não encontrada (cache)'};
   }
 
-  // 1) Drive
+  // Uma única consulta à API AURA: Drive -> Cosmos -> salva no Drive.
   if(cod){
     img=await buscarFotoDrive(cod,'produto');
     if(img){
       if(typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;
-      return {src:img.src,origem:'Google Drive'};
+      var origem=String(img._auraOrigem||'drive').toLowerCase();
+      return {src:img.src,origem:origem==='cosmos'?'Bluesoft Cosmos':'Google Drive'};
     }
   }
 
-  // 2) Cosmos via proxy Apps Script — sem chamadas automáticas a outras fontes
-  if(cod){
-    img=await buscarFotoCosmos(cod);
-    if(img){
-      if(typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;
-      return {src:img.src,origem:'Bluesoft Cosmos (proxy)'};
-    }
-  }
-
-  // Compatibilidade com promoções antigas: usa foto individual salva, se houver.
   if(fallbackFoto){
     img=await carregarImagemUrl(fallbackFoto);
     if(img)return {src:img.src,origem:'foto salva da promoção'};
   }
 
   if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=false;
-  return {src:'',origem:cosmosProxyUltimoErro?'Cosmos indisponível: '+cosmosProxyUltimoErro:'não encontrada'};
+  return {src:'',origem:cosmosProxyUltimoErro?'API AURA indisponível: '+cosmosProxyUltimoErro:'não encontrada'};
 }
 
 async function mapComLimite(lista,limite,fn){
