@@ -1357,7 +1357,7 @@ function carregarImagemUrl(url,semProxy){
 // ============================================================
 var AURA_FOTO_CACHE_KEY='arsenal_aura_thumb_cache_v1';
 var AURA_FOTO_TTL_OK_MS=7*24*60*60*1000;
-var AURA_FOTO_TTL_NEG_MS=10*60*1000;
+var AURA_FOTO_TTL_NEG_MS=30*1000; // revalida rápido se outro sistema acabou de cadastrar a foto
 var AURA_FOTO_CACHE_MAX=400;
 var _auraFotoChainCache=Object.create(null);
 
@@ -1423,8 +1423,16 @@ window.addEventListener('storage',function(ev){
   try{
     var d=JSON.parse(ev.newValue);
     if(d&&d.cod){
-      _invalidarCacheAuraFoto(d.cod);
-      try{if(typeof encartesFotoCache!=='undefined')delete encartesFotoCache[d.cod];}catch(e2){}
+      var codAtualizado=normalizarCodigo(d.cod);
+      _invalidarCacheAuraFoto(codAtualizado);
+      try{if(typeof encartesFotoCache!=='undefined')delete encartesFotoCache[codAtualizado];}catch(e2){}
+      try{if(typeof carregarThumbsPendentes==='function')setTimeout(carregarThumbsPendentes,0);}catch(e3){}
+      try{
+        if(normalizarCodigo(prodAtualCod||'')===codAtualizado){
+          var nomeAtual=(document.getElementById('pDescOverride')&&document.getElementById('pDescOverride').value)||'';
+          setTimeout(function(){buscarFotoCompleta(codAtualizado,nomeAtual);},0);
+        }
+      }catch(e4){}
     }
   }catch(e){}
 });
@@ -3439,7 +3447,7 @@ async function carregarThumbsPendentes(){
   var vistos={};
   encartesCache.forEach(function(it){
     var cod=normalizarCodigo(it.codigo);
-    if(cod&&!Object.prototype.hasOwnProperty.call(encartesFotoCache,cod)&&!vistos[cod]){vistos[cod]=true;pendentes.push(it);}
+    if(cod&&!(typeof encartesFotoCache[cod]==='string'&&encartesFotoCache[cod])&&!vistos[cod]){vistos[cod]=true;pendentes.push(it);}
   });
   if(!pendentes.length)return;
   await mapComLimite(pendentes,4,async function(it){
@@ -3450,7 +3458,8 @@ async function carregarThumbsPendentes(){
       var foto=await buscarFotoItemEncarte(cod,it.produto,'');
       src=foto.src||'';
     }catch(e){}
-    encartesFotoCache[cod]=src;
+    if(src)encartesFotoCache[cod]=src;
+    else delete encartesFotoCache[cod];
     if(src){
       var thumbs=document.querySelectorAll('.enc-thumb[data-cod]');
       for(var i=0;i<thumbs.length;i++){
@@ -3933,9 +3942,9 @@ async function buscarFotoItemEncarte(codigo,nome,fallbackFoto){
   var cod=normalizarCodigo(codigo);
   var img=null;
 
-  if(cod&&typeof encartesFotoCache!=='undefined'&&Object.prototype.hasOwnProperty.call(encartesFotoCache,cod)){
+  if(cod&&typeof encartesFotoCache!=='undefined'&&typeof encartesFotoCache[cod]==='string'&&encartesFotoCache[cod]){
     var cached=encartesFotoCache[cod];
-    return {src:(typeof cached==='string'?cached:''),origem:cached?'cache da sessão':'não encontrada (cache)'};
+    return {src:cached,origem:'cache da sessão'};
   }
 
   // Uma única consulta à API AURA. Código local continua podendo usar o Drive,
@@ -3955,7 +3964,7 @@ async function buscarFotoItemEncarte(codigo,nome,fallbackFoto){
     if(img)return {src:img.src,origem:'foto salva da promoção'};
   }
 
-  if(cod&&typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=false;
+  if(cod&&typeof encartesFotoCache!=='undefined')delete encartesFotoCache[cod];
   return {src:'',origem:cosmosProxyUltimoErro?'API AURA indisponível: '+cosmosProxyUltimoErro:'não encontrada'};
 }
 
