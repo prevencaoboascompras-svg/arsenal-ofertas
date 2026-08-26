@@ -292,7 +292,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         </div>
         <div class="foto-meta">
           <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
-          <div class="foto-status" id="fotoStatus">Busca segura: Drive → Cosmos → UPCitemdb validado → Brave/Google. Códigos locais não são enviados a catálogos globais.</div>
+          <div class="foto-status" id="fotoStatus">Busca segura: Drive → Cosmos → UPCitemdb validado. Códigos locais não são enviados a catálogos globais.</div>
           <div class="foto-search">
             <input type="text" id="pFotoTermo" placeholder="Termo manual. Ex: peça de presunto para fatiar" autocomplete="off">
             <button type="button" class="btn btn-sm btn-green" onclick="buscarFotoPorTermoManual()"><i class="ti ti-search"></i> Pesquisar termo</button>
@@ -522,8 +522,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div id="printArea"></div>
 
 <script>
-console.info('[Boss Vision] Arsenal de Ofertas build REGIONAL-SAFE-V2-20260826 — Google CSE e Brave protegidos no Code.gs');
-window.ARSENAL_BUILD='REGIONAL-SAFE-V2-20260826';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -1112,7 +1111,7 @@ function limparFoto(msg){
   fotoTransform=null;
   limparSugestoesFoto();
   setFotoPreview(null);
-  setFotoStatus(msg||'Busca segura: Drive → Cosmos → UPCitemdb validado → Brave/Google. Códigos locais não são enviados a catálogos globais.');
+  setFotoStatus(msg||'Busca segura: Drive → Cosmos → UPCitemdb validado. Códigos locais não são enviados a catálogos globais.');
 }
 function proxyImagemUrl(url){
   url=String(url||'').trim();
@@ -1501,7 +1500,6 @@ async function buscarFotoDrive(codigoBarras,tipo,nomeProduto,permitirExternas){
 }
 // ============================================================
 // BUSCA WEB SEGURA PARA VAREJO BRASILEIRO/REGIONAL
-// Automático industrializado: Brave + Google CSE.
 // Openverse/Wikimedia: somente busca manual ou tema Hortifrúti.
 // ============================================================
 var FOTO_CACHE_KEY='arsenalFotoCacheV3Regional';
@@ -1615,7 +1613,7 @@ function pontuarCandidatoFoto(c,nome,cod,img){
   var compat=compatTextoFoto(nome,meta);
   var codStr=String(cod||'').replace(/\D/g,'');
   var eanNoMeta=gtinGlobalSeguro(codStr)&&normalizarTextoFoto(meta).indexOf(codStr)>=0;
-  var fonteBonus=c.fonte==='Brave'?8:c.fonte==='Google CSE'?7:0;
+  var fonteBonus=0;
   var confianca=Math.round(Math.min(100,
     visual*.38 + compat.cobertura*45 + (eanNoMeta?28:0) +
     (compat.medidaOk?7:-25) + fonteBonus
@@ -1636,43 +1634,6 @@ async function carregarCandidatosFoto(cands,nome,cod,max){
     return Object.assign({},c,{img:img},p);
   }));
   return rs.filter(Boolean).sort(function(a,b){return b.confianca-a.confianca;});
-}
-async function buscarFotoGoogleCSE(query,nome,cod){
-  query=String(query||'').trim();
-  if(!query)return [];
-  try{
-    // Chave e CX ficam exclusivamente no Script Properties do Code.gs.
-    // O Arsenal recebe somente candidatos de imagem via JSONP.
-    var r=await _gasGetJsonp(
-      'buscarImagemGoogleCSE',
-      '&q='+encodeURIComponent(query),
-      4500
-    );
-    if(!r||!r.ok||!Array.isArray(r.candidatos))return [];
-    var cands=r.candidatos.map(function(it){
-      return {
-        url:it.url,
-        fonte:'Google CSE',
-        title:it.title||'',
-        source:it.source||'',
-        contextLink:it.contextLink||''
-      };
-    });
-    return await carregarCandidatosFoto(cands,nome,cod,7);
-  }catch(e){
-    return [];
-  }
-}
-async function buscarFotoBrave(query,nome,cod){
-  query=String(query||'').trim();if(!query)return [];
-  try{
-    var r=await _gasGetJsonp('buscarImagemBrave','&q='+encodeURIComponent(query),4500);
-    if(!r||!r.ok||!Array.isArray(r.candidatos))return [];
-    var cands=r.candidatos.map(function(it){
-      return {url:it.url,fonte:'Brave',title:it.title||'',source:it.source||'',pageUrl:it.pageUrl||''};
-    });
-    return await carregarCandidatosFoto(cands,nome,cod,7);
-  }catch(e){return [];}
 }
 async function buscarFotoOpenverse(query){
   query=String(query||'').trim();if(!query)return [];
@@ -1720,9 +1681,9 @@ async function buscarFotoWeb(query,cod,statusFn,opcoes){
     }
   }
 
-  if(statusFn)statusFn('Reforçando com Brave + Google e validando descrição/medida/fundo...');
+  if(statusFn)statusFn('Reforçando com validando descrição/medida/fundo...');
 
-  var tarefas=[buscarFotoGoogleCSE(q,query,cod),buscarFotoBrave(q,query,cod)];
+  var tarefas=[];
   var extrasPermitidos=!!opcoes.manual||temaHortiAtivo();
 
   if(extrasPermitidos&&query){
@@ -1837,7 +1798,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   }else{
     setFotoStatus(cosmosProxyUltimoErro
       ?'Não encontrei uma imagem segura. A API AURA respondeu: '+cosmosProxyUltimoErro
-      :'Não encontrei uma imagem com confiança suficiente em Drive, Cosmos, UPCitemdb, Brave ou Google.','warn');
+      :'Não encontrei uma imagem com confiança suficiente em Drive, Cosmos ou UPCitemdb.','warn');
   }
   drawPlaca();
   return false;
@@ -1850,7 +1811,7 @@ async function buscarFotoPorTermoManual(){
     return;
   }
   var token=++fotoToken;
-  limparFoto('Busca manual: consultando Brave/Google e, se útil, Openverse/Wikimedia...');
+  limparFoto('Busca manual: consultando fontes manuais e, se útil, Openverse/Wikimedia...');
   drawPlaca();
 
   var cod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
