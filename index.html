@@ -678,7 +678,17 @@ function _gasGet(action,extra){
   // Mesmo fluxo do AURA Vencimentos: a busca de imagem passa SEMPRE por
   // JSONP, porque o GitHub Pages não pode depender de CORS do Apps Script.
   // O mesmo Code.gs resolve buscarImagemProduto no backend (Drive -> Cosmos).
-  if(action==='buscarImagemProduto')return _gasGetJsonp(action,extra,30000);
+  if(action==='buscarImagemProduto'){
+    return _gasGetJsonp(action,extra,30000).then(function(r){
+      if(r&&r.salvoNoDrive&&typeof _notificarFotoCentralAtualizada==='function'){
+        var canon=String(r.codigoCanonico||r.codigoSolicitado||'');
+        var solicitado=String(r.codigoSolicitado||'');
+        if(canon)_notificarFotoCentralAtualizada(canon);
+        if(solicitado&&solicitado!==canon)_invalidarCacheAuraFoto(solicitado);
+      }
+      return r;
+    });
+  }
 
   var cfg=loadCfg();
   if(!cfg.url)return Promise.resolve({ok:false,erro:'URL do Apps Script não configurada'});
@@ -1448,7 +1458,7 @@ function _resolverFotoAura(codigoBarras,tipo,nomeProduto,permitirExternas){
   permitirExternas=permitirExternas!==false;
   if(!cod)return Promise.resolve(null);
 
-  var chave=tipo+':'+cod+':'+(permitirExternas?'ext':'drive');
+  var chave=tipo+':'+cod+':'+(permitirExternas?'ext':'drive')+':'+nomeProduto.toLowerCase();
   if(_auraFotoChainCache[chave])return _auraFotoChainCache[chave];
 
   var cacheado=_auraFotoCacheLookup(chave);
@@ -3175,8 +3185,9 @@ async function salvarFotoAtualNoDrive(mostrarMsg){
     var res=await _gasPost('salvarImagemProduto',{codigoBarras:codigo,imagemBase64:base64,mimeType:'image/jpeg',tipo:'produto'});
     if(res&&res.ok){
       fotoOrigemDrive=true;
+      var codigoCentral=String(res.codigoCanonico||codigo);
       _invalidarCacheAuraFoto(codigo);
-      _notificarFotoCentralAtualizada(codigo);
+      _notificarFotoCentralAtualizada(codigoCentral);
       if(typeof encartesFotoCache!=='undefined')delete encartesFotoCache[codigo];
       if(mostrarMsg)mostrarToast('Foto salva no banco de imagens (código '+codigo+').','ok');
       return true;
