@@ -283,7 +283,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         </div>
         <div class="foto-meta">
           <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
-          <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada primeiro no Google Drive e depois no Bluesoft Cosmos via proxy seguro.</div>
+          <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada pela mesma API AURA do Controle de Validades (Drive → Cosmos).</div>
           <div class="foto-search">
             <input type="text" id="pFotoTermo" placeholder="Termo manual. Ex: peça de presunto para fatiar" autocomplete="off">
             <button type="button" class="btn btn-sm btn-green" onclick="buscarFotoPorTermoManual()"><i class="ti ti-search"></i> Pesquisar termo</button>
@@ -509,15 +509,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div id="printArea"></div>
 
 <script>
-console.info('[Boss Vision] Arsenal de Ofertas build COSMOS-JSONP-20260825-1517 — imagens: AURA API (Drive > Cosmos) via JSONP');
-window.ARSENAL_BUILD='COSMOS-PROXY-20260825-1225';
+console.info('[Boss Vision] Arsenal de Ofertas build AURA-IMAGE-FLOW-20260826 — imagens: mesmo fluxo do AURA Vencimentos (buscarImagemProduto via JSONP)');
+window.ARSENAL_BUILD='AURA-IMAGE-FLOW-20260826';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
 var CFG_KEY='aura_cfg';
 var PROD_KEY='placa_prod_cache';
 var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec';
-var DRIVE_FOLDER_ID='1Qhsc63GHVcACTzYTp392O_S3iMd8vmpS';
 var GCSE_API_KEY='AIzaSyClxbl8yzMpHdahpB38Fc66NcqtDWxjdvw';
 var GCSE_CX='a74b49ecb1fd546fb';
 var banco={};          // cod -> nome oficial do banco
@@ -666,6 +665,11 @@ function fetchComTimeout(url,opcoes,timeoutMs){
   return p.finally(function(){if(timer)clearTimeout(timer);});
 }
 function _gasGet(action,extra){
+  // Mesmo fluxo do AURA Vencimentos: a busca de imagem passa SEMPRE por
+  // JSONP, porque o GitHub Pages não pode depender de CORS do Apps Script.
+  // O mesmo Code.gs resolve buscarImagemProduto no backend (Drive -> Cosmos).
+  if(action==='buscarImagemProduto')return _gasGetJsonp(action,extra,30000);
+
   var cfg=loadCfg();
   if(!cfg.url)return Promise.resolve({ok:false,erro:'URL do Apps Script não configurada'});
   var url=cfg.url+'?action='+encodeURIComponent(action)+(extra||'');
@@ -1057,7 +1061,7 @@ function limparFoto(msg){
   fotoImg=null;
   fotoTransform=null;
   setFotoPreview(null);
-  setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada primeiro no Google Drive e depois no Bluesoft Cosmos via proxy seguro.');
+  setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada pela mesma API AURA do Controle de Validades (Drive → Cosmos).');
 }
 function proxyImagemUrl(url){
   url=String(url||'').trim();
@@ -1286,34 +1290,144 @@ function carregarImagemUrl(url,semProxy){
     img.src=url;
   });
 }
+
+// ============================================================
+// RESOLVER CENTRAL DE FOTOS — MESMO FLUXO DO AURA VENCIMENTOS
+// API AURA -> buscarImagemProduto -> Drive > Cosmos -> base64
+// ============================================================
+var AURA_FOTO_CACHE_KEY='arsenal_aura_thumb_cache_v1';
+var AURA_FOTO_TTL_OK_MS=7*24*60*60*1000;
+var AURA_FOTO_TTL_NEG_MS=10*60*1000;
+var AURA_FOTO_CACHE_MAX=400;
+var _auraFotoChainCache=Object.create(null);
+
+function _auraFotoCacheGet(){
+  try{return JSON.parse(localStorage.getItem(AURA_FOTO_CACHE_KEY)||'{}');}catch(e){return{};}
+}
+function _auraFotoCacheValida(entry,now){
+  if(!entry||!entry.ts)return false;
+  var ttl=entry.url?AURA_FOTO_TTL_OK_MS:AURA_FOTO_TTL_NEG_MS;
+  return (now-entry.ts)<=ttl;
+}
+function _auraFotoCacheLookup(cod){
+  var entry=_auraFotoCacheGet()[cod];
+  if(!entry)return undefined;
+  if(!_auraFotoCacheValida(entry,Date.now()))return undefined;
+  return entry.url;
+}
+function _auraFotoCacheSet(cod,url){
+  // Como no AURA, data URLs/base64 ficam só na memória da sessão para
+  // não estourar a cota do localStorage.
+  if(typeof url==='string'&&url.indexOf('data:')===0)return;
+  try{
+    var c=_auraFotoCacheGet();
+    c[cod]={url:url||null,ts:Date.now()};
+    var now=Date.now();
+    var keys=Object.keys(c).filter(function(k){return _auraFotoCacheValida(c[k],now);});
+    if(keys.length>AURA_FOTO_CACHE_MAX){
+      keys.sort(function(a,b){return c[b].ts-c[a].ts;});
+      keys=keys.slice(0,AURA_FOTO_CACHE_MAX);
+    }
+    var limpo={};
+    keys.forEach(function(k){limpo[k]=c[k];});
+    localStorage.setItem(AURA_FOTO_CACHE_KEY,JSON.stringify(limpo));
+  }catch(e){}
+}
+function _criarFilaAuraFotos(limit){
+  var ativos=0,fila=[];
+  function proximo(){
+    while(ativos<limit&&fila.length){
+      ativos++;
+      (function(job){
+        Promise.resolve().then(job.tarefa)
+          .then(function(r){ativos--;job.resolve(r);proximo();})
+          .catch(function(e){ativos--;job.reject(e);proximo();});
+      })(fila.shift());
+    }
+  }
+  return function(tarefa){
+    return new Promise(function(resolve,reject){
+      fila.push({tarefa:tarefa,resolve:resolve,reject:reject});
+      proximo();
+    });
+  };
+}
+var _filaAuraFotos=_criarFilaAuraFotos(4);
+
+function _resolverFotoAura(codigoBarras,tipo){
+  var cod=normalizarCodigo(codigoBarras);
+  tipo=tipo||'produto';
+  if(!cod)return Promise.resolve(null);
+
+  var chave=tipo+':'+cod;
+  if(_auraFotoChainCache[chave])return _auraFotoChainCache[chave];
+
+  var cacheado=_auraFotoCacheLookup(chave);
+  if(cacheado!==undefined){
+    _auraFotoChainCache[chave]=Promise.resolve(cacheado?{src:cacheado,origem:'cache'}:null);
+    return _auraFotoChainCache[chave];
+  }
+
+  _auraFotoChainCache[chave]=(async function(){
+    var apiRespondeu=false;
+    cosmosProxyUltimoErro='';
+    try{
+      var r=await _filaAuraFotos(function(){
+        // IMPORTANTE: chamada idêntica à usada pelo AURA Vencimentos.
+        // Não envia folderId; o próprio Code.gs compartilhado decide Drive/Cosmos.
+        return _gasGet(
+          'buscarImagemProduto',
+          '&codigoBarras='+encodeURIComponent(cod)+'&tipo='+encodeURIComponent(tipo)
+        );
+      });
+
+      apiRespondeu=!!(r&&r.ok);
+      if(r&&r.erro)cosmosProxyUltimoErro=String(r.erro);
+
+      if(r&&r.ok&&r.encontrado&&r.base64){
+        var src='data:'+(r.mimeType||'image/jpeg')+';base64,'+r.base64;
+        _auraFotoCacheSet(chave,src);
+        return {
+          src:src,
+          origem:String(r.origem||'aura').toLowerCase(),
+          salvoNoDrive:!!r.salvoNoDrive
+        };
+      }
+
+      // Compatibilidade defensiva: se o mesmo Code.gs passar a devolver
+      // dataUrl em alguma implantação, continua funcionando sem mudar o fluxo.
+      if(r&&r.ok&&r.encontrado&&r.dataUrl){
+        _auraFotoCacheSet(chave,r.dataUrl);
+        return {
+          src:r.dataUrl,
+          origem:String(r.origem||'aura').toLowerCase(),
+          salvoNoDrive:!!r.salvoNoDrive
+        };
+      }
+    }catch(e){
+      cosmosProxyUltimoErro=(e&&e.message)?e.message:'Falha ao consultar a API AURA';
+    }
+
+    if(apiRespondeu)_auraFotoCacheSet(chave,null);
+    return null;
+  })();
+
+  return _auraFotoChainCache[chave];
+}
+
 async function buscarFotoDrive(codigoBarras,tipo){
   var cod=normalizarCodigo(codigoBarras);
   if(!cod)return null;
-  var extra='&codigoBarras='+encodeURIComponent(cod)+
-    '&tipo='+encodeURIComponent(tipo||'produto')+
-    '&folderId='+encodeURIComponent(DRIVE_FOLDER_ID);
 
-  // A action buscarImagemProduto do backend AURA agora resolve tudo no servidor:
-  // 1) procura no Drive; 2) se não achar, consulta Cosmos; 3) salva no Drive.
-  // JSONP evita o CORS do Apps Script no GitHub Pages.
-  var res=await _gasGetJsonp('buscarImagemProduto',extra,15000);
-  if(res&&res.ok&&res.encontrado){
-    var img=null;
-    if(res.base64){
-      img=await carregarImagemUrl('data:'+(res.mimeType||'image/png')+';base64,'+res.base64,true);
-    }else if(res.dataUrl){
-      img=await carregarImagemUrl(res.dataUrl,true);
-    }else if(res.url||res.imageUrl){
-      img=await carregarImagemUrl(res.url||res.imageUrl);
-    }
-    if(img){
-      img._auraOrigem=String(res.origem||'drive').toLowerCase();
-      img._auraSalvoNoDrive=!!res.salvoNoDrive;
-      return img;
-    }
-  }
-  if(res&&res.erro)cosmosProxyUltimoErro=res.erro;
-  return null;
+  var resolvida=await _resolverFotoAura(cod,tipo||'produto');
+  if(!resolvida||!resolvida.src)return null;
+
+  var img=await carregarImagemUrl(resolvida.src,true);
+  if(!img)return null;
+
+  img._auraOrigem=resolvida.origem||'aura';
+  img._auraSalvoNoDrive=!!resolvida.salvoNoDrive;
+  return img;
 }
 // buscarFotoGoogleCSE e buscarFotoOpenverse foram removidas: a primeira sempre retornava
 // 400 (chave/cota) e a segunda é bloqueada por CORS nesta origem — nunca traziam foto,
@@ -1392,7 +1506,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   var termo=String(termoManual||'').trim();
   var img=null;
   cosmosProxyUltimoErro='';
-  limparFoto(cod?'Buscando foto no banco AURA: Drive → Bluesoft Cosmos...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
+  limparFoto(cod?'Buscando foto pela API AURA: Drive → Cosmos...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
   drawPlaca();
 
   // Uma única chamada ao backend. O servidor decide Drive -> Cosmos e,
@@ -1410,7 +1524,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
           ?'Foto encontrada no Bluesoft Cosmos e salva no Google Drive.'
           :'Foto encontrada no Bluesoft Cosmos.','ok');
       }else{
-        setFotoStatus('Foto encontrada no Google Drive.','ok');
+        setFotoStatus(origem==='drive'?'Foto encontrada no Google Drive.':'✓ Foto encontrada via API AURA (Drive/Cosmos).','ok');
       }
       drawPlaca();
       return true;
