@@ -83,6 +83,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .foto-search input{height:32px;padding:0 9px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;outline:none;font-family:inherit}
 .foto-search input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
 .foto-actions{display:flex;gap:6px;flex-wrap:wrap}
+.foto-sugestoes{display:none;margin-top:8px;padding-top:7px;border-top:1px solid var(--bd)}
+.foto-sugestoes.show{display:block}
+.foto-sug-titulo{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--tx2);margin-bottom:6px}
+.foto-sug-grid{display:flex;gap:6px;flex-wrap:wrap}
+.foto-sug{width:68px;border:1px solid var(--bd);border-radius:7px;background:var(--bg);padding:4px;cursor:pointer;text-align:center}
+.foto-sug:hover{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.12)}
+.foto-sug img{width:58px;height:58px;object-fit:contain;background:#fff;border-radius:4px;display:block;margin:auto}
+.foto-sug small{font-size:8px;line-height:1.1;color:var(--tx2);display:block;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foto-sug-score{font-size:8px;font-weight:800;color:var(--amber);margin-top:2px}
 @media(max-width:640px){.foto-panel{align-items:stretch}.foto-search{grid-template-columns:1fr}.foto-preview{width:56px;height:56px}}
 .foto-ajuste{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;align-items:center}
 .foto-ajuste .sep{width:1px;align-self:stretch;background:var(--bds);margin:0 2px}
@@ -283,7 +292,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         </div>
         <div class="foto-meta">
           <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
-          <div class="foto-status" id="fotoStatus">Ao selecionar um produto, a foto será buscada pela mesma API AURA do Controle de Validades (Drive → Cosmos).</div>
+          <div class="foto-status" id="fotoStatus">Busca segura: Drive → Cosmos → UPCitemdb validado → Brave/Google. Códigos locais não são enviados a catálogos globais.</div>
           <div class="foto-search">
             <input type="text" id="pFotoTermo" placeholder="Termo manual. Ex: peça de presunto para fatiar" autocomplete="off">
             <button type="button" class="btn btn-sm btn-green" onclick="buscarFotoPorTermoManual()"><i class="ti ti-search"></i> Pesquisar termo</button>
@@ -297,6 +306,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <button type="button" class="btn btn-sm" onclick="abrirGoogleImagens()"><i class="ti ti-brand-google"></i> Abrir Google</button>
             <label class="btn btn-sm" for="pFoto"><i class="ti ti-upload"></i> Enviar manual</label>
             <input type="file" id="pFoto" accept="image/*" onchange="loadFoto(this)" style="display:none">
+          </div>
+          <div class="foto-sugestoes" id="fotoSugestoes">
+            <div class="foto-sug-titulo">Resultados para conferir antes de usar</div>
+            <div class="foto-sug-grid" id="fotoSugGrid"></div>
           </div>
           <div class="foto-ajuste" title="Ajustar a foto na placa">
             <button type="button" class="btn-ico" onclick="ajustarFoto('main','zoom-out')" title="Diminuir"><i class="ti ti-zoom-out"></i></button>
@@ -509,16 +522,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div id="printArea"></div>
 
 <script>
-console.info('[Boss Vision] Arsenal de Ofertas build AURA-IMAGE-FLOW-20260826 — imagens: mesmo fluxo do AURA Vencimentos (buscarImagemProduto via JSONP)');
-window.ARSENAL_BUILD='AURA-IMAGE-FLOW-20260826';
+console.info('[Boss Vision] Arsenal de Ofertas build REGIONAL-SAFE-V2-20260826 — Google CSE e Brave protegidos no Code.gs');
+window.ARSENAL_BUILD='REGIONAL-SAFE-V2-20260826';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
 var CFG_KEY='aura_cfg';
 var PROD_KEY='placa_prod_cache';
 var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec';
-var GCSE_API_KEY='AIzaSyClxbl8yzMpHdahpB38Fc66NcqtDWxjdvw';
-var GCSE_CX='a74b49ecb1fd546fb';
 var banco={};          // cod -> nome oficial do banco
 var bancoPreco={};     // cod -> preco de venda do banco (somente referência)
 var bancoUnidade={};   // cod -> unidade/medida do banco
@@ -1057,11 +1068,51 @@ function setFotoPreview(img){
     box.innerHTML='<i class="ti ti-photo-search" style="font-size:24px"></i><div class="foto-busca-pop" id="fotoBuscaPop"><span class="spin"></span><span id="fotoBuscaPopTxt"></span></div>';
   }
 }
+var _fotoSugestoesAtuais=[];
+function limparSugestoesFoto(){
+  _fotoSugestoesAtuais=[];
+  var box=document.getElementById('fotoSugestoes'),grid=document.getElementById('fotoSugGrid');
+  if(grid)grid.innerHTML='';
+  if(box)box.classList.remove('show');
+}
+function mostrarSugestoesFoto(lista){
+  lista=(lista||[]).filter(function(x){return x&&x.img&&x.url;}).slice(0,3);
+  limparSugestoesFoto();
+  if(!lista.length)return;
+  _fotoSugestoesAtuais=lista;
+  var box=document.getElementById('fotoSugestoes'),grid=document.getElementById('fotoSugGrid');
+  if(!box||!grid)return;
+  lista.forEach(function(c,i){
+    var b=document.createElement('button');
+    b.type='button';b.className='foto-sug';
+    var im=document.createElement('img');im.src=c.img.src;im.alt='';
+    var sm=document.createElement('small');sm.textContent=c.fonte||'resultado';
+    var sc=document.createElement('div');sc.className='foto-sug-score';sc.textContent='conf. '+Math.round(c.confianca||0);
+    b.appendChild(im);b.appendChild(sm);b.appendChild(sc);
+    b.onclick=function(){usarSugestaoFoto(i);};
+    grid.appendChild(b);
+  });
+  box.classList.add('show');
+}
+function usarSugestaoFoto(i){
+  var c=_fotoSugestoesAtuais[i];
+  if(!c||!c.img)return;
+  ++fotoToken;
+  fotoImg=c.img;
+  fotoOrigemDrive=false;
+  setFotoPreview(fotoImg);
+  setFotoStatus('Foto escolhida manualmente entre os resultados de '+c.fonte+'. Salvando no banco próprio...','ok');
+  drawPlaca();
+  limparSugestoesFoto();
+  var cod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
+  if(cod)Promise.resolve().then(function(){return salvarFotoAtualNoDrive(false);}).catch(function(){});
+}
 function limparFoto(msg){
   fotoImg=null;
   fotoTransform=null;
+  limparSugestoesFoto();
   setFotoPreview(null);
-  setFotoStatus(msg||'Ao selecionar um produto, a foto será buscada pela mesma API AURA do Controle de Validades (Drive → Cosmos).');
+  setFotoStatus(msg||'Busca segura: Drive → Cosmos → UPCitemdb validado → Brave/Google. Códigos locais não são enviados a catálogos globais.');
 }
 function proxyImagemUrl(url){
   url=String(url||'').trim();
@@ -1333,6 +1384,23 @@ function _auraFotoCacheSet(cod,url){
     localStorage.setItem(AURA_FOTO_CACHE_KEY,JSON.stringify(limpo));
   }catch(e){}
 }
+function _invalidarCacheAuraFoto(codigo){
+  var cod=normalizarCodigo(codigo);
+  if(!cod)return;
+  try{
+    Object.keys(_auraFotoChainCache).forEach(function(k){
+      if(k.indexOf(':'+cod+':')>=0||k.endsWith(':'+cod))delete _auraFotoChainCache[k];
+    });
+  }catch(e){}
+  try{
+    var c=_auraFotoCacheGet(),mudou=false;
+    Object.keys(c).forEach(function(k){
+      if(k.indexOf(':'+cod+':')>=0||k.endsWith(':'+cod)){delete c[k];mudou=true;}
+    });
+    if(mudou)localStorage.setItem(AURA_FOTO_CACHE_KEY,JSON.stringify(c));
+  }catch(e2){}
+}
+
 function _criarFilaAuraFotos(limit){
   var ativos=0,fila=[];
   function proximo(){
@@ -1354,12 +1422,14 @@ function _criarFilaAuraFotos(limit){
 }
 var _filaAuraFotos=_criarFilaAuraFotos(4);
 
-function _resolverFotoAura(codigoBarras,tipo){
+function _resolverFotoAura(codigoBarras,tipo,nomeProduto,permitirExternas){
   var cod=normalizarCodigo(codigoBarras);
   tipo=tipo||'produto';
+  nomeProduto=String(nomeProduto||'').trim();
+  permitirExternas=permitirExternas!==false;
   if(!cod)return Promise.resolve(null);
 
-  var chave=tipo+':'+cod;
+  var chave=tipo+':'+cod+':'+(permitirExternas?'ext':'drive');
   if(_auraFotoChainCache[chave])return _auraFotoChainCache[chave];
 
   var cacheado=_auraFotoCacheLookup(chave);
@@ -1372,13 +1442,13 @@ function _resolverFotoAura(codigoBarras,tipo){
     var apiRespondeu=false;
     cosmosProxyUltimoErro='';
     try{
+      var extra='&codigoBarras='+encodeURIComponent(cod)
+        +'&tipo='+encodeURIComponent(tipo)
+        +'&externas='+(permitirExternas?'1':'0');
+      if(nomeProduto)extra+='&nomeProduto='+encodeURIComponent(nomeProduto);
+
       var r=await _filaAuraFotos(function(){
-        // IMPORTANTE: chamada idêntica à usada pelo AURA Vencimentos.
-        // Não envia folderId; o próprio Code.gs compartilhado decide Drive/Cosmos.
-        return _gasGet(
-          'buscarImagemProduto',
-          '&codigoBarras='+encodeURIComponent(cod)+'&tipo='+encodeURIComponent(tipo)
-        );
+        return _gasGet('buscarImagemProduto',extra);
       });
 
       apiRespondeu=!!(r&&r.ok);
@@ -1390,18 +1460,17 @@ function _resolverFotoAura(codigoBarras,tipo){
         return {
           src:src,
           origem:String(r.origem||'aura').toLowerCase(),
-          salvoNoDrive:!!r.salvoNoDrive
+          salvoNoDrive:!!r.salvoNoDrive,
+          validacao:r.validacao||null
         };
       }
-
-      // Compatibilidade defensiva: se o mesmo Code.gs passar a devolver
-      // dataUrl em alguma implantação, continua funcionando sem mudar o fluxo.
       if(r&&r.ok&&r.encontrado&&r.dataUrl){
         _auraFotoCacheSet(chave,r.dataUrl);
         return {
           src:r.dataUrl,
           origem:String(r.origem||'aura').toLowerCase(),
-          salvoNoDrive:!!r.salvoNoDrive
+          salvoNoDrive:!!r.salvoNoDrive,
+          validacao:r.validacao||null
         };
       }
     }catch(e){
@@ -1415,11 +1484,11 @@ function _resolverFotoAura(codigoBarras,tipo){
   return _auraFotoChainCache[chave];
 }
 
-async function buscarFotoDrive(codigoBarras,tipo){
+async function buscarFotoDrive(codigoBarras,tipo,nomeProduto,permitirExternas){
   var cod=normalizarCodigo(codigoBarras);
   if(!cod)return null;
 
-  var resolvida=await _resolverFotoAura(cod,tipo||'produto');
+  var resolvida=await _resolverFotoAura(cod,tipo||'produto',nomeProduto||'',permitirExternas!==false);
   if(!resolvida||!resolvida.src)return null;
 
   var img=await carregarImagemUrl(resolvida.src,true);
@@ -1427,69 +1496,256 @@ async function buscarFotoDrive(codigoBarras,tipo){
 
   img._auraOrigem=resolvida.origem||'aura';
   img._auraSalvoNoDrive=!!resolvida.salvoNoDrive;
+  img._auraValidacao=resolvida.validacao||null;
   return img;
 }
-// buscarFotoGoogleCSE e buscarFotoOpenverse foram removidas: a primeira sempre retornava
-// 400 (chave/cota) e a segunda é bloqueada por CORS nesta origem — nunca traziam foto,
-// só deixavam a busca lenta. Wikimedia Commons (abaixo) aceita CORS e assumiu o lugar.
-async function buscarFotoWikimedia(query){
-  query=String(query||'').trim();
-  if(!query)return null;
-  try{
-    var url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=12&gsrsearch='+encodeURIComponent(query)+'&prop=imageinfo&iiprop=url|mime&iiurlwidth=900&format=json&origin=*';
-    var r=await fetchComTimeout(url,{cache:'no-store'},5000);
-    if(!r.ok)return null;
-    var j=await r.json();
-    var pages=(j.query&&j.query.pages)||{};
-    var keys=Object.keys(pages);
-    for(var i=0;i<keys.length;i++){
-      var info=pages[keys[i]].imageinfo&&pages[keys[i]].imageinfo[0];
-      if(!info||!/^image\//.test(info.mime||''))continue;
-      var links=[info.thumburl,info.url].filter(Boolean);
-      for(var li=0;li<links.length;li++){
-        var img=await carregarImagemUrl(links[li]);
-        if(img)return img;
-      }
-    }
-  }catch(e){}
-  return null;
+// ============================================================
+// BUSCA WEB SEGURA PARA VAREJO BRASILEIRO/REGIONAL
+// Automático industrializado: Brave + Google CSE.
+// Openverse/Wikimedia: somente busca manual ou tema Hortifrúti.
+// ============================================================
+var FOTO_CACHE_KEY='arsenalFotoCacheV3Regional';
+var FOTO_CACHE_TTL_MS=1000*60*60*24*7;
+
+function gtinChecksumValido(codigo){
+  var cod=String(codigo||'').replace(/\D/g,'');
+  if([8,12,13,14].indexOf(cod.length)<0)return false;
+  var corpo=cod.slice(0,-1),soma=0,peso=3;
+  for(var i=corpo.length-1;i>=0;i--){soma+=Number(corpo.charAt(i))*peso;peso=peso===3?1:3;}
+  return ((10-(soma%10))%10)===Number(cod.charAt(cod.length-1));
 }
-var FOTO_CACHE_KEY='arsenalFotoCacheV1';
-var FOTO_CACHE_TTL_MS=1000*60*60*24*7; // 7 dias
-function fotoCacheLer(chave){
+function gtinFaixaRestrita(codigo){
+  var cod=String(codigo||'').replace(/\D/g,'');
+  if(cod.length===13){
+    var p2=cod.slice(0,2),n=Number(p2);
+    return p2==='02'||(n>=20&&n<=29);
+  }
+  if(cod.length===14){
+    var p214=cod.slice(1,3),n14=Number(p214);
+    return p214==='02'||(n14>=20&&n14<=29);
+  }
+  if(cod.length===8){
+    var p3=Number(cod.slice(0,3));
+    return (p3>=0&&p3<=99)||(p3>=200&&p3<=299);
+  }
+  return false;
+}
+function gtinGlobalSeguro(codigo){
+  var cod=String(codigo||'').replace(/\D/g,'');
+  return [8,12,13,14].indexOf(cod.length)>=0&&gtinChecksumValido(cod)&&!gtinFaixaRestrita(cod);
+}
+function normalizarTextoFoto(v){
+  return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function tokensProdutoFoto(v){
+  var stop={un:1,und:1,unid:1,unidade:1,pct:1,pacote:1,cx:1,caixa:1,bdj:1,bandeja:1,produto:1};
+  return normalizarTextoFoto(v).split(' ').filter(function(t){
+    return t&&t.length>=2&&!stop[t]&&!/^\d+(?:ml|l|g|gr|kg)$/.test(t);
+  });
+}
+function medidaProdutoFoto(v){
+  var s=normalizarTextoFoto(v).replace(/\s+/g,'');
+  var m=s.match(/(\d+(?:[.,]\d+)?)(ml|l|kg|gr|g)\b/);
+  if(!m)return null;
+  var n=Number(String(m[1]).replace(',','.'));if(!isFinite(n)||n<=0)return null;
+  if(m[2]==='l')return Math.round(n*1000)+'ml';
+  if(m[2]==='kg')return Math.round(n*1000)+'g';
+  return Math.round(n)+(m[2]==='gr'?'g':m[2]);
+}
+function compatTextoFoto(nome,meta){
+  var exp=tokensProdutoFoto(nome);
+  if(!exp.length)return {cobertura:0,ok:false,medidaOk:true};
+  var m=' '+normalizarTextoFoto(meta)+' ',comuns=0;
+  exp.forEach(function(t){if(m.indexOf(' '+t+' ')>=0)comuns++;});
+  var cobertura=comuns/exp.length;
+  var me=medidaProdutoFoto(nome),mc=medidaProdutoFoto(meta);
+  var medidaOk=!(me&&mc&&me!==mc);
+  return {cobertura:cobertura,ok:medidaOk&&(exp.length<=2?cobertura===1:cobertura>=.75),medidaOk:medidaOk};
+}
+function queryProdutoFoto(nome,cod){
+  nome=String(nome||'').replace(/\s+/g,' ').trim();
+  cod=String(cod||'').replace(/\D/g,'');
+  if(gtinGlobalSeguro(cod)&&nome)return '"'+cod+'" '+nome+' produto embalagem';
+  if(gtinGlobalSeguro(cod))return '"'+cod+'" produto';
+  return nome;
+}
+function _timeoutPromise(ms,valor){return new Promise(function(resolve){setTimeout(function(){resolve(valor);},ms);});}
+function _fetchJsonTimeout(url,ms){
+  return Promise.race([
+    fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}),
+    _timeoutPromise(ms||3000,{__timeout:true})
+  ]);
+}
+function avaliarFotoProduto(img){
   try{
-    var c=JSON.parse(localStorage.getItem(FOTO_CACHE_KEY)||'{}');
-    var item=c[chave];
-    if(item&&(Date.now()-item.ts)<FOTO_CACHE_TTL_MS)return item;
-  }catch(e){}
+    var w=img.naturalWidth||img.width||0,h=img.naturalHeight||img.height||0;if(!w||!h)return 0;
+    var cw=Math.max(24,Math.min(64,w)),ch=Math.max(24,Math.min(64,h));
+    var c=document.createElement('canvas');c.width=cw;c.height=ch;
+    var x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0,cw,ch);
+    var d=x.getImageData(0,0,cw,ch).data,borda=Math.max(2,Math.round(Math.min(cw,ch)*.12));
+    var total=0,claros=0;
+    for(var yy=0;yy<ch;yy++)for(var xx=0;xx<cw;xx++){
+      if(xx>=borda&&xx<cw-borda&&yy>=borda&&yy<ch-borda)continue;
+      var p=(yy*cw+xx)*4,a=d[p+3],r=d[p],g=d[p+1],b=d[p+2];total++;
+      if(a<40){claros++;continue;}
+      var mn=Math.min(r,g,b),mx=Math.max(r,g,b);if(mn>=232&&(mx-mn)<=28)claros++;
+    }
+    var claro=total?claros/total:0,res=Math.min(1,Math.min(w,h)/700),ratio=w/h;
+    var prop=(ratio>=.45&&ratio<=2.2)?1:(ratio>=.3&&ratio<=3?.55:.15);
+    return Math.round(claro*72+res*20+prop*8);
+  }catch(e){return 30;}
+}
+function carregarImagemRapida(url,ms){return Promise.race([carregarImagemUrl(url),_timeoutPromise(ms||2400,null)]);}
+function fotoCacheLer(chave){
+  try{var c=JSON.parse(localStorage.getItem(FOTO_CACHE_KEY)||'{}'),it=c[chave];if(it&&(Date.now()-it.ts)<FOTO_CACHE_TTL_MS)return it;}catch(e){}
   return null;
 }
 function fotoCacheGravar(chave,valor){
   try{
     var c=JSON.parse(localStorage.getItem(FOTO_CACHE_KEY)||'{}');
     c[chave]={achou:!!valor,url:valor||null,ts:Date.now()};
-    var chaves=Object.keys(c);
-    if(chaves.length>500){chaves.sort(function(a,b){return c[a].ts-c[b].ts;});for(var i=0;i<chaves.length-500;i++)delete c[chaves[i]];}
+    var ks=Object.keys(c);if(ks.length>400){ks.sort(function(a,b){return c[a].ts-c[b].ts;});for(var i=0;i<ks.length-400;i++)delete c[ks[i]];}
     localStorage.setItem(FOTO_CACHE_KEY,JSON.stringify(c));
   }catch(e){}
 }
-async function buscarFotoWeb(query,statusFn){
-  query=String(query||'').trim();
-  if(!query)return null;
-  var chaveCache='web:'+query.toLowerCase();
-  var cache=fotoCacheLer(chaveCache);
-  if(cache){
-    if(!cache.achou)return null;
-    if(cache.url){var imgC=await carregarImagemUrl(cache.url);if(imgC)return {img:imgC,fonte:'cache'};}
-  }
-  if(statusFn)statusFn('Buscando imagem por: "'+query+'"...');
-  // Google CSE e Openverse removidos: nesta origem sempre falham (CSE retorna 400 de cota/config,
-  // Openverse é bloqueado por CORS) e só deixavam a busca lenta sem nunca achar nada.
-  var img=await buscarFotoWikimedia(query);
-  if(img){fotoCacheGravar(chaveCache,img.src||true);return {img:img,fonte:'Wikimedia Commons'};}
-  fotoCacheGravar(chaveCache,null);
-  return null;
+function pontuarCandidatoFoto(c,nome,cod,img){
+  var visual=avaliarFotoProduto(img);
+  var meta=[c.title,c.source,c.pageUrl,c.contextLink,c.meta].filter(Boolean).join(' ');
+  var compat=compatTextoFoto(nome,meta);
+  var codStr=String(cod||'').replace(/\D/g,'');
+  var eanNoMeta=gtinGlobalSeguro(codStr)&&normalizarTextoFoto(meta).indexOf(codStr)>=0;
+  var fonteBonus=c.fonte==='Brave'?8:c.fonte==='Google CSE'?7:0;
+  var confianca=Math.round(Math.min(100,
+    visual*.38 + compat.cobertura*45 + (eanNoMeta?28:0) +
+    (compat.medidaOk?7:-25) + fonteBonus
+  ));
+  var alta=compat.medidaOk&&visual>=48&&(
+    (eanNoMeta&&compat.cobertura>=.45) || compat.cobertura>=.85
+  )&&confianca>=72;
+  var media=compat.medidaOk&&visual>=38&&compat.cobertura>=.55&&confianca>=54;
+  return {confianca:confianca,alta:alta,media:media,visual:visual,compat:compat,eanNoMeta:eanNoMeta};
 }
+async function carregarCandidatosFoto(cands,nome,cod,max){
+  var arr=(cands||[]).filter(function(c){return c&&/^https?:\/\//i.test(c.url||'');}).slice(0,max||8);
+  var vistos={};
+  arr=arr.filter(function(c){if(vistos[c.url])return false;vistos[c.url]=1;return true;});
+  var rs=await Promise.all(arr.map(async function(c){
+    var img=await carregarImagemRapida(c.url,2300);if(!img)return null;
+    var p=pontuarCandidatoFoto(c,nome,cod,img);
+    return Object.assign({},c,{img:img},p);
+  }));
+  return rs.filter(Boolean).sort(function(a,b){return b.confianca-a.confianca;});
+}
+async function buscarFotoGoogleCSE(query,nome,cod){
+  query=String(query||'').trim();
+  if(!query)return [];
+  try{
+    // Chave e CX ficam exclusivamente no Script Properties do Code.gs.
+    // O Arsenal recebe somente candidatos de imagem via JSONP.
+    var r=await _gasGetJsonp(
+      'buscarImagemGoogleCSE',
+      '&q='+encodeURIComponent(query),
+      4500
+    );
+    if(!r||!r.ok||!Array.isArray(r.candidatos))return [];
+    var cands=r.candidatos.map(function(it){
+      return {
+        url:it.url,
+        fonte:'Google CSE',
+        title:it.title||'',
+        source:it.source||'',
+        contextLink:it.contextLink||''
+      };
+    });
+    return await carregarCandidatosFoto(cands,nome,cod,7);
+  }catch(e){
+    return [];
+  }
+}
+async function buscarFotoBrave(query,nome,cod){
+  query=String(query||'').trim();if(!query)return [];
+  try{
+    var r=await _gasGetJsonp('buscarImagemBrave','&q='+encodeURIComponent(query),4500);
+    if(!r||!r.ok||!Array.isArray(r.candidatos))return [];
+    var cands=r.candidatos.map(function(it){
+      return {url:it.url,fonte:'Brave',title:it.title||'',source:it.source||'',pageUrl:it.pageUrl||''};
+    });
+    return await carregarCandidatosFoto(cands,nome,cod,7);
+  }catch(e){return [];}
+}
+async function buscarFotoOpenverse(query){
+  query=String(query||'').trim();if(!query)return [];
+  var urls=[];
+  try{
+    var j=await _fetchJsonTimeout('https://api.openverse.org/v1/images/?mature=false&page_size=8&q='+encodeURIComponent(query),2400);
+    if(j&&!j.__timeout)(j.results||[]).forEach(function(it){[it.thumbnail,it.thumbnail_url,it.url].forEach(function(u){if(u)urls.push(u);});});
+  }catch(e){}
+  if(!urls.length){
+    try{var r=await _gasGetJsonp('buscarImagemOpenverse','&q='+encodeURIComponent(query),4000);if(r&&r.ok&&Array.isArray(r.urls))urls=r.urls;}catch(e2){}
+  }
+  return urls.slice(0,6).map(function(u){return {url:u,fonte:'Openverse',title:query};});
+}
+async function buscarFotoWikimedia(query){
+  query=String(query||'').trim();if(!query)return [];
+  try{
+    var url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch='+encodeURIComponent(query)+'&prop=imageinfo&iiprop=url|mime&iiurlwidth=900&format=json&origin=*';
+    var j=await _fetchJsonTimeout(url,2400);if(!j||j.__timeout)return [];
+    var pages=(j.query&&j.query.pages)||{},out=[];
+    Object.keys(pages).forEach(function(k){
+      var pg=pages[k],inf=pg.imageinfo&&pg.imageinfo[0];
+      if(inf&&/^image\//.test(inf.mime||''))out.push({url:inf.thumburl||inf.url,fonte:'Wikimedia',title:pg.title||query});
+    });
+    return out;
+  }catch(e){return [];}
+}
+function temaHortiAtivo(){
+  var sel=document.getElementById('pTemaPlaca');
+  return !!(sel&&sel.value==='horti');
+}
+async function buscarFotoWeb(query,cod,statusFn,opcoes){
+  opcoes=opcoes||{};
+  query=String(query||'').trim();cod=normalizarCodigo(cod||'');
+  if(!query&&!cod)return {alta:null,sugestoes:[]};
+
+  var q=queryProdutoFoto(query,cod);
+  if(!q)return {alta:null,sugestoes:[]};
+
+  var cacheKey='web3:'+(cod||query.toLowerCase());
+  var cache=fotoCacheLer(cacheKey);
+  if(cache&&cache.achou&&cache.url){
+    var imgCache=await carregarImagemRapida(cache.url,1600);
+    if(imgCache){
+      return {alta:{img:imgCache,url:cache.url,fonte:'cache validado',confianca:96,alta:true,media:true},sugestoes:[],todos:[]};
+    }
+  }
+
+  if(statusFn)statusFn('Reforçando com Brave + Google e validando descrição/medida/fundo...');
+
+  var tarefas=[buscarFotoGoogleCSE(q,query,cod),buscarFotoBrave(q,query,cod)];
+  var extrasPermitidos=!!opcoes.manual||temaHortiAtivo();
+
+  if(extrasPermitidos&&query){
+    tarefas.push((async function(){
+      var a=await buscarFotoOpenverse(query);
+      return await carregarCandidatosFoto(a,query,'',5);
+    })());
+    tarefas.push((async function(){
+      var a=await buscarFotoWikimedia(query);
+      return await carregarCandidatosFoto(a,query,'',5);
+    })());
+  }
+
+  var grupos=await Promise.all(tarefas),todos=[];
+  grupos.forEach(function(g){if(Array.isArray(g))todos=todos.concat(g);});
+  todos.sort(function(a,b){return b.confianca-a.confianca;});
+
+  var alta=todos.find(function(c){return c.alta;})||null;
+  var sugestoes=todos.filter(function(c){return !c.alta&&c.media;}).slice(0,3);
+  if(alta&&alta.url)fotoCacheGravar(cacheKey,alta.url);
+  return {alta:alta,sugestoes:sugestoes,todos:todos};
+}
+
 // Busca a foto do Cosmos SEM acessar o CDN direto pelo navegador.
 // O navegador chama o nosso Google Apps Script; o Apps Script baixa a imagem
 // do CDN da Bluesoft no servidor e devolve base64. Assim o canvas não fica
@@ -1497,53 +1753,92 @@ async function buscarFotoWeb(query,statusFn){
 async function buscarFotoCosmos(ean){
   // Compatibilidade: não existe mais uma segunda rota Cosmos no frontend.
   // O próprio buscarImagemProduto do backend já executa Drive -> Cosmos.
-  var img=await buscarFotoDrive(ean,'produto');
+  var img=await buscarFotoDrive(ean,'produto','',gtinGlobalSeguro(ean));
   return img;
 }
 async function buscarFotoCompleta(ean,nomeProduto,termoManual){
   var token=++fotoToken;
   var cod=normalizarCodigo(ean);
+  var nome=String(nomeProduto||'').trim();
   var termo=String(termoManual||'').trim();
+  var queryWeb=termo||nome;
+  var gtinSeguro=gtinGlobalSeguro(cod);
   var img=null;
   cosmosProxyUltimoErro='';
-  limparFoto(cod?'Buscando foto pela API AURA: Drive → Cosmos...':termo?'Buscando imagem pelo termo manual...':'Buscando foto...');
+  limparSugestoesFoto();
+
+  var msgInicial=cod
+    ?(gtinSeguro
+      ?'Buscando foto segura: Drive → Cosmos → UPCitemdb validado...'
+      :'Código local/restrito: buscando primeiro somente no Drive; catálogos globais não receberão este código.')
+    :(queryWeb?'Buscando imagem por descrição...':'Buscando foto...');
+  limparFoto(msgInicial);
   drawPlaca();
 
-  // Uma única chamada ao backend. O servidor decide Drive -> Cosmos e,
-  // quando vem do Cosmos, já salva no Drive para a próxima consulta.
+  var webPromise=null,webTimer=null;
+  function iniciarWeb(){
+    if(webPromise)return webPromise;
+    if(!queryWeb)return Promise.resolve({alta:null,sugestoes:[]});
+    webPromise=buscarFotoWeb(queryWeb,gtinSeguro?cod:'',function(msg){
+      if(token===fotoToken)setFotoStatus(msg);
+    },{manual:false});
+    return webPromise;
+  }
+
+  if(queryWeb)webTimer=setTimeout(iniciarWeb,850);
+
   if(cod){
-    img=await buscarFotoDrive(cod,'produto');
+    img=await buscarFotoDrive(cod,'produto',nome,gtinSeguro);
     if(token!==fotoToken)return false;
+    if(webTimer)clearTimeout(webTimer);
+
     if(img){
       var origem=String(img._auraOrigem||'drive').toLowerCase();
       fotoImg=img;
-      fotoOrigemDrive=(origem==='drive');
+      fotoOrigemDrive=(origem==='drive'||!!img._auraSalvoNoDrive);
       setFotoPreview(img);
+
       if(origem==='cosmos'){
-        setFotoStatus(img._auraSalvoNoDrive
-          ?'Foto encontrada no Bluesoft Cosmos e salva no Google Drive.'
-          :'Foto encontrada no Bluesoft Cosmos.','ok');
+        setFotoStatus('Foto encontrada no Bluesoft Cosmos por GTIN e salva no banco próprio.','ok');
+      }else if(origem==='upcitemdb'){
+        setFotoStatus('Foto encontrada no UPCitemdb, validada contra descrição/medida e salva no banco próprio.','ok');
       }else{
-        setFotoStatus(origem==='drive'?'Foto encontrada no Google Drive.':'✓ Foto encontrada via API AURA (Drive/Cosmos).','ok');
+        setFotoStatus('Foto encontrada no Google Drive do Boas Compras.','ok');
       }
       drawPlaca();
       return true;
     }
+  }else if(webTimer){
+    clearTimeout(webTimer);
   }
 
-  // Pesquisa por termo continua somente quando o operador pede manualmente.
-  if(termo){
-    var achadoTermo=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
-    if(token!==fotoToken)return false;
-    if(achadoTermo&&achadoTermo.img){
-      fotoImg=achadoTermo.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);
-      setFotoStatus('Foto encontrada pelo termo manual em '+achadoTermo.fonte+'.','ok');drawPlaca();return true;
-    }
+  var web=await iniciarWeb();
+  if(token!==fotoToken)return false;
+
+  if(web&&web.alta&&web.alta.img){
+    fotoImg=web.alta.img;
+    fotoOrigemDrive=false;
+    setFotoPreview(fotoImg);
+    setFotoStatus('Foto de alta confiança encontrada em '+web.alta.fonte+' (descrição/medida/fundo validados). Salvando no Drive...','ok');
+    drawPlaca();
+    if(cod)Promise.resolve().then(function(){return salvarFotoAtualNoDrive(false);}).catch(function(){});
+    return true;
   }
 
-  limparFoto(cosmosProxyUltimoErro
-    ?'Foto não encontrada automaticamente. A API AURA respondeu: '+cosmosProxyUltimoErro+'.'
-    :'Foto não encontrada automaticamente no Google Drive nem no Bluesoft Cosmos.');
+  if(web&&web.sugestoes&&web.sugestoes.length){
+    mostrarSugestoesFoto(web.sugestoes);
+    setFotoStatus('Encontrei imagens plausíveis, mas não seguras o bastante para gravar automaticamente. Confira uma das opções abaixo.','warn');
+    drawPlaca();
+    return false;
+  }
+
+  if(cod&&!gtinSeguro){
+    setFotoStatus('Não achei no Drive. Como este código é local/restrito ou não passou no dígito verificador, evitei consultar catálogos globais por código. Tente a busca por nome ou envie a foto.','warn');
+  }else{
+    setFotoStatus(cosmosProxyUltimoErro
+      ?'Não encontrei uma imagem segura. A API AURA respondeu: '+cosmosProxyUltimoErro
+      :'Não encontrei uma imagem com confiança suficiente em Drive, Cosmos, UPCitemdb, Brave ou Google.','warn');
+  }
   drawPlaca();
   return false;
 }
@@ -1555,19 +1850,32 @@ async function buscarFotoPorTermoManual(){
     return;
   }
   var token=++fotoToken;
-  limparFoto('Buscando imagem por: "'+termo+'"...');
+  limparFoto('Busca manual: consultando Brave/Google e, se útil, Openverse/Wikimedia...');
   drawPlaca();
-  var achado=await buscarFotoWeb(termo,function(msg){if(token===fotoToken)setFotoStatus(msg);});
+
+  var cod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
+  var web=await buscarFotoWeb(termo,gtinGlobalSeguro(cod)?cod:'',function(msg){
+    if(token===fotoToken)setFotoStatus(msg);
+  },{manual:true});
   if(token!==fotoToken)return false;
-  if(achado&&achado.img){
-    fotoImg=achado.img;
-    fotoOrigemDrive=false;
-    setFotoPreview(fotoImg);
-    setFotoStatus('Foto encontrada pelo termo manual em '+achado.fonte+'.','ok');
+
+  if(web&&web.alta&&web.alta.img){
+    fotoImg=web.alta.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);
+    setFotoStatus('Foto de alta confiança encontrada em '+web.alta.fonte+'.','ok');
     drawPlaca();
     return true;
   }
-  setFotoStatus('Nenhuma imagem automática. Clique em Abrir Google ou cole uma URL direta da imagem.','warn');
+  var opcoes=[];
+  if(web&&web.sugestoes)opcoes=opcoes.concat(web.sugestoes);
+  if(web&&web.todos)web.todos.forEach(function(c){if(opcoes.indexOf(c)<0&&c.confianca>=38)opcoes.push(c);});
+  if(opcoes.length){
+    mostrarSugestoesFoto(opcoes.slice(0,3));
+    setFotoStatus('Busca manual encontrou opções. Escolha a foto correta antes de salvar.','warn');
+    drawPlaca();
+    return false;
+  }
+
+  setFotoStatus('Nenhuma imagem adequada. Use Abrir Google, cole uma URL ou envie a foto manualmente.','warn');
   drawPlaca();
   return false;
 }
@@ -2886,6 +3194,7 @@ async function salvarFotoAtualNoDrive(mostrarMsg){
     var res=await _gasPost('salvarImagemProduto',{codigoBarras:codigo,imagemBase64:base64,mimeType:'image/jpeg',tipo:'produto'});
     if(res&&res.ok){
       fotoOrigemDrive=true;
+      _invalidarCacheAuraFoto(codigo);
       if(typeof encartesFotoCache!=='undefined')delete encartesFotoCache[codigo];
       if(mostrarMsg)mostrarToast('Foto salva no banco de imagens (código '+codigo+').','ok');
       return true;
@@ -3636,13 +3945,15 @@ async function buscarFotoItemEncarte(codigo,nome,fallbackFoto){
     return {src:(typeof cached==='string'?cached:''),origem:cached?'cache da sessão':'não encontrada (cache)'};
   }
 
-  // Uma única consulta à API AURA: Drive -> Cosmos -> salva no Drive.
+  // Uma única consulta à API AURA. Código local continua podendo usar o Drive,
+  // mas só GTIN global seguro segue para Cosmos/UPCitemdb.
   if(cod){
-    img=await buscarFotoDrive(cod,'produto');
+    img=await buscarFotoDrive(cod,'produto',nome||'',gtinGlobalSeguro(cod));
     if(img){
       if(typeof encartesFotoCache!=='undefined')encartesFotoCache[cod]=img.src;
       var origem=String(img._auraOrigem||'drive').toLowerCase();
-      return {src:img.src,origem:origem==='cosmos'?'Bluesoft Cosmos':'Google Drive'};
+      var rotulo=origem==='cosmos'?'Bluesoft Cosmos':origem==='upcitemdb'?'UPCitemdb validado':'Google Drive';
+      return {src:img.src,origem:rotulo};
     }
   }
 
