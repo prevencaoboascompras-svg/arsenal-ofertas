@@ -292,7 +292,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         </div>
         <div class="foto-meta">
           <div class="foto-title"><i class="ti ti-camera"></i> Foto do produto</div>
-          <div class="foto-status" id="fotoStatus">Busca segura: Drive → Cosmos → UPCitemdb validado. Códigos locais não são enviados a catálogos globais.</div>
+          <div class="foto-status" id="fotoStatus">Busca segura: Banco central → Cosmos → UPCitemdb validado. Códigos locais não são enviados a catálogos globais.</div>
           <div class="foto-search">
             <input type="text" id="pFotoTermo" placeholder="Termo manual. Ex: peça de presunto para fatiar" autocomplete="off">
             <button type="button" class="btn btn-sm btn-green" onclick="buscarFotoPorTermoManual()"><i class="ti ti-search"></i> Pesquisar termo</button>
@@ -1111,7 +1111,7 @@ function limparFoto(msg){
   fotoTransform=null;
   limparSugestoesFoto();
   setFotoPreview(null);
-  setFotoStatus(msg||'Busca segura: Drive → Cosmos → UPCitemdb validado. Códigos locais não são enviados a catálogos globais.');
+  setFotoStatus(msg||'Busca segura: Banco central → Cosmos → UPCitemdb validado. Códigos locais não são enviados a catálogos globais.');
 }
 function proxyImagemUrl(url){
   url=String(url||'').trim();
@@ -1399,6 +1399,26 @@ function _invalidarCacheAuraFoto(codigo){
     if(mudou)localStorage.setItem(AURA_FOTO_CACHE_KEY,JSON.stringify(c));
   }catch(e2){}
 }
+
+
+// Sincroniza correções de foto entre Arsenal, AURA e Coleta quando as abas
+// estão no mesmo domínio. O backend/Drive continua sendo a fonte oficial.
+var FOTO_CENTRAL_SYNC_KEY='boascompras_foto_central_sync_v1';
+function _notificarFotoCentralAtualizada(cod){
+  _invalidarCacheAuraFoto(cod);
+  try{localStorage.setItem(FOTO_CENTRAL_SYNC_KEY,JSON.stringify({cod:String(cod||''),ts:Date.now(),n:Math.random()}));}catch(e){}
+}
+window.addEventListener('storage',function(ev){
+  if(ev.key!==FOTO_CENTRAL_SYNC_KEY||!ev.newValue)return;
+  try{
+    var d=JSON.parse(ev.newValue);
+    if(d&&d.cod){
+      _invalidarCacheAuraFoto(d.cod);
+      try{if(typeof encartesFotoCache!=='undefined')delete encartesFotoCache[d.cod];}catch(e2){}
+    }
+  }catch(e){}
+});
+setInterval(function(){try{_auraFotoChainCache={};}catch(e){}},5*60*1000);
 
 function _criarFilaAuraFotos(limit){
   var ativos=0,fila=[];
@@ -1730,7 +1750,7 @@ async function buscarFotoCompleta(ean,nomeProduto,termoManual){
 
   var msgInicial=cod
     ?(gtinSeguro
-      ?'Buscando foto segura: Drive → Cosmos → UPCitemdb validado...'
+      ?'Buscando foto segura: Banco central → Cosmos → UPCitemdb validado...'
       :'Código local/restrito: buscando primeiro somente no Drive; catálogos globais não receberão este código.')
     :(queryWeb?'Buscando imagem por descrição...':'Buscando foto...');
   limparFoto(msgInicial);
@@ -3156,6 +3176,7 @@ async function salvarFotoAtualNoDrive(mostrarMsg){
     if(res&&res.ok){
       fotoOrigemDrive=true;
       _invalidarCacheAuraFoto(codigo);
+      _notificarFotoCentralAtualizada(codigo);
       if(typeof encartesFotoCache!=='undefined')delete encartesFotoCache[codigo];
       if(mostrarMsg)mostrarToast('Foto salva no banco de imagens (código '+codigo+').','ok');
       return true;
