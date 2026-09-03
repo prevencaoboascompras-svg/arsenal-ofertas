@@ -522,7 +522,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div id="printArea"></div>
 
 <script>
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-20260903';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -553,6 +553,56 @@ var templateImg=null;
 var templateReady=false;
 var templatePackImg=null;
 // ============================================================
+// TEMA ARRastão — fundos vetoriais embutidos no próprio HTML.
+// Assim o tema funciona sem depender de novos arquivos PNG externos.
+// Identidade: preto #000000 + amarelo #fede00.
+// ============================================================
+function svgTemaDataUri(svg){
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+}
+var ARRASTAO_PLACA_BG=svgTemaDataUri(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="1054" height="1492" viewBox="0 0 1054 1492">'+
+  '<rect width="1054" height="1492" fill="#fede00"/>'+
+  '<rect width="1054" height="338" fill="#000000"/>'+
+  '<path d="M0 300 L1054 190 L1054 338 L0 448 Z" fill="#000000"/>'+
+  '<text x="527" y="112" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="44" font-weight="900" fill="#fede00" letter-spacing="2">SUPERMERCADO BOAS COMPRAS</text>'+
+  '<text x="527" y="220" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="86" font-weight="900" fill="#fede00" letter-spacing="-2">ARRASTÃO</text>'+
+  '<text x="527" y="286" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="42" font-weight="900" fill="#fede00" letter-spacing="5">DE OFERTAS</text>'+
+  '<rect x="28" y="360" width="998" height="8" rx="4" fill="#000000"/>'+
+  '<path d="M0 1430 L150 1492 L0 1492 Z" fill="#000000"/>'+
+  '<path d="M1054 1390 L1054 1492 L870 1492 Z" fill="#000000"/>'+
+  '<g fill="#000000" opacity="0.16"><circle cx="70" cy="520" r="8"/><circle cx="985" cy="565" r="10"/><circle cx="930" cy="990" r="7"/><circle cx="110" cy="930" r="6"/></g>'+
+  '</svg>'
+);
+var ARRASTAO_PACK_BG=svgTemaDataUri(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="1054" height="1492" viewBox="0 0 1054 1492">'+
+  '<rect width="1054" height="1492" fill="#fede00"/>'+
+  '<rect width="1054" height="190" fill="#000000"/>'+
+  '<text x="527" y="78" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="38" font-weight="900" fill="#fede00" letter-spacing="2">ARRASTÃO DE OFERTAS</text>'+
+  '<text x="527" y="142" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="54" font-weight="900" fill="#fede00">PACK DO ARRASTÃO</text>'+
+  '<path d="M350 222 H704 L742 258 L704 502 H350 L312 258 Z" fill="#fede00" stroke="#000000" stroke-width="14"/>'+
+  '<rect x="178" y="520" width="698" height="172" rx="36" fill="#000000"/>'+
+  '<rect x="36" y="718" width="982" height="8" rx="4" fill="#000000"/>'+
+  '<rect x="132" y="1314" width="790" height="68" rx="18" fill="#000000"/>'+
+  '<path d="M0 1395 L180 1492 H0 Z" fill="#000000"/>'+
+  '<path d="M1054 1370 V1492 H850 Z" fill="#000000"/>'+
+  '</svg>'
+);
+var ARRASTAO_ENCARTE_BG=svgTemaDataUri(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">'+
+  '<rect width="1080" height="1350" fill="#fede00"/>'+
+  '<rect width="1080" height="340" fill="#000000"/>'+
+  '<text x="540" y="105" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="38" font-weight="900" fill="#fede00" letter-spacing="3">SUPERMERCADO BOAS COMPRAS</text>'+
+  '<text x="540" y="218" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="104" font-weight="900" fill="#fede00" letter-spacing="-3">ARRASTÃO</text>'+
+  '<text x="540" y="292" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="46" font-weight="900" fill="#fede00" letter-spacing="6">DE OFERTAS</text>'+
+  '<path d="M0 340 L1080 300 L1080 350 L0 390 Z" fill="#000000"/>'+
+  '<path d="M0 1130 L120 1170 L0 1210 Z" fill="#000000" opacity="0.18"/>'+
+  '<path d="M1080 1090 L960 1140 L1080 1180 Z" fill="#000000" opacity="0.18"/>'+
+  '</svg>'
+);
+
+// ============================================================
+// ARRastão no GitHub: "arrastão de ofertas.png" (normal) e "pack arrastão.png" (Pack).
 // TEMAS DA PLACA INDIVIDUAL — cada tema define o PNG de fundo (normal
 // e modo Pack) e as cores padrão de texto/valor/unidade. Pra criar um
 // tema novo, adicione uma entrada aqui com os dois arquivos PNG
@@ -561,7 +611,8 @@ var templatePackImg=null;
 // ============================================================
 var TEMAS_PLACA={
   padrao:{label:'Padrão (Oferta do Dia)',templatePlaca:'template-placa.png',templatePack:'template-pack.png',corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',corBadgePreco:'#E8000D',usaBadgeFundo:false},
-  horti:{label:'Hortifrúti',templatePlaca:'placa horti.png',templatePack:'placa horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',corBadgePreco:'#055405',usaBadgeFundo:true}
+  horti:{label:'Hortifrúti',templatePlaca:'placa horti.png',templatePack:'placa horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',corBadgePreco:'#055405',usaBadgeFundo:true},
+  arrastao:{label:'Arrastão de Ofertas',templatePlaca:'arrastão de ofertas.png',templatePack:'pack arrastão.png',corTexto:'#000000',corValor:'#fede00',corUnidade:'#fede00',corBadgePreco:'#000000',usaBadgeFundo:false}
 };
 function temaPlacaAtual(){
   var sel=document.getElementById('pTemaPlaca');
@@ -2824,15 +2875,15 @@ async function drawPlaca(){
   if(pct && !packOn){
     var cx=105,cy=1150,r=55;
     ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=10;
-    ctx.fillStyle='#FFD600';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=corUnidade;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=corBadgePreco;ctx.beginPath();ctx.arc(cx,cy,r-8,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;ctx.shadowColor='transparent';
-    ctx.fillStyle='#FFD600';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=corUnidade;ctx.textAlign='center';ctx.textBaseline='middle';
     var pctFs=36;
     ctx.font='900 '+pctFs+'px '+fonte;
     while(ctx.measureText(pct+'%').width>85&&pctFs>18){pctFs-=2;ctx.font='900 '+pctFs+'px '+fonte;}
     ctx.fillText(pct+'%',cx,cy-8);
-    ctx.fillStyle='#ffffff';ctx.font='900 18px '+fonte;
+    ctx.fillStyle=corValor;ctx.font='900 18px '+fonte;
     ctx.fillText('OFF',cx,cy+18);
   }
 
@@ -2923,7 +2974,7 @@ async function drawPlaca(){
       var priceY = my(PACK_MAP.preco.y); // Linha de base do preço (rebaixado)
       var topAlignY = priceY - (fsPreco * 0.38); // Altura padronizada para o R$ e Centavos
 
-      ctx.fillStyle='#ffffff';
+      ctx.fillStyle=corValor;
       ctx.textAlign='left';
 
       // "R$" alinhado na mesma altura superior do ",00"
@@ -2948,7 +2999,7 @@ async function drawPlaca(){
         ctx.font='900 italic '+fsUnidade+'px '+fonte;
         ctx.textAlign='left';
         ctx.textBaseline='alphabetic';
-        ctx.fillStyle='#FFD600';
+        ctx.fillStyle=corUnidade;
         ctx.translate(mx(PACK_MAP.unidadeBadge.x),my(PACK_MAP.unidadeBadge.y));
         ctx.rotate(-8*Math.PI/180);
         ctx.fillText(unidadeTxt,0,0);
@@ -3041,7 +3092,7 @@ async function drawPlaca(){
       ctx.fillText(labelDir,lblX+lblW/2,lblY+lblH/2+1);
     }else{
       // ── Rótulo direito em amarelo dentro da caixa (UNID) ──
-      ctx.fillStyle='#FFD600';
+      ctx.fillStyle=corUnidade;
       ctx.textAlign='right';ctx.textBaseline='top';
       var labelFs = (labelDir.length>6 ? 22 : 26);
       ctx.font='900 '+labelFs+'px '+fonte;
@@ -3053,10 +3104,10 @@ async function drawPlaca(){
     var startX=boxX+(boxW-totalW)/2;
     var baseY=boxY+boxH/2+valFs*0.34+(packOn?6:24);
     ctx.textAlign='left';ctx.textBaseline='alphabetic';
-    ctx.fillStyle='#FFD600';
+    ctx.fillStyle=corUnidade;
     ctx.font='900 '+rsFs+'px '+fonte;
     ctx.fillText('R$', startX, baseY-valFs*0.05);
-    ctx.fillStyle='#FFFFFF';
+    ctx.fillStyle=corValor;
     ctx.font='900 '+valFs+'px '+fonte;
     ctx.fillText(valTxt, startX+rsW+12, baseY);
   })();
@@ -3076,11 +3127,11 @@ async function drawPlaca(){
           var re=/(\d+UN|R\$\s?[\d.,]+)/g;
           var out=[],last=0,m;
           while((m=re.exec(txt))){
-            if(m.index>last)out.push({t:txt.slice(last,m.index),c:'#ffffff'});
-            out.push({t:m[0],c:'#FFD600'});
+            if(m.index>last)out.push({t:txt.slice(last,m.index),c:corValor});
+            out.push({t:m[0],c:corUnidade});
             last=m.index+m[0].length;
           }
-          if(last<txt.length)out.push({t:txt.slice(last),c:'#ffffff'});
+          if(last<txt.length)out.push({t:txt.slice(last),c:corValor});
           return out;
         }
         var fSize=defFs;
@@ -3133,8 +3184,8 @@ async function drawPlaca(){
       ctx.closePath();
       ctx.fill();
       ctx.shadowBlur=0;ctx.shadowColor='transparent';
-      ctx.strokeStyle='#FFD600';ctx.lineWidth=2;ctx.stroke();
-      ctx.fillStyle='#ffffff';
+      ctx.strokeStyle=corUnidade;ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle=corValor;
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.font='900 '+fSize+'px '+fonte;
       ctx.fillText(msgTxt,W/2,bandY+bandH/2+1);
@@ -3276,8 +3327,9 @@ var encartesSelecionados={}; // id -> posição de seleção
 // ela aparece sozinha no seletor de tema da lista de encartes.
 // ============================================================
 var TEMAS_ENCARTE={
-  hortifruti:{label:'Hortifrúti',corBadge:'#fede00',corPreco:'#055405',fundo:'template horti.png',usaHeaderDia:false},
-  promocaodia:{label:'Promoção do Dia',corBadge:'#fede00',corPreco:'#fd6301',fundo:'template-encarte-semanal.png',usaHeaderDia:true}
+  hortifruti:{label:'Hortifrúti',corBadge:'#fede00',corPreco:'#055405',corTextoPreco:'#ffffff',corFooter2:'#02330f',fundo:'template horti.png',usaHeaderDia:false},
+  arrastao:{label:'Arrastão de Ofertas',corBadge:'#fede00',corPreco:'#000000',corTextoPreco:'#fede00',corFooter2:'#000000',fundo:ARRASTAO_ENCARTE_BG,usaHeaderDia:false},
+  promocaodia:{label:'Promoção do Dia',corBadge:'#fede00',corPreco:'#fd6301',corTextoPreco:'#ffffff',corFooter2:'#02330f',fundo:'template-encarte-semanal.png',usaHeaderDia:true}
 };
 function popularSeletorTema(){
   var sel=document.getElementById('selTemaEncarte');
@@ -4300,7 +4352,7 @@ async function gerarEncarteDoDia(){
   var headerUrl=new URL(ARQ_DIA[new Date().getDay()],location.href).href;
 
   var paginasHtml=paginas.map(function(grupo){
-    var estiloTema='background-image:url(\''+tplUrl+'\');--tema-cor-preco:'+temaAtual.corPreco+';--tema-cor-badge:'+temaAtual.corBadge+';';
+    var estiloTema='background-image:url(\''+tplUrl+'\');--tema-cor-preco:'+temaAtual.corPreco+';--tema-cor-badge:'+temaAtual.corBadge+';--tema-cor-preco-texto:'+(temaAtual.corTextoPreco||'#ffffff')+';--tema-cor-footer2:'+(temaAtual.corFooter2||'#02330f')+';';
     return ''+
       '<div class="ed-page" style="'+estiloTema+'">'+
         '<div class="ed-header-img-wrap">'+(temaAtual.usaHeaderDia?'<img src="'+headerUrl+'" alt="'+escapeHtml(dt.dia)+' da economia">':'')+'</div>'+
@@ -4347,8 +4399,9 @@ async function gerarEncarteDoDia(){
   '.tema-row-destaque{justify-content:center}'+
   '.ed-footer-wrap{position:absolute;top:86.5%;left:2%;width:96%;height:12%;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:3}'+
   '.ed-footer-row1{flex:1.15;display:flex;align-items:center;background:var(--tema-cor-preco,#055405);gap:1%;padding:0 1.5%}'+
-  '.ed-footer-row2{flex:.85;display:flex;align-items:center;justify-content:space-between;background:#02330f;gap:1%;padding:0 2%}'+
-  '.ed-footer-col{display:flex;align-items:center;gap:4px;color:#fff;line-height:1.15}'+
+  '.ed-footer-row2{flex:.85;display:flex;align-items:center;justify-content:space-between;background:var(--tema-cor-footer2,#02330f);gap:1%;padding:0 2%}'+
+  '.ed-footer-row2 .ed-footer-col{color:var(--tema-cor-preco-texto,#fff)}'+
+  '.ed-footer-col{display:flex;align-items:center;gap:4px;color:var(--tema-cor-preco-texto,#fff);line-height:1.15}'+
   '.ed-footer-validade{flex:1.3;font-weight:800;font-size:clamp(6.5px,.92vw,10.5px);text-align:left}'+
   '.ed-footer-entrega,.ed-footer-local{flex:1;font-weight:700;font-size:clamp(6.5px,.9vw,10px);text-align:left}'+
   '.ed-footer-entrega b,.ed-footer-local b{color:#fede00}'+
@@ -4377,13 +4430,13 @@ async function gerarEncarteDoDia(){
   '.ed-pack{position:absolute;top:2px;left:2px;background:#c00;color:#fff;font-size:clamp(6px,.8vw,9px);font-weight:900;padding:3px 6px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.25);z-index:3}'+
   '.ed-desc{background:var(--tema-cor-badge,#fede00);border-radius:8px;font-size:calc(clamp(7px,1vw,11px)*var(--escala,1));font-weight:900;text-align:center;color:#1a1a18;line-height:1.15;padding:4% 6%;min-height:2.1em;max-height:3.6em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;align-items:center;justify-content:center;position:relative;z-index:2;margin:-8% 4% 0;box-shadow:0 2px 6px rgba(0,0,0,.2);flex-shrink:0}'+
   '.ed-badge{background:var(--tema-cor-preco,#055405);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3%;padding:8% 5% 5%;position:relative;z-index:1;margin-top:-6%;border-radius:0 0 8px 8px;flex-shrink:0}'+
-  '.ed-badge-label{font-size:calc(clamp(5px,.65vw,7.5px)*var(--escala,1));font-weight:700;color:#fff;line-height:1.1;text-transform:uppercase;opacity:.95}'+
+  '.ed-badge-label{font-size:calc(clamp(5px,.65vw,7.5px)*var(--escala,1));font-weight:700;color:var(--tema-cor-preco-texto,#fff);line-height:1.1;text-transform:uppercase;opacity:.95}'+
   '.ed-badge-spacer{visibility:hidden}'+
   '.ed-badge-price{display:flex;align-items:center;justify-content:center;line-height:1;gap:7px}'+
-  '.ed-price-int{font-size:calc(clamp(24px,4.6vw,46px)*var(--escala,1));font-weight:900;color:#fff}'+
+  '.ed-price-int{font-size:calc(clamp(24px,4.6vw,46px)*var(--escala,1));font-weight:900;color:var(--tema-cor-preco-texto,#fff)}'+
   '.ed-price-decunit{display:flex;flex-direction:column;align-items:flex-start}'+
-  '.ed-price-dec{font-size:calc(clamp(12px,1.95vw,22px)*var(--escala,1));font-weight:800;color:#fff;line-height:1}'+
-  '.ed-badge-unit{font-size:calc(clamp(6px,.85vw,9px)*var(--escala,1));font-weight:800;color:#fff;text-transform:uppercase;line-height:1;margin-top:2px}'+
+  '.ed-price-dec{font-size:calc(clamp(12px,1.95vw,22px)*var(--escala,1));font-weight:800;color:var(--tema-cor-preco-texto,#fff);line-height:1}'+
+  '.ed-badge-unit{font-size:calc(clamp(6px,.85vw,9px)*var(--escala,1));font-weight:800;color:var(--tema-cor-preco-texto,#fff);text-transform:uppercase;line-height:1;margin-top:2px}'+
   '.ed-toolbar{max-width:1080px;margin:0 auto 10px;display:flex;justify-content:flex-end;gap:8px;align-items:center}'+
   '.ed-toolbar .info{margin-right:auto;font-size:12px;color:#555}'+
   '.ed-toolbar button{border:0;background:#1D9E75;color:#fff;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;cursor:pointer}'+
