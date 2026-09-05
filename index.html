@@ -457,6 +457,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <div class="actions">
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tx2);white-space:nowrap">
             <i class="ti ti-palette"></i>
+            <span style="font-size:11px;font-weight:700">Tema</span>
             <select id="pTemaPlaca" onchange="aplicarTemaPlaca()" style="height:32px;padding:0 8px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600"></select>
           </label>
           <button class="btn btn-green" onclick="downloadPlaca()"><i class="ti ti-download"></i> Baixar PNG</button>
@@ -560,35 +561,243 @@ var templatePackImg=null;
 // cores; ele aparece sozinho no seletor "Tema da placa".
 // ============================================================
 var TEMAS_PLACA={
-  padrao:{label:'Padrão (Oferta do Dia)',templatePlaca:'template-placa.png',templatePack:'template-pack.png',corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',corBadgePreco:'#E8000D',usaBadgeFundo:false},
-  horti:{label:'Hortifrúti',templatePlaca:'placa horti.png',templatePack:'placa horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',corBadgePreco:'#055405',usaBadgeFundo:true},
-  arrastao:{label:'Arrastão de Ofertas',templatePlaca:'arrastão de ofertas.png',templatePack:'pack arrastão.png',corTexto:'#000000',corValor:'#fede00',corUnidade:'#fede00',corBadgePreco:'#000000',usaBadgeFundo:false}
+  padrao:{
+    label:'Padrão (Ofertão do Dia)',
+    templatePlaca:'template-placa.png',
+    templatePack:'template-pack.png',
+    corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#E8000D',usaBadgeFundo:false
+  },
+  acougue:{
+    label:'Açougue',
+    templatePlaca:'template açougue.png',
+    templatePack:'template pack açougue.png',
+    corTexto:'#6f0d0d',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#b31317',usaBadgeFundo:true
+  },
+  bebidas:{
+    label:'Bebidas',
+    templatePlaca:'template bebidas.png',
+    templatePack:'template pack bebidas.png',
+    corTexto:'#064f9d',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#075bad',usaBadgeFundo:true
+  },
+  padaria:{
+    label:'Padaria',
+    templatePlaca:'template padaria.png',
+    templatePack:'template pack padaria.png',
+    corTexto:'#6a3500',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#7b3f00',usaBadgeFundo:true
+  },
+  fiambreria:{
+    label:'Fiambreria',
+    templatePlaca:'template fiambreria.png',
+    templatePack:'template pack fiambreria.png',
+    corTexto:'#780e24',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#8f1530',usaBadgeFundo:true
+  },
+  horti:{
+    label:'Hortifrúti',
+    templatePlaca:'placa horti.png',
+    templatePack:'placa horti.png',
+    corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',
+    corBadgePreco:'#055405',usaBadgeFundo:true
+  },
+  farroupilha:{
+    label:'Semana Farroupilha',
+    templatePlaca:'template farroupilha.png',
+    templatePack:'template pack farroupilha.png',
+    corTexto:'#174d2c',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#075c34',usaBadgeFundo:true
+  },
+  arrastao:{
+    label:'Arrastão de Ofertas',
+    templatePlaca:'arrastão de ofertas.png',
+    templatePack:'pack arrastão.png',
+    corTexto:'#000000',corValor:'#fede00',corUnidade:'#fede00',
+    corBadgePreco:'#000000',usaBadgeFundo:false
+  }
 };
-function temaPlacaAtual(){
-  var sel=document.getElementById('pTemaPlaca');
-  return TEMAS_PLACA[sel&&sel.value]||TEMAS_PLACA.padrao;
+
+// ============================================================
+// TEMA AUTOMÁTICO
+// Prioridade:
+// 1) De 10/09 a 20/09, todos os anos -> Semana Farroupilha.
+// 2) Fora desse período -> identifica o setor pela descrição.
+// 3) Se não houver identificação segura -> tema Padrão.
+//
+// O usuário pode trocar manualmente no seletor a qualquer momento.
+// ============================================================
+var temaAutomaticoAtual='padrao';
+
+function estaNoPeriodoFarroupilha_(data){
+  var d=data instanceof Date?data:new Date();
+  return d.getMonth()===8 && d.getDate()>=10 && d.getDate()<=20;
 }
+
+function textoTemaAuto_(){
+  return estaNoPeriodoFarroupilha_(new Date())
+    ?'Automático — Semana Farroupilha (10–20/09)'
+    :'Automático — identificar pelo produto';
+}
+
+function descricaoProdutoAtualTema_(){
+  var cod=normalizarCodigo(prodAtualCod||((document.getElementById('pCod')||{}).value||''));
+  if(cod){
+    try{
+      var p=buscarPorCodigo(cod);
+      if(p&&p.nome)return p.nome;
+    }catch(e){}
+  }
+  var el=document.getElementById('pDescOverride');
+  if(el&&el.value)return el.value;
+  el=document.getElementById('pDescFinal');
+  return el&&el.value?el.value:'';
+}
+
+function contemPalavraTema_(texto,lista){
+  var t=normalizarTexto(texto||'');
+  if(!t)return false;
+  for(var i=0;i<lista.length;i++){
+    var k=normalizarTexto(lista[i]);
+    if(k && (' '+t+' ').indexOf(' '+k+' ')>=0)return true;
+    if(k.length>=6 && t.indexOf(k)>=0)return true;
+  }
+  return false;
+}
+
+function detectarTemaProduto_(nome){
+  if(estaNoPeriodoFarroupilha_(new Date()))return 'farroupilha';
+
+  var n=String(nome||'');
+  if(!n)return 'padrao';
+
+  // Açougue — cortes bovinos, suínos e aves.
+  if(contemPalavraTema_(n,[
+    'bovino','carne bovina','carne moida','patinho','picanha','alcatra',
+    'coxao','coxao mole','coxao duro','maminha','fraldinha','entrecot',
+    'contrafile','contra file','file mignon','costela','peito bovino',
+    'musculo','paleta bovina','acém','acem','vazio','cupim',
+    'suino','pernil','lombo suino','bisteca','costelinha','panceta',
+    'frango','coxa','sobrecoxa','asa frango','coracao frango',
+    'linguica','linguiça'
+  ]))return 'acougue';
+
+  // Bebidas — não inclui "leite" para evitar classificar laticínios como bebida.
+  if(contemPalavraTema_(n,[
+    'refrigerante','refri','cerveja','chopp','chope','agua mineral','água mineral',
+    'agua com gas','água com gás','suco','nectar','néctar','energetico','energético',
+    'isotonico','isotônico','vinho','espumante','whisky','vodka','gin',
+    'bebida energetica','bebida energética'
+  ]))return 'bebidas';
+
+  // Padaria — itens produzidos/servidos na padaria.
+  if(contemPalavraTema_(n,[
+    'pao','pão','cuca','bolo','torta','sonho','croissant','folhado',
+    'salgado','coxinha','risole','pastel','pizza','pao de queijo','pão de queijo',
+    'bisnaguinha','baguete','broa','rosca','cueca virada'
+  ]))return 'padaria';
+
+  // Fiambreria — frios, queijos e embutidos.
+  if(contemPalavraTema_(n,[
+    'presunto','mortadela','salame','apresuntado','peito de peru','queijo',
+    'mussarela','muçarela','mucarela','provolone','parmesao','parmesão',
+    'gorgonzola','ricota','requeijao','requeijão','bacon','copa fatiada',
+    'salsicha','fatiado','fatiada'
+  ]))return 'fiambreria';
+
+  // Hortifrúti — principais frutas, legumes e verduras.
+  if(contemPalavraTema_(n,[
+    'tomate','batata','cebola','cenoura','beterraba','abobora','abóbora',
+    'abobrinha','pepino','pimentao','pimentão','brocolis','brócolis','couve',
+    'alface','repolho','rucula','rúcula','espinafre','mandioca','aipim',
+    'banana','maca','maçã','laranja','bergamota','tangerina','uva','mamao','mamão',
+    'manga','pera','melancia','melao','melão','abacaxi','morango','kiwi',
+    'abacate','limao','limão','goiaba','maracuja','maracujá','hortifruti'
+  ]))return 'horti';
+
+  return 'padrao';
+}
+
+function recalcularTemaAutomatico_(produtoOuNome){
+  var nome='';
+  if(produtoOuNome&&typeof produtoOuNome==='object')nome=produtoOuNome.nome||produtoOuNome.descricao||'';
+  else nome=String(produtoOuNome||'');
+  if(!nome)nome=descricaoProdutoAtualTema_();
+  temaAutomaticoAtual=detectarTemaProduto_(nome);
+  return temaAutomaticoAtual;
+}
+
+function temaPlacaIdEfetivo_(){
+  var sel=document.getElementById('pTemaPlaca');
+  var id=sel&&sel.value?sel.value:'automatico';
+  if(id==='automatico')return temaAutomaticoAtual||'padrao';
+  return TEMAS_PLACA[id]?id:'padrao';
+}
+
+function temaPlacaAtual(){
+  return TEMAS_PLACA[temaPlacaIdEfetivo_()]||TEMAS_PLACA.padrao;
+}
+
 function popularSeletorTemaPlaca(){
   var sel=document.getElementById('pTemaPlaca');
   if(!sel||sel.options.length)return;
+
+  var auto=document.createElement('option');
+  auto.value='automatico';
+  auto.textContent=textoTemaAuto_();
+  sel.appendChild(auto);
+
   Object.keys(TEMAS_PLACA).forEach(function(id){
     var opt=document.createElement('option');
     opt.value=id;
     opt.textContent=TEMAS_PLACA[id].label||id;
     sel.appendChild(opt);
   });
+
+  // Automático é o padrão do Arsenal.
+  sel.value='automatico';
+  recalcularTemaAutomatico_('');
 }
-function aplicarTemaPlaca(){
+
+function prepararTemaAtualSemDesenhar_(){
   var tema=temaPlacaAtual();
-  document.getElementById('pCorTexto').value=tema.corTexto;
-  document.getElementById('pCorValor').value=tema.corValor;
-  document.getElementById('pCorUnidade').value=tema.corUnidade;
-  if(document.getElementById('pCorBadgePreco'))document.getElementById('pCorBadgePreco').value=tema.corBadgePreco;
-  // o arquivo de fundo muda conforme o tema — força recarregar
+  var e=document.getElementById('pCorTexto');if(e)e.value=tema.corTexto;
+  e=document.getElementById('pCorValor');if(e)e.value=tema.corValor;
+  e=document.getElementById('pCorUnidade');if(e)e.value=tema.corUnidade;
+  e=document.getElementById('pCorBadgePreco');if(e)e.value=tema.corBadgePreco;
   templateImg=null;templateReady=false;
   templatePackImg=null;templatePackReady=false;
+}
+
+function aplicarTemaPlaca(){
+  var sel=document.getElementById('pTemaPlaca');
+  if(sel&&sel.value==='automatico'){
+    recalcularTemaAutomatico_('');
+    if(sel.options.length)sel.options[0].textContent=textoTemaAuto_();
+  }
+  prepararTemaAtualSemDesenhar_();
   drawPlaca();
 }
+
+// Se a página ficar aberta durante a virada para 10/09 ou 21/09,
+// o modo automático se atualiza sem precisar recarregar.
+var _farroupilhaAutoEstado=estaNoPeriodoFarroupilha_(new Date());
+setInterval(function(){
+  var agora=estaNoPeriodoFarroupilha_(new Date());
+  if(agora===_farroupilhaAutoEstado)return;
+  _farroupilhaAutoEstado=agora;
+
+  var sel=document.getElementById('pTemaPlaca');
+  if(sel&&sel.options.length)sel.options[0].textContent=textoTemaAuto_();
+
+  if(sel&&sel.value==='automatico'){
+    recalcularTemaAutomatico_('');
+    prepararTemaAtualSemDesenhar_();
+    drawPlaca();
+  }
+},30*60*1000);
+
 var templatePackReady=false;
 var fotoImg=null;
 var fotoToken=0;
@@ -1735,8 +1944,7 @@ async function buscarFotoWikimedia(query){
   }catch(e){return [];}
 }
 function temaHortiAtivo(){
-  var sel=document.getElementById('pTemaPlaca');
-  return !!(sel&&sel.value==='horti');
+  return temaPlacaIdEfetivo_()==='horti';
 }
 async function buscarFotoWeb(query,cod,statusFn,opcoes){
   opcoes=opcoes||{};
@@ -2009,6 +2217,14 @@ function preencherProduto(prod){
     document.getElementById('pDe').value=fmtDec(prod.preco);
   }
   onPrecoChange();
+
+  // Tema automático acompanha o produto carregado.
+  var selTemaAuto=document.getElementById('pTemaPlaca');
+  if(selTemaAuto&&selTemaAuto.value==='automatico'){
+    recalcularTemaAutomatico_(prod);
+    prepararTemaAtualSemDesenhar_();
+  }
+
   drawPlaca();
   buscarFotoCompleta(prod.cod,prod.nome);
 }
@@ -4668,8 +4884,10 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     setDot('err','Configure o Google Sheets para começar');
     toggleCfg();
   }
-  drawPlaca();
   popularSeletorTemaPlaca();
+  recalcularTemaAutomatico_('');
+  prepararTemaAtualSemDesenhar_();
+  drawPlaca();
   popularSeletorTema();
   if(cfg.id){
     Promise.resolve(syncInicial).then(function(){setTimeout(carregarEncartes,80);})
