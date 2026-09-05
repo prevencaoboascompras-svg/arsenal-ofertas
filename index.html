@@ -252,9 +252,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <h3><i class="ti ti-database"></i> Configuração da fonte de dados (Google Sheets)</h3>
     <div class="cfg-grid">
       <div class="cfg-field"><label>ID da planilha (Validades / Preços)</label><input id="cId" placeholder="1HDJvgbKqYRUh8YvKeNTJZ5Phj..."></div>
-      <div class="cfg-field"><label>Aba de validades/preços</label><input id="cAba" placeholder="2025"></div>
+      <div class="cfg-field"><label>Aba de validades / catálogo auxiliar</label><input id="cAba" placeholder="2025"></div>
       <div class="cfg-field"><label>ID da planilha do banco de produtos</label><input id="cIdBanco" placeholder="mesmo ID se estiverem na mesma planilha"></div>
-      <div class="cfg-field"><label>Aba Banco de Dados</label><input id="cAbaBanco" placeholder="BANCO DE DADOS"></div>
+      <div class="cfg-field"><label>Aba Banco de Dados — fonte oficial</label><input id="cAbaBanco" placeholder="BANCO DE DADOS"></div>
     </div>
     <div class="cfg-actions">
       <button class="btn btn-green" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
@@ -527,12 +527,12 @@ window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903';
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
 var CFG_KEY='aura_cfg';
-var PROD_KEY='placa_prod_cache';
+var PROD_KEY='placa_prod_cache_banco_oficial_v2';
 var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec';
-var banco={};          // cod -> nome oficial do banco
-var bancoPreco={};     // cod -> preco de venda do banco (somente referência)
-var bancoUnidade={};   // cod -> unidade/medida do banco
-var products=[];       // lista consolidada com preços e unidade
+var banco={};          // cod -> descrição OFICIAL da aba BANCO DE DADOS
+var bancoPreco={};     // cod -> preço de venda OFICIAL da aba BANCO DE DADOS
+var bancoUnidade={};   // cod -> unidade/medida OFICIAL da aba BANCO DE DADOS
+var products=[];       // catálogo AUXILIAR da aba de validades (não fornece preço/unidade oficial)
 var _catalogoProdutosCache=null; // catálogo consolidado/normalizado, reconstruído só após sincronização
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
 // MAP de coordenadas do template Pack (valores em % do canvas 1054x1492)
@@ -762,6 +762,9 @@ function rawRows(t){return t.rows||[];}
 // ============================================================
 // CARREGAR BANCO DE DADOS (cod -> nome)
 // ============================================================
+// REGRA OFICIAL DO ARSENAL:
+// descrição + preço de venda + unidade vêm SOMENTE da aba BANCO DE DADOS.
+// A aba anual/validades nunca pode sobrescrever estes campos.
 async function loadBanco(cfg,tablePronta){
   if(!cfg.idBanco)cfg.idBanco=cfg.id;
   if(!cfg.idBanco)return;
@@ -815,7 +818,9 @@ async function loadBanco(cfg,tablePronta){
 }
 
 // ============================================================
-// CARREGAR PLANILHA COM PREÇOS (aba principal 2025)
+// CARREGAR CATÁLOGO AUXILIAR (aba principal 2025)
+// IMPORTANTE: esta aba NÃO pode sobrescrever descrição, preço ou unidade oficiais
+// vindos da aba BANCO DE DADOS.
 // ============================================================
 async function loadPrecos(cfg,tablePronta){
   if(!cfg.id)return;
@@ -860,11 +865,10 @@ async function loadPrecos(cfg,tablePronta){
       var rawCod=String((cells[ci.codBarra]&&cells[ci.codBarra].f)||(cells[ci.codBarra]&&cells[ci.codBarra].v)||'').trim().replace(/[^0-9]/g,'');
       if(rawCod)cod=rawCod;
     }
-    var preco=ci.venda>=0?cellNum(cells[ci.venda]):0;
-    var unidade=ci.unidade>=0?normalizarUnidadeBanco(cellStr(cells[ci.unidade])):'';
-    if(cod&&preco>0)bancoPreco[cod]=preco;
-    if(cod&&unidade)bancoUnidade[cod]=unidade;
-    products.push({cod:cod,nome:nome,preco:preco,unidade:unidade});
+    // A aba de validades continua servindo apenas como catálogo auxiliar
+    // para localizar produtos antigos/fora do banco. Seus campos de valor
+    // e unidade NÃO entram em bancoPreco/bancoUnidade.
+    products.push({cod:cod,nome:nome,preco:0,unidade:'',origem:'catalogo_auxiliar'});
   }
   _catalogoProdutosCache=null;
   try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,products:products,ts:Date.now()}));}catch(e){}
@@ -877,8 +881,9 @@ async function syncAll(){
   btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Sincronizando...';
   setDot('loading','Sincronizando...');
   try{
-    // As duas leituras são independentes. Faz o download em paralelo e só depois
-    // processa em ordem, evitando corrida nas estruturas bancoPreco/bancoUnidade.
+    // As duas leituras continuam independentes e são baixadas em paralelo.
+    // A ordem abaixo é intencional: BANCO DE DADOS define os dados oficiais;
+    // a aba de validades entra somente como catálogo auxiliar e não sobrescreve valores.
     var tabelas=await Promise.all([
       fetchSheet(cfg.idBanco||cfg.id,cfg.abaBanco),
       fetchSheet(cfg.id,cfg.aba)
@@ -888,7 +893,7 @@ async function syncAll(){
     _catalogoProdutosCache=null;
     var totalProd=Object.keys(banco).length;
     var totalPreco=Object.keys(bancoPreco).length;
-    setDot('ok','Conectado — '+totalProd+' produtos, '+totalPreco+' preços');
+    setDot('ok','Conectado — '+totalProd+' produtos · '+totalPreco+' preços oficiais do BANCO DE DADOS');
   }catch(e){
     console.error(e);
     setDot('err','Erro: '+e.message);
@@ -928,49 +933,79 @@ function temBaseProdutos(){return Object.keys(banco).length||Object.keys(bancoPr
 function consolidarProdutos(){
   if(_catalogoProdutosCache)return _catalogoProdutosCache;
   var map={};
-  function add(cod,nome,preco,unidade){
+
+  function add(cod,nome,preco,unidade,oficial){
     cod=normalizarCodigo(cod);
     nome=String(nome||'').replace(/^,\s*/,'').trim();
     preco=Number(preco)||0;
     unidade=normalizarUnidadeBanco(unidade);
     if(!cod&&!nome)return;
+
     var key=cod||normalizarTexto(nome);
     if(!key)return;
-    if(!map[key])map[key]={cod:cod,nome:nome,preco:0,unidade:''};
+
+    if(!map[key]){
+      map[key]={cod:cod,nome:'',preco:0,unidade:'',oficial:false};
+    }
+
     if(cod&&!map[key].cod)map[key].cod=cod;
-    if(nome&&(!map[key].nome||map[key].nome.length<nome.length))map[key].nome=nome;
-    if(preco>0)map[key].preco=preco;
-    if(unidade&&!map[key].unidade)map[key].unidade=unidade;
+
+    if(oficial){
+      // BANCO DE DADOS sempre vence qualquer fonte auxiliar.
+      if(nome)map[key].nome=nome;
+      map[key].preco=preco>0?preco:0;
+      map[key].unidade=unidade||'';
+      map[key].oficial=true;
+      return;
+    }
+
+    // Catálogo auxiliar: só preenche NOME quando ainda não existe registro oficial.
+    // Nunca fornece preço nem unidade para o Arsenal.
+    if(!map[key].oficial && nome && !map[key].nome)map[key].nome=nome;
   }
-  Object.keys(banco).forEach(function(cod){add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'');});
-  products.forEach(function(p){add(p.cod,p.nome,p.preco||bancoPreco[normalizarCodigo(p.cod)]||0,p.unidade||bancoUnidade[normalizarCodigo(p.cod)]||'');});
-  _catalogoProdutosCache=Object.keys(map).map(function(k){return map[k];}).filter(function(p){return p.nome||p.cod;});
+
+  Object.keys(banco).forEach(function(cod){
+    add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'',true);
+  });
+
+  products.forEach(function(p){
+    add(p.cod,p.nome,0,'',false);
+  });
+
+  _catalogoProdutosCache=Object.keys(map).map(function(k){return map[k];})
+    .filter(function(p){return p.nome||p.cod;});
+
   _catalogoProdutosCache.forEach(function(p){
     p._nomeNorm=normalizarTexto(p.nome);
     p._codNorm=normalizarCodigo(p.cod);
   });
+
   return _catalogoProdutosCache;
 }
 
 function buscarPorCodigo(cod){
   var c=normalizarCodigo(cod);
   if(!c)return null;
+
   var nome=banco[c]||'';
   var preco=bancoPreco[c]||0;
   var unidade=bancoUnidade[c]||'';
-  // fallback: pega nome/preco/unidade a partir do array products (planilha principal)
-  if(!nome||!preco||!unidade){
+  var oficial=!!(banco[c] || bancoPreco[c] || bancoUnidade[c]);
+
+  // Se o código ainda não existe na aba BANCO DE DADOS, mantemos somente
+  // a descrição auxiliar para facilitar a localização. Preço e unidade ficam
+  // vazios para não apresentar dado antigo da aba de validades como oficial.
+  if(!nome){
     for(var i=0;i<products.length;i++){
       if(normalizarCodigo(products[i].cod)===c){
-        if(!nome&&products[i].nome)nome=products[i].nome;
-        if(!preco&&products[i].preco)preco=products[i].preco;
-        if(!unidade&&products[i].unidade)unidade=normalizarUnidadeBanco(products[i].unidade);
+        if(products[i].nome)nome=products[i].nome;
         break;
       }
     }
   }
+
   if(!nome&&!preco&&!unidade)return null;
-  return {cod:c,nome:nome,preco:preco,unidade:unidade};
+  return {cod:c,nome:nome,preco:preco,unidade:unidade,oficial:oficial};
 }
 
 function buscarProdutos(termo,limite){
