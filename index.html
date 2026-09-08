@@ -547,7 +547,15 @@ var PACK_MAP={
   preco:{y:43.0,fontSize:12.0},
   centavos:{fontSize:5.0},
   cadaUnidade:{y:46.0,fontSize:2.1},
-  unidadeBadge:{x:72.0,y:40.0,fontSize:4.5},
+  unidadeBadge:{
+    x:72.0,y:40.0,fontSize:4.5,
+    rot:-8,
+    bubble:true,
+    bubblePadX:1.25,
+    bubblePadY:0.55,
+    bubbleRadius:1.05,
+    bubbleTail:1.25
+  },
   titulo:{x:4.93,y:47.0,width:90.13,height:5.5,fontSize:2.6,lineHeight:3.0,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
   imagem:{x:10.00,y:52.5,width:80.00,height:35.80,fit:'contain'},
   oferta:{x:15.00,y:88.6,width:70.00,height:2.28,fontSize:1.6,weight:800,align:'center'}
@@ -3406,18 +3414,83 @@ async function drawPlaca(){
       ctx.font='900 '+fsCents+'px '+fonte;
       ctx.fillText(centavosFinal, startX + wRs + wPreco, topAlignY);
 
-      // Unidade de medida — selo próprio, ancorado num ponto fixo perto do
-      // canto do preço (não interfere na centralização do preço).
+      // Unidade de medida — permanece ancorada EXATAMENTE no mesmo ponto.
+      // Agora o HTML desenha um balão atrás do texto automaticamente.
+      // Isso vale para CADA e também para UN/KG/L/PC/CX/PCT quando escolhidos.
       if(apartir){
         var unidadeTxt=unidadeSel;
-        var fsUnidade=my(PACK_MAP.unidadeBadge.fontSize);
+        var badgeCfg=PACK_MAP.unidadeBadge||{};
+        var fsUnidade=my(badgeCfg.fontSize||4.5);
+
         ctx.save();
         ctx.font='900 italic '+fsUnidade+'px '+fonte;
         ctx.textAlign='left';
         ctx.textBaseline='alphabetic';
+
+        // Mantém a coordenada oficial já usada pelo Arsenal.
+        ctx.translate(mx(badgeCfg.x||72.0),my(badgeCfg.y||40.0));
+        ctx.rotate(((badgeCfg.rot==null?-8:badgeCfg.rot)*Math.PI)/180);
+
+        if(badgeCfg.bubble!==false){
+          var textW=ctx.measureText(unidadeTxt).width;
+
+          // Padding em proporção ao canvas para manter o mesmo visual em 1054x1492.
+          var padX=mx(badgeCfg.bubblePadX||1.25);
+          var padY=my(badgeCfg.bubblePadY||0.55);
+          var radius=Math.min(
+            mx(badgeCfg.bubbleRadius||1.05),
+            my(badgeCfg.bubbleRadius||1.05)
+          );
+          var tail=Math.min(
+            mx(badgeCfg.bubbleTail||1.25),
+            my(badgeCfg.bubbleTail||1.25)
+          );
+
+          // O texto original continua em (0,0); o balão cresce ao redor dele.
+          var boxX=-padX;
+          var boxY=-(fsUnidade*0.88)-padY;
+          var boxW=textW+(padX*2);
+          var boxH=(fsUnidade*1.12)+(padY*2);
+
+          ctx.save();
+          ctx.shadowColor='rgba(0,0,0,.30)';
+          ctx.shadowBlur=Math.max(6,my(.45));
+          ctx.shadowOffsetY=Math.max(2,my(.16));
+
+          // Fundo acompanha a cor do badge de preço do tema:
+          // vermelho, verde Farroupilha, azul Bebidas, marrom Padaria etc.
+          ctx.fillStyle=corBadgePreco;
+          ctx.strokeStyle=corUnidade;
+          ctx.lineWidth=Math.max(3,my(.18));
+
+          // Retângulo arredondado manual para compatibilidade ampla.
+          var r=Math.max(4,Math.min(radius,boxH/2,boxW/2));
+          ctx.beginPath();
+          ctx.moveTo(boxX+r,boxY);
+          ctx.lineTo(boxX+boxW-r,boxY);
+          ctx.quadraticCurveTo(boxX+boxW,boxY,boxX+boxW,boxY+r);
+          ctx.lineTo(boxX+boxW,boxY+boxH-r);
+          ctx.quadraticCurveTo(boxX+boxW,boxY+boxH,boxX+boxW-r,boxY+boxH);
+
+          // Pequena "fala" apontando para baixo/direita.
+          var tailBaseX=boxX+boxW-Math.max(r*1.25,tail*1.45);
+          var tailY=boxY+boxH;
+          ctx.lineTo(tailBaseX+tail,tailY);
+          ctx.lineTo(tailBaseX+tail*.55,tailY+tail);
+          ctx.lineTo(tailBaseX,tailY);
+
+          ctx.lineTo(boxX+r,boxY+boxH);
+          ctx.quadraticCurveTo(boxX,boxY+boxH,boxX,boxY+boxH-r);
+          ctx.lineTo(boxX,boxY+r);
+          ctx.quadraticCurveTo(boxX,boxY,boxX+r,boxY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Texto desenhado por cima, no MESMO ponto onde já era desenhado.
         ctx.fillStyle=corUnidade;
-        ctx.translate(mx(PACK_MAP.unidadeBadge.x),my(PACK_MAP.unidadeBadge.y));
-        ctx.rotate(-8*Math.PI/180);
         ctx.fillText(unidadeTxt,0,0);
         ctx.restore();
       }
