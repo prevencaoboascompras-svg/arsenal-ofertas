@@ -498,7 +498,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button class="btn btn-sm" id="btnLimparLista" onclick="limparListaClick(event)" style="color:var(--red)"><i class="ti ti-trash"></i> Limpar lista toda</button>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--tx2);margin:2px 0 8px">Ao gerar o encarte, o sistema usa o <b>código do item</b> para buscar descrição, unidade e foto. O preço utilizado é sempre o <b>valor promocional salvo</b>, nunca o preço atual do banco.</div>
+    <div style="font-size:11px;color:var(--tx2);margin:2px 0 8px">Ao pesquisar um produto que já está nesta lista, o Arsenal abre automaticamente a <b>última edição salva</b>, usando o mesmo fluxo do botão <i class="ti ti-pencil"></i>. Se nunca teve placa salva, cria normalmente a partir do Banco de Dados. Ao gerar o encarte, o preço utilizado continua sendo o <b>valor promocional salvo</b>.</div>
     <div id="encartesList" class="encartes-grid"></div>
     <hr class="divider" style="width:100%">
     <div class="print-qtd-row">
@@ -5100,11 +5100,109 @@ function moverSugestao(delta){
   renderSugestoes(sugestoesAtuais,document.getElementById('pCod').value);
 }
 
-function selecionarProduto(prod){
+// ============================================================
+// REAPROVEITAMENTO AUTOMÁTICO DA ÚLTIMA PLACA SALVA
+// Ao selecionar um produto na pesquisa, o Arsenal procura primeiro
+// na "Lista de placas geradas / promoções". Se achar o mesmo código,
+// chama EXATAMENTE a mesma função do lápis: editarEncarte(id).
+// ============================================================
+var _reaproveitarBuscaToken=0;
+
+function _dataEncarteMs_(it){
+  var d=Date.parse(String((it&&it.data)||''));
+  return isFinite(d)?d:0;
+}
+
+function buscarEncarteMaisRecentePorProduto_(prod){
+  if(!prod||!Array.isArray(encartesCache)||!encartesCache.length)return null;
+
+  var cod=normalizarCodigo(prod.cod||'');
+  var nomeNorm=normalizarTexto(prod.nome||'');
+  var candidatos=[];
+
+  encartesCache.forEach(function(it,idx){
+    var codIt=normalizarCodigo(it.codigo||'');
+    var nomeIt=normalizarTexto(it.produto||it.produtoDigitado||'');
+
+    // Regra principal: código/EAN exato.
+    if(cod && codIt && cod===codIt){
+      candidatos.push({it:it,idx:idx,data:_dataEncarteMs_(it)});
+      return;
+    }
+
+    // Fallback apenas quando o produto pesquisado não tem código:
+    // descrição normalizada precisa ser exatamente igual.
+    if(!cod && nomeNorm && nomeIt===nomeNorm){
+      candidatos.push({it:it,idx:idx,data:_dataEncarteMs_(it)});
+    }
+  });
+
+  if(!candidatos.length)return null;
+
+  // Última edição vence. Em registros antigos sem data confiável,
+  // encartesCache já vem com os mais recentes primeiro.
+  candidatos.sort(function(a,b){
+    if(b.data!==a.data)return b.data-a.data;
+    return a.idx-b.idx;
+  });
+
+  return candidatos[0].it;
+}
+
+async function garantirEncartesCarregadosParaPesquisa_(){
+  if(_encartesCarregadosUmaVez)return true;
+
+  try{
+    await carregarEncartes();
+  }catch(e){}
+
+  return _encartesCarregadosUmaVez;
+}
+
+async function abrirProdutoDaPesquisa_(prod){
+  if(!prod)return false;
+
+  var token=++_reaproveitarBuscaToken;
+
+  // Quando o campo está sendo usado para montar uma união, não abrimos
+  // histórico automaticamente. O botão "+" continua com o fluxo próprio.
+  var unirAtivo=!!(document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked);
+  if(unirAtivo && unirPrincipalCod){
+    preencherProduto(prod);
+    return true;
+  }
+
+  // A lista normalmente já é carregada na inicialização. Se o operador
+  // pesquisou antes dela terminar, aguardamos uma leitura rápida.
+  if(!_encartesCarregadosUmaVez){
+    await garantirEncartesCarregadosParaPesquisa_();
+  }
+  if(token!==_reaproveitarBuscaToken)return false;
+
+  var ultima=buscarEncarteMaisRecentePorProduto_(prod);
+  if(ultima){
+    // Mesma função usada pelo botão de lápis da lista.
+    await editarEncarte(ultima.id);
+
+    if(token!==_reaproveitarBuscaToken)return false;
+
+    mostrarToast(
+      'Última placa salva carregada. Ajuste somente o que mudou e salve a edição.',
+      'ok'
+    );
+    return true;
+  }
+
+  // Nunca teve placa salva: segue o fluxo normal do Banco de Dados.
+  preencherProduto(prod);
+  return true;
+}
+
+async function selecionarProduto(prod){
   if(!prod)return;
   document.getElementById('pCod').value=prod.cod||prod.nome||'';
   esconderSugestoes();
-  preencherProduto(prod);
+  await abrirProdutoDaPesquisa_(prod);
 }
 
 document.getElementById('pCod').addEventListener('input',function(e){
@@ -5138,7 +5236,7 @@ document.getElementById('pCod').addEventListener('keydown',function(e){
     }else{
       var p=buscarProduto(e.target.value);
       esconderSugestoes();
-      preencherProduto(p);
+      selecionarProduto(p);
     }
   }
 });
