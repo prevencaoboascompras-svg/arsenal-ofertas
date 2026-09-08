@@ -331,7 +331,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <div class="row-3">
         <div class="f-row">
           <label for="pDescOverride">Descrição (editável)</label>
-          <input type="text" id="pDescOverride" placeholder="Preencha o código para carregar" oninput="drawPlaca()">
+          <input type="text" id="pDescOverride" placeholder="Preencha o código para carregar" oninput="onDescricaoTemaAuto_()">
         </div>
         <div class="f-row">
           <label for="pDe">Valor de venda (De)</label>
@@ -528,11 +528,13 @@ window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903';
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
 var CFG_KEY='aura_cfg';
-var PROD_KEY='placa_prod_cache_banco_oficial_v2';
+var PROD_KEY='placa_prod_cache_banco_oficial_temas_v3';
 var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec';
 var banco={};          // cod -> descrição OFICIAL da aba BANCO DE DADOS
 var bancoPreco={};     // cod -> preço de venda OFICIAL da aba BANCO DE DADOS
 var bancoUnidade={};   // cod -> unidade/medida OFICIAL da aba BANCO DE DADOS
+var bancoFornecedor={}; // cod -> fornecedor OFICIAL da aba BANCO DE DADOS
+var bancoTema={};       // cod -> tema-base calculado a partir do banco real
 var products=[];       // catálogo AUXILIAR da aba de validades (não fornece preço/unidade oficial)
 var _catalogoProdutosCache=null; // catálogo consolidado/normalizado, reconstruído só após sincronização
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
@@ -635,10 +637,20 @@ function estaNoPeriodoFarroupilha_(data){
   return d.getMonth()===8 && d.getDate()>=10 && d.getDate()<=20;
 }
 
-function textoTemaAuto_(){
-  return estaNoPeriodoFarroupilha_(new Date())
-    ?'Automático — Semana Farroupilha (10–20/09)'
-    :'Automático — identificar pelo produto';
+function textoTemaAuto_(temaId){
+  if(estaNoPeriodoFarroupilha_(new Date())){
+    return 'Automático — Semana Farroupilha (10–20/09)';
+  }
+  var id=temaId||temaAutomaticoAtual||'padrao';
+  var tema=TEMAS_PLACA[id];
+  return 'Automático — '+(tema&&tema.label?tema.label:'Padrão');
+}
+
+function atualizarTextoTemaAutomatico_(){
+  var sel=document.getElementById('pTemaPlaca');
+  if(sel&&sel.options&&sel.options.length){
+    sel.options[0].textContent=textoTemaAuto_(temaAutomaticoAtual);
+  }
 }
 
 function descricaoProdutoAtualTema_(){
@@ -655,77 +667,264 @@ function descricaoProdutoAtualTema_(){
   return el&&el.value?el.value:'';
 }
 
-function contemPalavraTema_(texto,lista){
+function temaTemFrase_(texto,lista){
   var t=normalizarTexto(texto||'');
   if(!t)return false;
+  var base=' '+t+' ';
   for(var i=0;i<lista.length;i++){
     var k=normalizarTexto(lista[i]);
-    if(k && (' '+t+' ').indexOf(' '+k+' ')>=0)return true;
-    if(k.length>=6 && t.indexOf(k)>=0)return true;
+    if(k && base.indexOf(' '+k+' ')>=0)return true;
   }
   return false;
 }
 
-function detectarTemaProduto_(nome){
-  if(estaNoPeriodoFarroupilha_(new Date()))return 'farroupilha';
+function temaComecaCom_(texto,lista){
+  var t=normalizarTexto(texto||'');
+  if(!t)return false;
+  for(var i=0;i<lista.length;i++){
+    var k=normalizarTexto(lista[i]);
+    if(k && (t===k || t.indexOf(k+' ')===0))return true;
+  }
+  return false;
+}
 
-  var n=String(nome||'');
+function temaFornecedorContem_(fornecedor,lista){
+  var f=normalizarTexto(fornecedor||'');
+  if(!f)return false;
+  for(var i=0;i<lista.length;i++){
+    var k=normalizarTexto(lista[i]);
+    if(k && f.indexOf(k)>=0)return true;
+  }
+  return false;
+}
+
+function detectarTemaProdutoBase_(cod,nome,fornecedor){
+  var n=normalizarTexto(nome||'');
+  var f=normalizarTexto(fornecedor||'');
+  var c=normalizarCodigo(cod||'');
   if(!n)return 'padrao';
 
-  // Açougue — cortes bovinos, suínos e aves.
-  if(contemPalavraTema_(n,[
-    'bovino','carne bovina','carne moida','patinho','picanha','alcatra',
-    'coxao','coxao mole','coxao duro','maminha','fraldinha','entrecot',
-    'contrafile','contra file','file mignon','costela','peito bovino',
-    'musculo','paleta bovina','acém','acem','vazio','cupim',
-    'suino','pernil','lombo suino','bisteca','costelinha','panceta',
-    'frango','coxa','sobrecoxa','asa frango','coracao frango',
-    'linguica','linguiça'
-  ]))return 'acougue';
+  // ==========================================================
+  // HORTIFRÚTI — regras calibradas com o BANCO DE DADOS real.
+  // O fornecedor pesa bastante aqui para evitar falsos positivos
+  // como "IOGURTE MORANGO", "BATATA CHIPS", "EXTRATO TOMATE".
+  // ==========================================================
+  var hortiProcessado=[
+    'EXTRATO','MOLHO','PASSATA','POLPA','CHIPS','CONG','CONGELADA','CONGELADO',
+    'FRITA','FRITAS','BISCOITO','SALGADINHO','SABOR','TEMPERO PRONTO','DOCE',
+    'GELEIA','COMPOTA','CONSERVA','PATE','SOPA','PURE','FARINHA','MACARRAO',
+    'KETCHUP','IOGURTE','SABONETE','CREME','DETERGENTE','GELATINA','BALA',
+    'COBERTURA','CHA','TANG','WAFFER','SNACK','SORVETE','PAO','BOLO',
+    'COCKTAIL','FRUKITO','SUCO'
+  ];
+  var fornecedorHorti=[
+    'CEASA','HORTA','PORTAL DAS FRUTAS','H E P DISTRIB','TANBOA','D AGOSTINI',
+    'LARANJAS JR','IRMAOS FRITSCH','FRUTAS VASSOLER','AGRO ERS','CELIO DA PAZ'
+  ];
+  var produtosHorti=[
+    'ABACATE','ABACAXI','AGRIAO','ALFACE','ALHO','ALHO PORO','BANANA','BATATA',
+    'BETERRABA','BERGAMOTA','BROCOLIS','CEBOLA','CENOURA','COUVE','ESPINAFRE',
+    'LARANJA','TANGERINA','UVA','MAMAO','MANGA','PERA','MELANCIA','MELAO',
+    'MORANGO','KIWI','ABOBORA','ABOBRINHA','PEPINO','PIMENTAO','REPOLHO',
+    'RUCULA','MANDIOCA','AIPIM','LIMAO','GOIABA','MARACUJA','NECTARINA',
+    'PESSEGO','RABANETE','SALSA','TEMPERO VERDE','TOMATE','MILHO VERDE',
+    'MOSTARDA','FRUTAS PRONTAS','SALADA DE FRUTAS'
+  ];
+  var ehHortiProcessado=temaTemFrase_(n,hortiProcessado);
+  if(temaFornecedorContem_(f,fornecedorHorti) && !ehHortiProcessado)return 'horti';
+  if(c && c.length<=5 && temaComecaCom_(n,produtosHorti) && !ehHortiProcessado)return 'horti';
 
-  // Bebidas — não inclui "leite" para evitar classificar laticínios como bebida.
-  if(contemPalavraTema_(n,[
-    'refrigerante','refri','cerveja','chopp','chope','agua mineral','água mineral',
-    'agua com gas','água com gás','suco','nectar','néctar','energetico','energético',
-    'isotonico','isotônico','vinho','espumante','whisky','vodka','gin',
-    'bebida energetica','bebida energética'
-  ]))return 'bebidas';
+  // ==========================================================
+  // BEBIDAS
+  // Ex.: COCA COLA, AGUA C/GAS, FRUKI, SUCO, CERVEJA, VINHO.
+  // Proteções evitam AGUA SANITARIA, VINAGRE DE VINHO,
+  // MOLHO COM WHISKY, expositor refrigerado etc.
+  // ==========================================================
+  var bebidaExclusaoDireta=[
+    'AGUA SANITARIA','AGUA OXIGENADA','AGUA MICELAR','AMACIANTE','DESODORANTE',
+    'BATERIA','EXPOSITOR','BALCAO','MOLHO','VINAGRE','BISCOITO','BALA',
+    'SABONETE','CREME','SHAMPOO','DETERGENTE','RACAO','SABOR'
+  ];
+  var bebidaFrases=[
+    'REFRIGERANTE','REFRIG COCA','REFRIG FRUKI','REFRI COCA','CERVEJA','CHOPP',
+    'CHOPE','ESPUMANTE','VINHO','VODKA','WHISKY','WHISKEY','GIN','RUM','TEQUILA',
+    'SUCO','NECTAR','ENERGETICO','ENERG BURN','ISOTONICO','GATORADE','POWERADE',
+    'COCA COLA','PEPSI','FANTA','SPRITE','FRUKI','GUARANA ANTARCTICA',
+    'SCHWEPPES','TONICA','RED BULL','MONSTER','BALY','BALLY','BUFALO ENERGY',
+    'AMSTEL','BRAHMA','SKOL','BUDWEISER','HEINEKEN','CORONA','STELLA ARTOIS',
+    'SUKITA','DEL VALLE','ADES'
+  ];
+  var aguaFrases=[
+    'AGUA MINERAL','AGUA COM GAS','AGUA C GAS','AGUA SEM GAS','AGUA S GAS',
+    'AGUA SABORIZADA','AGUA DE COCO','AGUA COCO','AGUA TONICA'
+  ];
+  var aguaMarcas=[
+    'AGUA DA PEDRA','AGUA CRYSTAL','AGUA CRISTAL','AGUA SARANDI','AGUA FLORESTA',
+    'AGUA HORTENSIAS','AGUA VALLE VITA','AGUA FONTE DA ILHA','AGUA BONAFONT',
+    'AGUA DLUCENA','AGUA FLUA'
+  ];
+  if(!temaTemFrase_(n,bebidaExclusaoDireta)){
+    if(temaTemFrase_(n,bebidaFrases))return 'bebidas';
+    if(temaTemFrase_(n,aguaFrases))return 'bebidas';
+    for(var ai=0;ai<aguaMarcas.length;ai++){
+      if(n.indexOf(normalizarTexto(aguaMarcas[ai]))>=0)return 'bebidas';
+    }
+  }
+  var fornecedoresBebida=[
+    'SPAL IND BRAS BEBIDAS','CDD PORTO ALEGRE','FRUKI BEBIDAS',
+    'AGUAS MINERAIS SARANDI','BUFALO BEBIDAS','VINHOS NOE','BEBIDAS D LUCENA',
+    'VINICOLA D KLOSS','BAVIERA DISTR DE BEBIDAS'
+  ];
+  var bebidaExclusaoFornecedor=[
+    'CASCO','LEITE','IOGURTE','BEBIDA LACTEA','EXPOSITOR','BALCAO','MOLHO',
+    'VINAGRE','BISCOITO','BALA','AMACIANTE','DESODORANTE'
+  ];
+  if(temaFornecedorContem_(f,fornecedoresBebida) && !temaTemFrase_(n,bebidaExclusaoFornecedor)){
+    return 'bebidas';
+  }
 
-  // Padaria — itens produzidos/servidos na padaria.
-  if(contemPalavraTema_(n,[
-    'pao','pão','cuca','bolo','torta','sonho','croissant','folhado',
-    'salgado','coxinha','risole','pastel','pizza','pao de queijo','pão de queijo',
-    'bisnaguinha','baguete','broa','rosca','cueca virada'
-  ]))return 'padaria';
+  // ==========================================================
+  // AÇOUGUE — primeiro pelos cortes/produtos, antes da Padaria
+  // para "COXINHA DA ASA" nunca virar tema de padaria.
+  // ==========================================================
+  var acougueExclusao=[
+    'AMACIANTE','CALDO','CAPELETTI','LASANHA','MOLHO','BISCOITO','RACAO',
+    'SABOR','BOLINHO','SOPAO','TEMPERO','BATATA','FARINHA','ERVA','MATE',
+    'LAMEN','MACARRAO','SOPA'
+  ];
+  var acougueFrases=[
+    'BOI CASADO','TRASEIRO BOVINO','DIANTEIRO BOVINO','ALCATRA','MAMINHA',
+    'COXAO','PATINHO','CHULETA','VAZIO','COSTELA','PALETA BOVINA','OSSO BUCO',
+    'PONTA AGULHA','PICANHA','FILE MIGNON','FILE MIGNOM','AGULHA MACIA',
+    'MUSCULO','CUPIM','MATAMBRE','MATAMBRITO','RINS BOVINO','FIGADO BOVINO',
+    'CORACAO BOVINO','LINGUA BOVINA','MIUDOS BOVINO','MONDONGO','RABADA',
+    'PATA BOVINA','CARCACA SUINA','PALETA DE PORCO','PERNIL DE PORCO',
+    'COSTELA DE PORCO','CHULETA DE PORCO','PE DE PORCO','OSSINHO DE PORCO',
+    'PANCETA','PERNIL DE CORDEIRO','PALETA DE CORDEIRO','CARRE FRANCES',
+    'GALINHA CAIPIRA','FRANGO CONGELADO','FRANGO INTEIRO','SOBRECOXA',
+    'COXINHA DA ASA','COXINHA DAS ASAS','FILE DE PEITO','PEITO COM OSSO',
+    'CORACAO DE FRANGO','CORACAO FRANGO','MOELA DE FRANGO','FIGADO DE FRANGO',
+    'TULIPA','SASSAMI','TORRESMO','LINGUICA','SALSICHAO','MORCELA',
+    'ASA AGROSUL','MEIO DA ASA','FILEZINHO SUINO','PES GALINHA'
+  ];
+  if(!temaTemFrase_(n,acougueExclusao)){
+    if(temaTemFrase_(n,acougueFrases))return 'acougue';
+    if(temaComecaCom_(n,['MOIDA','MOIDO']))return 'acougue';
+    if(temaTemFrase_(n,['CARNE MOIDA','MOIDA BOVINA','GUISADO','GUIZADO','BOVINO','BOVINA','SUINO','SUINA'])){
+      return 'acougue';
+    }
+  }
 
-  // Fiambreria — frios, queijos e embutidos.
-  if(contemPalavraTema_(n,[
-    'presunto','mortadela','salame','apresuntado','peito de peru','queijo',
-    'mussarela','muçarela','mucarela','provolone','parmesao','parmesão',
-    'gorgonzola','ricota','requeijao','requeijão','bacon','copa fatiada',
-    'salsicha','fatiado','fatiada'
-  ]))return 'fiambreria';
+  // ==========================================================
+  // PADARIA — prioriza fornecedores/itens reais de padaria e
+  // evita falsos positivos como ROSCA de hidráulica, mistura
+  // para bolo, biscoito sabor pizza etc.
+  // ==========================================================
+  var fornecedoresPadaria=['PADARIA BRASIL','PEDRO LUIZ DE OLIVEIRA PADARIA','MARQUESPAN'];
+  var padariaEquipamento=['BALCAO','CAMARETA','EQUIPAMENTO','FORMA KRAFT','RASPADOR','LUVA','ELETRODUTO','NIPEL'];
+  if(temaFornecedorContem_(f,fornecedoresPadaria) && !temaTemFrase_(n,padariaEquipamento)){
+    return 'padaria';
+  }
+  var padariaExclusao=[
+    'BISCOITO','BISCOITOS','SORVETE','MISTURA','FARINHA','FORMA','LUVA',
+    'ELETRODUTO','NIPEL','BATATA','TRENTO','TORCIDA','CAPPUCCINO','RACAO',
+    'SABOR','ASA','ASAS'
+  ];
+  var padariaInicio=[
+    'PAO','CUCA','BOLO','TORTA','SONHO','CROISSANT','PASTEL','PIZZA','BAGUETE',
+    'BROA','EMPADA','BAURU','CACHORRO QUENTE','MIL FOLHA'
+  ];
+  if(temaComecaCom_(n,padariaInicio) && !temaTemFrase_(n,padariaExclusao))return 'padaria';
+  if(temaTemFrase_(n,['MASSA PARA PIZZA','MASSA PIZZA','BRIGADEIRO PADARIA','COPO DA FELICIDADE','PAO DE QUEIJO'])
+     && !temaTemFrase_(n,padariaExclusao))return 'padaria';
+  if(temaComecaCom_(n,['SALGADO','COXINHA','RISOLE','QUINDIM'])
+     && !temaTemFrase_(n,['DA ASA','DAS ASAS','ASA','ASAS']))return 'padaria';
+  if(temaComecaCom_(n,['PUDIM']) && ((c&&c.length<=5)||temaFornecedorContem_(f,fornecedoresPadaria))){
+    return 'padaria';
+  }
 
-  // Hortifrúti — principais frutas, legumes e verduras.
-  if(contemPalavraTema_(n,[
-    'tomate','batata','cebola','cenoura','beterraba','abobora','abóbora',
-    'abobrinha','pepino','pimentao','pimentão','brocolis','brócolis','couve',
-    'alface','repolho','rucula','rúcula','espinafre','mandioca','aipim',
-    'banana','maca','maçã','laranja','bergamota','tangerina','uva','mamao','mamão',
-    'manga','pera','melancia','melao','melão','abacaxi','morango','kiwi',
-    'abacate','limao','limão','goiaba','maracuja','maracujá','hortifruti'
-  ]))return 'horti';
+  // ==========================================================
+  // FIAMBRERIA — frios e queijos, com exceções para snacks,
+  // molhos e produtos apenas "sabor bacon/queijo".
+  // ==========================================================
+  var fiamFrases=[
+    'MORTADELA','PRESUNTO','SALAME','APRESUNTADO','QUEIJO','MUSSARELA','MUCARELA',
+    'PROVOLONE','PARMESAO','GORGONZOLA','RICOTA','REQUEIJAO','BACON','COPA',
+    'SALSICHA','LOMBO CANADENSE','FIAMBRERIA','FRIOS'
+  ];
+  var fiamExclusao=[
+    'BISCOITO','BISCOITOS','BISC','FANDANGOS','SALGADINHO','BATATA','LASANHA',
+    'PIZZA','PAO DE QUEIJO','MOLHO','SABOR','CAPELETTI','EQUILIBRI','CALDO',
+    'KETCHUP','CATCHUP','CHIPA','HOT HIT','TEMPER CHEESE','PRINGLES','TORCIDA',
+    'POPCORNERS','SOPA','CREME MAGGI','FAROFA','PALITINHO','CHEETOS','POLENTA',
+    'CLUB SOCIAL','PIPOCA','PINGO D OURO'
+  ];
+  if(temaTemFrase_(n,fiamFrases) && !temaTemFrase_(n,fiamExclusao)){
+    return 'fiambreria';
+  }
+
+  // Fornecedores muito específicos de carnes entram por último,
+  // para não roubar bacon/salame/queijo que pertencem à Fiambreria.
+  var fornecedoresAcougue=[
+    'MAROLLI MEAT','FRIGOSERRA CARNES','ABATEDOURO PRES LUCENA',
+    'AGROSUL ALIMENTOS','VIBRA AGROINDUSTRIAL','BORRUSSIA FABRICA',
+    'DISTRIBUIDORA DE CARNES'
+  ];
+  if(temaFornecedorContem_(f,fornecedoresAcougue) && !temaTemFrase_(n,acougueExclusao)){
+    return 'acougue';
+  }
 
   return 'padrao';
 }
 
+function detectarTemaProdutoDetalhado_(cod,nome,fornecedor){
+  if(estaNoPeriodoFarroupilha_(new Date()))return 'farroupilha';
+
+  var c=normalizarCodigo(cod||'');
+  if(c && bancoTema[c])return bancoTema[c];
+
+  return detectarTemaProdutoBase_(c,nome,fornecedor);
+}
+
 function recalcularTemaAutomatico_(produtoOuNome){
-  var nome='';
-  if(produtoOuNome&&typeof produtoOuNome==='object')nome=produtoOuNome.nome||produtoOuNome.descricao||'';
-  else nome=String(produtoOuNome||'');
+  var nome='',cod='',fornecedor='';
+
+  if(produtoOuNome&&typeof produtoOuNome==='object'){
+    nome=produtoOuNome.nome||produtoOuNome.descricao||'';
+    cod=normalizarCodigo(produtoOuNome.cod||produtoOuNome.ean||'');
+    fornecedor=produtoOuNome.fornecedor||'';
+  }else{
+    nome=String(produtoOuNome||'');
+  }
+
+  if(!cod){
+    cod=normalizarCodigo(prodAtualCod||((document.getElementById('pCod')||{}).value||''));
+  }
+
+  if(cod){
+    try{
+      var p=buscarPorCodigo(cod);
+      if(p){
+        if(!nome)nome=p.nome||'';
+        if(!fornecedor)fornecedor=p.fornecedor||'';
+      }
+    }catch(e){}
+  }
+
   if(!nome)nome=descricaoProdutoAtualTema_();
-  temaAutomaticoAtual=detectarTemaProduto_(nome);
+
+  temaAutomaticoAtual=detectarTemaProdutoDetalhado_(cod,nome,fornecedor);
+  atualizarTextoTemaAutomatico_();
   return temaAutomaticoAtual;
+}
+
+function onDescricaoTemaAuto_(){
+  var sel=document.getElementById('pTemaPlaca');
+  if(sel&&sel.value==='automatico'){
+    recalcularTemaAutomatico_((document.getElementById('pDescOverride')||{}).value||'');
+    prepararTemaAtualSemDesenhar_();
+  }
+  drawPlaca();
 }
 
 function temaPlacaIdEfetivo_(){
@@ -774,7 +973,7 @@ function aplicarTemaPlaca(){
   var sel=document.getElementById('pTemaPlaca');
   if(sel&&sel.value==='automatico'){
     recalcularTemaAutomatico_('');
-    if(sel.options.length)sel.options[0].textContent=textoTemaAuto_();
+    atualizarTextoTemaAutomatico_();
   }
   prepararTemaAtualSemDesenhar_();
   drawPlaca();
@@ -789,7 +988,7 @@ setInterval(function(){
   _farroupilhaAutoEstado=agora;
 
   var sel=document.getElementById('pTemaPlaca');
-  if(sel&&sel.options.length)sel.options[0].textContent=textoTemaAuto_();
+  atualizarTextoTemaAutomatico_();
 
   if(sel&&sel.value==='automatico'){
     recalcularTemaAutomatico_('');
@@ -982,11 +1181,14 @@ async function loadBanco(cfg,tablePronta){
   banco={};
   bancoPreco={};
   bancoUnidade={};
-  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciUnidade=-1;
+  bancoFornecedor={};
+  bancoTema={};
+  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciUnidade=-1,ciFornecedor=-1;
   function isCod(t){return /\bEAN\b|\bGTIN\b|\bPLU\b|COD[\s._\-]?BARRA|BARRAS?\b|C[OÓ]D(IGO)?/.test(t);}
   function isNome(t){return /DESC(RI)?|NOME|PRODUTO|ITEM\b/.test(t);}
   function isPreco(t){return /PRE[CÇ]O|VALOR|VENDA|VLR|PR\.?\s*VENDA|P\.?\s*VENDA/.test(t);}
   function isUnidade(t){return /(^|\b)(UNIDADE|UNID|UND|MEDIDA|UM|U\.M\.)(\b|$)/.test(t);}
+  function isFornecedor(t){return /FORNEC|SUPPLIER/.test(t);}
 
   if(table.cols&&table.cols.length){
     var colTexts=table.cols.map(function(c){return String(c.label||'').toUpperCase();});
@@ -994,7 +1196,8 @@ async function loadBanco(cfg,tablePronta){
     var ni2=colTexts.findIndex(isNome);
     var pi2=colTexts.findIndex(isPreco);
     var ui2=colTexts.findIndex(isUnidade);
-    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciUnidade=ui2;}
+    var fi2=colTexts.findIndex(isFornecedor);
+    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciUnidade=ui2;ciFornecedor=fi2;}
   }
   if(ciCod<0||ciNome<0){
     for(var i=0;i<Math.min(5,rows.length);i++){
@@ -1004,7 +1207,8 @@ async function loadBanco(cfg,tablePronta){
       var ni=rowTexts.findIndex(isNome);
       var pi=rowTexts.findIndex(isPreco);
       var ui=rowTexts.findIndex(isUnidade);
-      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciUnidade=ui;break;}
+      var fi=rowTexts.findIndex(isFornecedor);
+      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciUnidade=ui;ciFornecedor=fi;break;}
     }
   }
   if(ciCod<0||ciNome<0){hIdx=0;ciCod=0;ciNome=1;}
@@ -1021,6 +1225,13 @@ async function loadBanco(cfg,tablePronta){
     if(cod&&ciUnidade>=0){
       var unidadeBanco=normalizarUnidadeBanco(cellStr(cells[ciUnidade]));
       if(unidadeBanco)bancoUnidade[cod]=unidadeBanco;
+    }
+    if(cod&&ciFornecedor>=0){
+      var fornecedorBanco=cellStr(cells[ciFornecedor]);
+      if(fornecedorBanco)bancoFornecedor[cod]=fornecedorBanco;
+    }
+    if(cod&&nome){
+      bancoTema[cod]=detectarTemaProdutoBase_(cod,nome,bancoFornecedor[cod]||'');
     }
   }
   _catalogoProdutosCache=null;
@@ -1080,7 +1291,7 @@ async function loadPrecos(cfg,tablePronta){
     products.push({cod:cod,nome:nome,preco:0,unidade:'',origem:'catalogo_auxiliar'});
   }
   _catalogoProdutosCache=null;
-  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,products:products,ts:Date.now()}));}catch(e){}
+  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,bancoFornecedor:bancoFornecedor,bancoTema:bancoTema,products:products,ts:Date.now()}));}catch(e){}
 }
 
 async function syncAll(){
@@ -1102,7 +1313,7 @@ async function syncAll(){
     _catalogoProdutosCache=null;
     var totalProd=Object.keys(banco).length;
     var totalPreco=Object.keys(bancoPreco).length;
-    setDot('ok','Conectado — '+totalProd+' produtos · '+totalPreco+' preços oficiais do BANCO DE DADOS');
+    setDot('ok','Conectado — '+totalProd+' produtos · '+totalPreco+' preços · temas automáticos calibrados pelo BANCO');
   }catch(e){
     console.error(e);
     setDot('err','Erro: '+e.message);
@@ -1143,7 +1354,7 @@ function consolidarProdutos(){
   if(_catalogoProdutosCache)return _catalogoProdutosCache;
   var map={};
 
-  function add(cod,nome,preco,unidade,oficial){
+  function add(cod,nome,preco,unidade,fornecedor,temaAuto,oficial){
     cod=normalizarCodigo(cod);
     nome=String(nome||'').replace(/^,\s*/,'').trim();
     preco=Number(preco)||0;
@@ -1154,7 +1365,7 @@ function consolidarProdutos(){
     if(!key)return;
 
     if(!map[key]){
-      map[key]={cod:cod,nome:'',preco:0,unidade:'',oficial:false};
+      map[key]={cod:cod,nome:'',preco:0,unidade:'',fornecedor:'',temaAuto:'padrao',oficial:false};
     }
 
     if(cod&&!map[key].cod)map[key].cod=cod;
@@ -1164,6 +1375,8 @@ function consolidarProdutos(){
       if(nome)map[key].nome=nome;
       map[key].preco=preco>0?preco:0;
       map[key].unidade=unidade||'';
+      map[key].fornecedor=fornecedor||'';
+      map[key].temaAuto=temaAuto||'padrao';
       map[key].oficial=true;
       return;
     }
@@ -1174,11 +1387,11 @@ function consolidarProdutos(){
   }
 
   Object.keys(banco).forEach(function(cod){
-    add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'',true);
+    add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'',bancoFornecedor[cod]||'',bancoTema[cod]||'padrao',true);
   });
 
   products.forEach(function(p){
-    add(p.cod,p.nome,0,'',false);
+    add(p.cod,p.nome,0,'','','padrao',false);
   });
 
   _catalogoProdutosCache=Object.keys(map).map(function(k){return map[k];})
@@ -1199,6 +1412,8 @@ function buscarPorCodigo(cod){
   var nome=banco[c]||'';
   var preco=bancoPreco[c]||0;
   var unidade=bancoUnidade[c]||'';
+  var fornecedor=bancoFornecedor[c]||'';
+  var temaAuto=bancoTema[c]||'padrao';
   var oficial=!!(banco[c] || bancoPreco[c] || bancoUnidade[c]);
 
   // Se o código ainda não existe na aba BANCO DE DADOS, mantemos somente
@@ -1214,7 +1429,7 @@ function buscarPorCodigo(cod){
   }
 
   if(!nome&&!preco&&!unidade)return null;
-  return {cod:c,nome:nome,preco:preco,unidade:unidade,oficial:oficial};
+  return {cod:c,nome:nome,preco:preco,unidade:unidade,fornecedor:fornecedor,temaAuto:temaAuto,oficial:oficial};
 }
 
 function buscarProdutos(termo,limite){
@@ -3796,6 +4011,13 @@ async function editarEncarte(id){
   mostrarToast('Editando "'+(descricaoBanco||'promoção')+'". Ajuste os campos e clique em "Salvar edição".','ok');
   window.scrollTo({top:0,behavior:'smooth'});
   renderEncartes();
+
+  var selTemaEditar=document.getElementById('pTemaPlaca');
+  if(selTemaEditar&&selTemaEditar.value==='automatico'){
+    recalcularTemaAutomatico_(descricaoBanco);
+    prepararTemaAtualSemDesenhar_();
+  }
+
   drawPlaca();
   if(cod)await buscarFotoCompleta(cod,descricaoBanco);
 }
@@ -4115,6 +4337,12 @@ async function gerarImagemPlacaItem(it){
     fotoImg=foto.src?await carregarImagemUrl(foto.src):null;
     fotoOrigemDrive=(foto.origem==='Google Drive');
 
+    var selTemaPrint=document.getElementById('pTemaPlaca');
+    if(selTemaPrint&&selTemaPrint.value==='automatico'){
+      recalcularTemaAutomatico_(descricao);
+      prepararTemaAtualSemDesenhar_();
+    }
+
     await drawPlaca();
     return document.getElementById('placaCanvas').toDataURL('image/png');
   }finally{
@@ -4130,6 +4358,13 @@ async function gerarImagemPlacaItem(it){
     if(elDescFinal)elDescFinal.value=backup.descFinal;
     unirAtualizarBotoesLayout();
     fotoImg=backup.fotoImg;fotoOrigemDrive=backup.fotoOrigemDrive;prodAtualCod=backup.prodAtualCod;unirPrincipalCod=backup.unirPrincipalCod;
+
+    var selTemaRestore=document.getElementById('pTemaPlaca');
+    if(selTemaRestore&&selTemaRestore.value==='automatico'){
+      recalcularTemaAutomatico_('');
+      prepararTemaAtualSemDesenhar_();
+    }
+
     drawPlaca();
   }
 }
@@ -4873,7 +5108,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   // recupera cache local
   try{
     var s=localStorage.getItem(PROD_KEY);
-    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(Array.isArray(c.products))products=c.products;}
+    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(c.bancoFornecedor)bancoFornecedor=c.bancoFornecedor;if(c.bancoTema)bancoTema=c.bancoTema;if(Array.isArray(c.products))products=c.products;}
   }catch(e){}
   var cfg=loadCfg();
   var syncInicial=null;
