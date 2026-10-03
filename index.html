@@ -252,9 +252,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <h3><i class="ti ti-database"></i> Configuração da fonte de dados (Google Sheets)</h3>
     <div class="cfg-grid">
       <div class="cfg-field"><label>ID da planilha (Validades / Preços)</label><input id="cId" placeholder="1HDJvgbKqYRUh8YvKeNTJZ5Phj..."></div>
-      <div class="cfg-field"><label>Aba de validades / catálogo auxiliar</label><input id="cAba" placeholder="2025"></div>
+      <div class="cfg-field"><label>Aba de validades/preços</label><input id="cAba" placeholder="2025"></div>
       <div class="cfg-field"><label>ID da planilha do banco de produtos</label><input id="cIdBanco" placeholder="mesmo ID se estiverem na mesma planilha"></div>
-      <div class="cfg-field"><label>Aba Banco de Dados — fonte oficial</label><input id="cAbaBanco" placeholder="BANCO DE DADOS"></div>
+      <div class="cfg-field"><label>Aba Banco de Dados</label><input id="cAbaBanco" placeholder="BANCO DE DADOS"></div>
     </div>
     <div class="cfg-actions">
       <button class="btn btn-green" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
@@ -331,7 +331,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <div class="row-3">
         <div class="f-row">
           <label for="pDescOverride">Descrição (editável)</label>
-          <input type="text" id="pDescOverride" placeholder="Preencha o código para carregar" oninput="onDescricaoTemaAuto_()">
+          <input type="text" id="pDescOverride" placeholder="Preencha o código para carregar" oninput="drawPlaca()">
         </div>
         <div class="f-row">
           <label for="pDe">Valor de venda (De)</label>
@@ -457,7 +457,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <div class="actions">
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tx2);white-space:nowrap">
             <i class="ti ti-palette"></i>
-            <span style="font-size:11px;font-weight:700">Tema</span>
             <select id="pTemaPlaca" onchange="aplicarTemaPlaca()" style="height:32px;padding:0 8px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600"></select>
           </label>
           <button class="btn btn-green" onclick="downloadPlaca()"><i class="ti ti-download"></i> Baixar PNG</button>
@@ -498,7 +497,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button class="btn btn-sm" id="btnLimparLista" onclick="limparListaClick(event)" style="color:var(--red)"><i class="ti ti-trash"></i> Limpar lista toda</button>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--tx2);margin:2px 0 8px">Ao pesquisar um produto que já está nesta lista, o Arsenal abre automaticamente a <b>última edição salva</b>, usando o mesmo fluxo do botão <i class="ti ti-pencil"></i>. Se nunca teve placa salva, cria normalmente a partir do Banco de Dados. Ao gerar o encarte, o preço utilizado continua sendo o <b>valor promocional salvo</b>.</div>
+    <div style="font-size:11px;color:var(--tx2);margin:2px 0 8px">Ao gerar o encarte, o sistema usa o <b>código do item</b> para buscar descrição, unidade e foto. O preço utilizado é sempre o <b>valor promocional salvo</b>, nunca o preço atual do banco.</div>
     <div id="encartesList" class="encartes-grid"></div>
     <hr class="divider" style="width:100%">
     <div class="print-qtd-row">
@@ -523,19 +522,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div id="printArea"></div>
 
 <script>
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
 var CFG_KEY='aura_cfg';
-var PROD_KEY='placa_prod_cache_banco_oficial_temas_v3';
+var PROD_KEY='placa_prod_cache';
 var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec';
-var banco={};          // cod -> descrição OFICIAL da aba BANCO DE DADOS
-var bancoPreco={};     // cod -> preço de venda OFICIAL da aba BANCO DE DADOS
-var bancoUnidade={};   // cod -> unidade/medida OFICIAL da aba BANCO DE DADOS
-var bancoFornecedor={}; // cod -> fornecedor OFICIAL da aba BANCO DE DADOS
-var bancoTema={};       // cod -> tema-base calculado a partir do banco real
-var products=[];       // catálogo AUXILIAR da aba de validades (não fornece preço/unidade oficial)
+var banco={};          // cod -> nome oficial do banco
+var bancoPreco={};     // cod -> preco de venda do banco (somente referência)
+var bancoUnidade={};   // cod -> unidade/medida do banco
+var products=[];       // lista consolidada com preços e unidade
 var _catalogoProdutosCache=null; // catálogo consolidado/normalizado, reconstruído só após sincronização
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
 // MAP de coordenadas do template Pack (valores em % do canvas 1054x1492)
@@ -547,15 +544,7 @@ var PACK_MAP={
   preco:{y:43.0,fontSize:12.0},
   centavos:{fontSize:5.0},
   cadaUnidade:{y:46.0,fontSize:2.1},
-  unidadeBadge:{
-    x:72.0,y:40.0,fontSize:4.5,
-    rot:-8,
-    bubble:true,
-    bubblePadX:1.25,
-    bubblePadY:0.55,
-    bubbleRadius:1.05,
-    bubbleTail:1.25
-  },
+  unidadeBadge:{x:72.0,y:40.0,fontSize:4.5},
   titulo:{x:4.93,y:47.0,width:90.13,height:5.5,fontSize:2.6,lineHeight:3.0,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
   imagem:{x:10.00,y:52.5,width:80.00,height:35.80,fit:'contain'},
   oferta:{x:15.00,y:88.6,width:70.00,height:2.28,fontSize:1.6,weight:800,align:'center'}
@@ -571,440 +560,34 @@ var templatePackImg=null;
 // cores; ele aparece sozinho no seletor "Tema da placa".
 // ============================================================
 var TEMAS_PLACA={
-  padrao:{
-    label:'Padrão (Ofertão do Dia)',
-    templatePlaca:'template-placa.png',
-    templatePack:'template-pack.png',
-    corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',
-    corBadgePreco:'#E8000D',usaBadgeFundo:false
-  },
-  acougue:{
-    label:'Açougue',
-    templatePlaca:'template açougue.png',
-    templatePack:'template pack açougue.png',
-    corTexto:'#6f0d0d',corValor:'#ffffff',corUnidade:'#FFD600',
-    corBadgePreco:'#b31317',usaBadgeFundo:true
-  },
-  bebidas:{
-    label:'Bebidas',
-    templatePlaca:'template bebidas.png',
-    templatePack:'template pack bebidas.png',
-    corTexto:'#064f9d',corValor:'#ffffff',corUnidade:'#FFD600',
-    corBadgePreco:'#075bad',usaBadgeFundo:true
-  },
-  padaria:{
-    label:'Padaria',
-    templatePlaca:'template padaria.png',
-    templatePack:'template pack padaria.png',
-    corTexto:'#6a3500',corValor:'#ffffff',corUnidade:'#FFD600',
-    corBadgePreco:'#7b3f00',usaBadgeFundo:true
-  },
-  fiambreria:{
-    label:'Fiambreria',
-    templatePlaca:'template fiambreria.png',
-    templatePack:'template pack fiambreria.png',
-    corTexto:'#780e24',corValor:'#ffffff',corUnidade:'#FFD600',
-    corBadgePreco:'#8f1530',usaBadgeFundo:true
-  },
-  horti:{
-    label:'Hortifrúti',
-    templatePlaca:'placa horti.png',
-    templatePack:'placa horti.png',
-    corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',
-    corBadgePreco:'#055405',usaBadgeFundo:true
-  },
-  farroupilha:{
-    label:'Semana Farroupilha',
-    templatePlaca:'template farroupilha.png',
-    templatePack:'template pack farroupilha.png',
-    corTexto:'#174d2c',corValor:'#ffffff',corUnidade:'#FFD600',
-    corBadgePreco:'#075c34',usaBadgeFundo:true
-  },
-  arrastao:{
-    label:'Arrastão de Ofertas',
-    templatePlaca:'arrastão de ofertas.png',
-    templatePack:'pack arrastão.png',
-    corTexto:'#000000',corValor:'#fede00',corUnidade:'#fede00',
-    corBadgePreco:'#000000',usaBadgeFundo:false
-  }
+  padrao:{label:'Padrão (Oferta do Dia)',templatePlaca:'template-placa.png',templatePack:'template-pack.png',corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',corBadgePreco:'#E8000D',usaBadgeFundo:false},
+  horti:{label:'Hortifrúti',templatePlaca:'placa horti.png',templatePack:'placa horti.png',corTexto:'#055405',corValor:'#ffffff',corUnidade:'#fede00',corBadgePreco:'#055405',usaBadgeFundo:true}
 };
-
-// ============================================================
-// TEMA AUTOMÁTICO
-// Prioridade:
-// 1) De 10/09 a 20/09, todos os anos -> Semana Farroupilha.
-// 2) Fora desse período -> identifica o setor pela descrição.
-// 3) Se não houver identificação segura -> tema Padrão.
-//
-// O usuário pode trocar manualmente no seletor a qualquer momento.
-// ============================================================
-var temaAutomaticoAtual='padrao';
-
-function estaNoPeriodoFarroupilha_(data){
-  var d=data instanceof Date?data:new Date();
-  return d.getMonth()===8 && d.getDate()>=10 && d.getDate()<=20;
-}
-
-function textoTemaAuto_(temaId){
-  if(estaNoPeriodoFarroupilha_(new Date())){
-    return 'Automático — Semana Farroupilha (10–20/09)';
-  }
-  var id=temaId||temaAutomaticoAtual||'padrao';
-  var tema=TEMAS_PLACA[id];
-  return 'Automático — '+(tema&&tema.label?tema.label:'Padrão');
-}
-
-function atualizarTextoTemaAutomatico_(){
-  var sel=document.getElementById('pTemaPlaca');
-  if(sel&&sel.options&&sel.options.length){
-    sel.options[0].textContent=textoTemaAuto_(temaAutomaticoAtual);
-  }
-}
-
-function descricaoProdutoAtualTema_(){
-  var cod=normalizarCodigo(prodAtualCod||((document.getElementById('pCod')||{}).value||''));
-  if(cod){
-    try{
-      var p=buscarPorCodigo(cod);
-      if(p&&p.nome)return p.nome;
-    }catch(e){}
-  }
-  var el=document.getElementById('pDescOverride');
-  if(el&&el.value)return el.value;
-  el=document.getElementById('pDescFinal');
-  return el&&el.value?el.value:'';
-}
-
-function temaTemFrase_(texto,lista){
-  var t=normalizarTexto(texto||'');
-  if(!t)return false;
-  var base=' '+t+' ';
-  for(var i=0;i<lista.length;i++){
-    var k=normalizarTexto(lista[i]);
-    if(k && base.indexOf(' '+k+' ')>=0)return true;
-  }
-  return false;
-}
-
-function temaComecaCom_(texto,lista){
-  var t=normalizarTexto(texto||'');
-  if(!t)return false;
-  for(var i=0;i<lista.length;i++){
-    var k=normalizarTexto(lista[i]);
-    if(k && (t===k || t.indexOf(k+' ')===0))return true;
-  }
-  return false;
-}
-
-function temaFornecedorContem_(fornecedor,lista){
-  var f=normalizarTexto(fornecedor||'');
-  if(!f)return false;
-  for(var i=0;i<lista.length;i++){
-    var k=normalizarTexto(lista[i]);
-    if(k && f.indexOf(k)>=0)return true;
-  }
-  return false;
-}
-
-function detectarTemaProdutoBase_(cod,nome,fornecedor){
-  var n=normalizarTexto(nome||'');
-  var f=normalizarTexto(fornecedor||'');
-  var c=normalizarCodigo(cod||'');
-  if(!n)return 'padrao';
-
-  // ==========================================================
-  // HORTIFRÚTI — regras calibradas com o BANCO DE DADOS real.
-  // O fornecedor pesa bastante aqui para evitar falsos positivos
-  // como "IOGURTE MORANGO", "BATATA CHIPS", "EXTRATO TOMATE".
-  // ==========================================================
-  var hortiProcessado=[
-    'EXTRATO','MOLHO','PASSATA','POLPA','CHIPS','CONG','CONGELADA','CONGELADO',
-    'FRITA','FRITAS','BISCOITO','SALGADINHO','SABOR','TEMPERO PRONTO','DOCE',
-    'GELEIA','COMPOTA','CONSERVA','PATE','SOPA','PURE','FARINHA','MACARRAO',
-    'KETCHUP','IOGURTE','SABONETE','CREME','DETERGENTE','GELATINA','BALA',
-    'COBERTURA','CHA','TANG','WAFFER','SNACK','SORVETE','PAO','BOLO',
-    'COCKTAIL','FRUKITO','SUCO'
-  ];
-  var fornecedorHorti=[
-    'CEASA','HORTA','PORTAL DAS FRUTAS','H E P DISTRIB','TANBOA','D AGOSTINI',
-    'LARANJAS JR','IRMAOS FRITSCH','FRUTAS VASSOLER','AGRO ERS','CELIO DA PAZ'
-  ];
-  var produtosHorti=[
-    'ABACATE','ABACAXI','AGRIAO','ALFACE','ALHO','ALHO PORO','BANANA','BATATA',
-    'BETERRABA','BERGAMOTA','BROCOLIS','CEBOLA','CENOURA','COUVE','ESPINAFRE',
-    'LARANJA','TANGERINA','UVA','MAMAO','MANGA','PERA','MELANCIA','MELAO',
-    'MORANGO','KIWI','ABOBORA','ABOBRINHA','PEPINO','PIMENTAO','REPOLHO',
-    'RUCULA','MANDIOCA','AIPIM','LIMAO','GOIABA','MARACUJA','NECTARINA',
-    'PESSEGO','RABANETE','SALSA','TEMPERO VERDE','TOMATE','MILHO VERDE',
-    'MOSTARDA','FRUTAS PRONTAS','SALADA DE FRUTAS'
-  ];
-  var ehHortiProcessado=temaTemFrase_(n,hortiProcessado);
-  if(temaFornecedorContem_(f,fornecedorHorti) && !ehHortiProcessado)return 'horti';
-  if(c && c.length<=5 && temaComecaCom_(n,produtosHorti) && !ehHortiProcessado)return 'horti';
-
-  // ==========================================================
-  // BEBIDAS
-  // Ex.: COCA COLA, AGUA C/GAS, FRUKI, SUCO, CERVEJA, VINHO.
-  // Proteções evitam AGUA SANITARIA, VINAGRE DE VINHO,
-  // MOLHO COM WHISKY, expositor refrigerado etc.
-  // ==========================================================
-  var bebidaExclusaoDireta=[
-    'AGUA SANITARIA','AGUA OXIGENADA','AGUA MICELAR','AMACIANTE','DESODORANTE',
-    'BATERIA','EXPOSITOR','BALCAO','MOLHO','VINAGRE','BISCOITO','BALA',
-    'SABONETE','CREME','SHAMPOO','DETERGENTE','RACAO','SABOR'
-  ];
-  var bebidaFrases=[
-    'REFRIGERANTE','REFRIG COCA','REFRIG FRUKI','REFRI COCA','CERVEJA','CHOPP',
-    'CHOPE','ESPUMANTE','VINHO','VODKA','WHISKY','WHISKEY','GIN','RUM','TEQUILA',
-    'SUCO','NECTAR','ENERGETICO','ENERG BURN','ISOTONICO','GATORADE','POWERADE',
-    'COCA COLA','PEPSI','FANTA','SPRITE','FRUKI','GUARANA ANTARCTICA',
-    'SCHWEPPES','TONICA','RED BULL','MONSTER','BALY','BALLY','BUFALO ENERGY',
-    'AMSTEL','BRAHMA','SKOL','BUDWEISER','HEINEKEN','CORONA','STELLA ARTOIS',
-    'SUKITA','DEL VALLE','ADES'
-  ];
-  var aguaFrases=[
-    'AGUA MINERAL','AGUA COM GAS','AGUA C GAS','AGUA SEM GAS','AGUA S GAS',
-    'AGUA SABORIZADA','AGUA DE COCO','AGUA COCO','AGUA TONICA'
-  ];
-  var aguaMarcas=[
-    'AGUA DA PEDRA','AGUA CRYSTAL','AGUA CRISTAL','AGUA SARANDI','AGUA FLORESTA',
-    'AGUA HORTENSIAS','AGUA VALLE VITA','AGUA FONTE DA ILHA','AGUA BONAFONT',
-    'AGUA DLUCENA','AGUA FLUA'
-  ];
-  if(!temaTemFrase_(n,bebidaExclusaoDireta)){
-    if(temaTemFrase_(n,bebidaFrases))return 'bebidas';
-    if(temaTemFrase_(n,aguaFrases))return 'bebidas';
-    for(var ai=0;ai<aguaMarcas.length;ai++){
-      if(n.indexOf(normalizarTexto(aguaMarcas[ai]))>=0)return 'bebidas';
-    }
-  }
-  var fornecedoresBebida=[
-    'SPAL IND BRAS BEBIDAS','CDD PORTO ALEGRE','FRUKI BEBIDAS',
-    'AGUAS MINERAIS SARANDI','BUFALO BEBIDAS','VINHOS NOE','BEBIDAS D LUCENA',
-    'VINICOLA D KLOSS','BAVIERA DISTR DE BEBIDAS'
-  ];
-  var bebidaExclusaoFornecedor=[
-    'CASCO','LEITE','IOGURTE','BEBIDA LACTEA','EXPOSITOR','BALCAO','MOLHO',
-    'VINAGRE','BISCOITO','BALA','AMACIANTE','DESODORANTE'
-  ];
-  if(temaFornecedorContem_(f,fornecedoresBebida) && !temaTemFrase_(n,bebidaExclusaoFornecedor)){
-    return 'bebidas';
-  }
-
-  // ==========================================================
-  // AÇOUGUE — primeiro pelos cortes/produtos, antes da Padaria
-  // para "COXINHA DA ASA" nunca virar tema de padaria.
-  // ==========================================================
-  var acougueExclusao=[
-    'AMACIANTE','CALDO','CAPELETTI','LASANHA','MOLHO','BISCOITO','RACAO',
-    'SABOR','BOLINHO','SOPAO','TEMPERO','BATATA','FARINHA','ERVA','MATE',
-    'LAMEN','MACARRAO','SOPA'
-  ];
-  var acougueFrases=[
-    'BOI CASADO','TRASEIRO BOVINO','DIANTEIRO BOVINO','ALCATRA','MAMINHA',
-    'COXAO','PATINHO','CHULETA','VAZIO','COSTELA','PALETA BOVINA','OSSO BUCO',
-    'PONTA AGULHA','PICANHA','FILE MIGNON','FILE MIGNOM','AGULHA MACIA',
-    'MUSCULO','CUPIM','MATAMBRE','MATAMBRITO','RINS BOVINO','FIGADO BOVINO',
-    'CORACAO BOVINO','LINGUA BOVINA','MIUDOS BOVINO','MONDONGO','RABADA',
-    'PATA BOVINA','CARCACA SUINA','PALETA DE PORCO','PERNIL DE PORCO',
-    'COSTELA DE PORCO','CHULETA DE PORCO','PE DE PORCO','OSSINHO DE PORCO',
-    'PANCETA','PERNIL DE CORDEIRO','PALETA DE CORDEIRO','CARRE FRANCES',
-    'GALINHA CAIPIRA','FRANGO CONGELADO','FRANGO INTEIRO','SOBRECOXA',
-    'COXINHA DA ASA','COXINHA DAS ASAS','FILE DE PEITO','PEITO COM OSSO',
-    'CORACAO DE FRANGO','CORACAO FRANGO','MOELA DE FRANGO','FIGADO DE FRANGO',
-    'TULIPA','SASSAMI','TORRESMO','LINGUICA','SALSICHAO','MORCELA',
-    'ASA AGROSUL','MEIO DA ASA','FILEZINHO SUINO','PES GALINHA'
-  ];
-  if(!temaTemFrase_(n,acougueExclusao)){
-    if(temaTemFrase_(n,acougueFrases))return 'acougue';
-    if(temaComecaCom_(n,['MOIDA','MOIDO']))return 'acougue';
-    if(temaTemFrase_(n,['CARNE MOIDA','MOIDA BOVINA','GUISADO','GUIZADO','BOVINO','BOVINA','SUINO','SUINA'])){
-      return 'acougue';
-    }
-  }
-
-  // ==========================================================
-  // PADARIA — prioriza fornecedores/itens reais de padaria e
-  // evita falsos positivos como ROSCA de hidráulica, mistura
-  // para bolo, biscoito sabor pizza etc.
-  // ==========================================================
-  var fornecedoresPadaria=['PADARIA BRASIL','PEDRO LUIZ DE OLIVEIRA PADARIA','MARQUESPAN'];
-  var padariaEquipamento=['BALCAO','CAMARETA','EQUIPAMENTO','FORMA KRAFT','RASPADOR','LUVA','ELETRODUTO','NIPEL'];
-  if(temaFornecedorContem_(f,fornecedoresPadaria) && !temaTemFrase_(n,padariaEquipamento)){
-    return 'padaria';
-  }
-  var padariaExclusao=[
-    'BISCOITO','BISCOITOS','SORVETE','MISTURA','FARINHA','FORMA','LUVA',
-    'ELETRODUTO','NIPEL','BATATA','TRENTO','TORCIDA','CAPPUCCINO','RACAO',
-    'SABOR','ASA','ASAS'
-  ];
-  var padariaInicio=[
-    'PAO','CUCA','BOLO','TORTA','SONHO','CROISSANT','PASTEL','PIZZA','BAGUETE',
-    'BROA','EMPADA','BAURU','CACHORRO QUENTE','MIL FOLHA'
-  ];
-  if(temaComecaCom_(n,padariaInicio) && !temaTemFrase_(n,padariaExclusao))return 'padaria';
-  if(temaTemFrase_(n,['MASSA PARA PIZZA','MASSA PIZZA','BRIGADEIRO PADARIA','COPO DA FELICIDADE','PAO DE QUEIJO'])
-     && !temaTemFrase_(n,padariaExclusao))return 'padaria';
-  if(temaComecaCom_(n,['SALGADO','COXINHA','RISOLE','QUINDIM'])
-     && !temaTemFrase_(n,['DA ASA','DAS ASAS','ASA','ASAS']))return 'padaria';
-  if(temaComecaCom_(n,['PUDIM']) && ((c&&c.length<=5)||temaFornecedorContem_(f,fornecedoresPadaria))){
-    return 'padaria';
-  }
-
-  // ==========================================================
-  // FIAMBRERIA — frios e queijos, com exceções para snacks,
-  // molhos e produtos apenas "sabor bacon/queijo".
-  // ==========================================================
-  var fiamFrases=[
-    'MORTADELA','PRESUNTO','SALAME','APRESUNTADO','QUEIJO','MUSSARELA','MUCARELA',
-    'PROVOLONE','PARMESAO','GORGONZOLA','RICOTA','REQUEIJAO','BACON','COPA',
-    'SALSICHA','LOMBO CANADENSE','FIAMBRERIA','FRIOS'
-  ];
-  var fiamExclusao=[
-    'BISCOITO','BISCOITOS','BISC','FANDANGOS','SALGADINHO','BATATA','LASANHA',
-    'PIZZA','PAO DE QUEIJO','MOLHO','SABOR','CAPELETTI','EQUILIBRI','CALDO',
-    'KETCHUP','CATCHUP','CHIPA','HOT HIT','TEMPER CHEESE','PRINGLES','TORCIDA',
-    'POPCORNERS','SOPA','CREME MAGGI','FAROFA','PALITINHO','CHEETOS','POLENTA',
-    'CLUB SOCIAL','PIPOCA','PINGO D OURO'
-  ];
-  if(temaTemFrase_(n,fiamFrases) && !temaTemFrase_(n,fiamExclusao)){
-    return 'fiambreria';
-  }
-
-  // Fornecedores muito específicos de carnes entram por último,
-  // para não roubar bacon/salame/queijo que pertencem à Fiambreria.
-  var fornecedoresAcougue=[
-    'MAROLLI MEAT','FRIGOSERRA CARNES','ABATEDOURO PRES LUCENA',
-    'AGROSUL ALIMENTOS','VIBRA AGROINDUSTRIAL','BORRUSSIA FABRICA',
-    'DISTRIBUIDORA DE CARNES'
-  ];
-  if(temaFornecedorContem_(f,fornecedoresAcougue) && !temaTemFrase_(n,acougueExclusao)){
-    return 'acougue';
-  }
-
-  return 'padrao';
-}
-
-function detectarTemaProdutoDetalhado_(cod,nome,fornecedor){
-  if(estaNoPeriodoFarroupilha_(new Date()))return 'farroupilha';
-
-  var c=normalizarCodigo(cod||'');
-  if(c && bancoTema[c])return bancoTema[c];
-
-  return detectarTemaProdutoBase_(c,nome,fornecedor);
-}
-
-function recalcularTemaAutomatico_(produtoOuNome){
-  var nome='',cod='',fornecedor='';
-
-  if(produtoOuNome&&typeof produtoOuNome==='object'){
-    nome=produtoOuNome.nome||produtoOuNome.descricao||'';
-    cod=normalizarCodigo(produtoOuNome.cod||produtoOuNome.ean||'');
-    fornecedor=produtoOuNome.fornecedor||'';
-  }else{
-    nome=String(produtoOuNome||'');
-  }
-
-  if(!cod){
-    cod=normalizarCodigo(prodAtualCod||((document.getElementById('pCod')||{}).value||''));
-  }
-
-  if(cod){
-    try{
-      var p=buscarPorCodigo(cod);
-      if(p){
-        if(!nome)nome=p.nome||'';
-        if(!fornecedor)fornecedor=p.fornecedor||'';
-      }
-    }catch(e){}
-  }
-
-  if(!nome)nome=descricaoProdutoAtualTema_();
-
-  temaAutomaticoAtual=detectarTemaProdutoDetalhado_(cod,nome,fornecedor);
-  atualizarTextoTemaAutomatico_();
-  return temaAutomaticoAtual;
-}
-
-function onDescricaoTemaAuto_(){
-  var sel=document.getElementById('pTemaPlaca');
-  if(sel&&sel.value==='automatico'){
-    recalcularTemaAutomatico_((document.getElementById('pDescOverride')||{}).value||'');
-    prepararTemaAtualSemDesenhar_();
-  }
-  drawPlaca();
-}
-
-function temaPlacaIdEfetivo_(){
-  var sel=document.getElementById('pTemaPlaca');
-  var id=sel&&sel.value?sel.value:'automatico';
-  if(id==='automatico')return temaAutomaticoAtual||'padrao';
-  return TEMAS_PLACA[id]?id:'padrao';
-}
-
 function temaPlacaAtual(){
-  return TEMAS_PLACA[temaPlacaIdEfetivo_()]||TEMAS_PLACA.padrao;
+  var sel=document.getElementById('pTemaPlaca');
+  return TEMAS_PLACA[sel&&sel.value]||TEMAS_PLACA.padrao;
 }
-
 function popularSeletorTemaPlaca(){
   var sel=document.getElementById('pTemaPlaca');
   if(!sel||sel.options.length)return;
-
-  var auto=document.createElement('option');
-  auto.value='automatico';
-  auto.textContent=textoTemaAuto_();
-  sel.appendChild(auto);
-
   Object.keys(TEMAS_PLACA).forEach(function(id){
     var opt=document.createElement('option');
     opt.value=id;
     opt.textContent=TEMAS_PLACA[id].label||id;
     sel.appendChild(opt);
   });
-
-  // Automático é o padrão do Arsenal.
-  sel.value='automatico';
-  recalcularTemaAutomatico_('');
 }
-
-function prepararTemaAtualSemDesenhar_(){
+function aplicarTemaPlaca(){
   var tema=temaPlacaAtual();
-  var e=document.getElementById('pCorTexto');if(e)e.value=tema.corTexto;
-  e=document.getElementById('pCorValor');if(e)e.value=tema.corValor;
-  e=document.getElementById('pCorUnidade');if(e)e.value=tema.corUnidade;
-  e=document.getElementById('pCorBadgePreco');if(e)e.value=tema.corBadgePreco;
+  document.getElementById('pCorTexto').value=tema.corTexto;
+  document.getElementById('pCorValor').value=tema.corValor;
+  document.getElementById('pCorUnidade').value=tema.corUnidade;
+  if(document.getElementById('pCorBadgePreco'))document.getElementById('pCorBadgePreco').value=tema.corBadgePreco;
+  // o arquivo de fundo muda conforme o tema — força recarregar
   templateImg=null;templateReady=false;
   templatePackImg=null;templatePackReady=false;
-}
-
-function aplicarTemaPlaca(){
-  var sel=document.getElementById('pTemaPlaca');
-  if(sel&&sel.value==='automatico'){
-    recalcularTemaAutomatico_('');
-    atualizarTextoTemaAutomatico_();
-  }
-  prepararTemaAtualSemDesenhar_();
   drawPlaca();
 }
-
-// Se a página ficar aberta durante a virada para 10/09 ou 21/09,
-// o modo automático se atualiza sem precisar recarregar.
-var _farroupilhaAutoEstado=estaNoPeriodoFarroupilha_(new Date());
-setInterval(function(){
-  var agora=estaNoPeriodoFarroupilha_(new Date());
-  if(agora===_farroupilhaAutoEstado)return;
-  _farroupilhaAutoEstado=agora;
-
-  var sel=document.getElementById('pTemaPlaca');
-  atualizarTextoTemaAutomatico_();
-
-  if(sel&&sel.value==='automatico'){
-    recalcularTemaAutomatico_('');
-    prepararTemaAtualSemDesenhar_();
-    drawPlaca();
-  }
-},30*60*1000);
-
 var templatePackReady=false;
 var fotoImg=null;
 var fotoToken=0;
@@ -1178,9 +761,6 @@ function rawRows(t){return t.rows||[];}
 // ============================================================
 // CARREGAR BANCO DE DADOS (cod -> nome)
 // ============================================================
-// REGRA OFICIAL DO ARSENAL:
-// descrição + preço de venda + unidade vêm SOMENTE da aba BANCO DE DADOS.
-// A aba anual/validades nunca pode sobrescrever estes campos.
 async function loadBanco(cfg,tablePronta){
   if(!cfg.idBanco)cfg.idBanco=cfg.id;
   if(!cfg.idBanco)return;
@@ -1189,14 +769,11 @@ async function loadBanco(cfg,tablePronta){
   banco={};
   bancoPreco={};
   bancoUnidade={};
-  bancoFornecedor={};
-  bancoTema={};
-  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciUnidade=-1,ciFornecedor=-1;
+  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciUnidade=-1;
   function isCod(t){return /\bEAN\b|\bGTIN\b|\bPLU\b|COD[\s._\-]?BARRA|BARRAS?\b|C[OÓ]D(IGO)?/.test(t);}
   function isNome(t){return /DESC(RI)?|NOME|PRODUTO|ITEM\b/.test(t);}
   function isPreco(t){return /PRE[CÇ]O|VALOR|VENDA|VLR|PR\.?\s*VENDA|P\.?\s*VENDA/.test(t);}
   function isUnidade(t){return /(^|\b)(UNIDADE|UNID|UND|MEDIDA|UM|U\.M\.)(\b|$)/.test(t);}
-  function isFornecedor(t){return /FORNEC|SUPPLIER/.test(t);}
 
   if(table.cols&&table.cols.length){
     var colTexts=table.cols.map(function(c){return String(c.label||'').toUpperCase();});
@@ -1204,8 +781,7 @@ async function loadBanco(cfg,tablePronta){
     var ni2=colTexts.findIndex(isNome);
     var pi2=colTexts.findIndex(isPreco);
     var ui2=colTexts.findIndex(isUnidade);
-    var fi2=colTexts.findIndex(isFornecedor);
-    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciUnidade=ui2;ciFornecedor=fi2;}
+    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciUnidade=ui2;}
   }
   if(ciCod<0||ciNome<0){
     for(var i=0;i<Math.min(5,rows.length);i++){
@@ -1215,8 +791,7 @@ async function loadBanco(cfg,tablePronta){
       var ni=rowTexts.findIndex(isNome);
       var pi=rowTexts.findIndex(isPreco);
       var ui=rowTexts.findIndex(isUnidade);
-      var fi=rowTexts.findIndex(isFornecedor);
-      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciUnidade=ui;ciFornecedor=fi;break;}
+      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciUnidade=ui;break;}
     }
   }
   if(ciCod<0||ciNome<0){hIdx=0;ciCod=0;ciNome=1;}
@@ -1234,21 +809,12 @@ async function loadBanco(cfg,tablePronta){
       var unidadeBanco=normalizarUnidadeBanco(cellStr(cells[ciUnidade]));
       if(unidadeBanco)bancoUnidade[cod]=unidadeBanco;
     }
-    if(cod&&ciFornecedor>=0){
-      var fornecedorBanco=cellStr(cells[ciFornecedor]);
-      if(fornecedorBanco)bancoFornecedor[cod]=fornecedorBanco;
-    }
-    if(cod&&nome){
-      bancoTema[cod]=detectarTemaProdutoBase_(cod,nome,bancoFornecedor[cod]||'');
-    }
   }
   _catalogoProdutosCache=null;
 }
 
 // ============================================================
-// CARREGAR CATÁLOGO AUXILIAR (aba principal 2025)
-// IMPORTANTE: esta aba NÃO pode sobrescrever descrição, preço ou unidade oficiais
-// vindos da aba BANCO DE DADOS.
+// CARREGAR PLANILHA COM PREÇOS (aba principal 2025)
 // ============================================================
 async function loadPrecos(cfg,tablePronta){
   if(!cfg.id)return;
@@ -1293,13 +859,14 @@ async function loadPrecos(cfg,tablePronta){
       var rawCod=String((cells[ci.codBarra]&&cells[ci.codBarra].f)||(cells[ci.codBarra]&&cells[ci.codBarra].v)||'').trim().replace(/[^0-9]/g,'');
       if(rawCod)cod=rawCod;
     }
-    // A aba de validades continua servindo apenas como catálogo auxiliar
-    // para localizar produtos antigos/fora do banco. Seus campos de valor
-    // e unidade NÃO entram em bancoPreco/bancoUnidade.
-    products.push({cod:cod,nome:nome,preco:0,unidade:'',origem:'catalogo_auxiliar'});
+    var preco=ci.venda>=0?cellNum(cells[ci.venda]):0;
+    var unidade=ci.unidade>=0?normalizarUnidadeBanco(cellStr(cells[ci.unidade])):'';
+    if(cod&&preco>0)bancoPreco[cod]=preco;
+    if(cod&&unidade)bancoUnidade[cod]=unidade;
+    products.push({cod:cod,nome:nome,preco:preco,unidade:unidade});
   }
   _catalogoProdutosCache=null;
-  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,bancoFornecedor:bancoFornecedor,bancoTema:bancoTema,products:products,ts:Date.now()}));}catch(e){}
+  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,products:products,ts:Date.now()}));}catch(e){}
 }
 
 async function syncAll(){
@@ -1309,9 +876,8 @@ async function syncAll(){
   btn.disabled=true;btn.innerHTML='<i class="ti ti-refresh spin"></i> Sincronizando...';
   setDot('loading','Sincronizando...');
   try{
-    // As duas leituras continuam independentes e são baixadas em paralelo.
-    // A ordem abaixo é intencional: BANCO DE DADOS define os dados oficiais;
-    // a aba de validades entra somente como catálogo auxiliar e não sobrescreve valores.
+    // As duas leituras são independentes. Faz o download em paralelo e só depois
+    // processa em ordem, evitando corrida nas estruturas bancoPreco/bancoUnidade.
     var tabelas=await Promise.all([
       fetchSheet(cfg.idBanco||cfg.id,cfg.abaBanco),
       fetchSheet(cfg.id,cfg.aba)
@@ -1321,7 +887,7 @@ async function syncAll(){
     _catalogoProdutosCache=null;
     var totalProd=Object.keys(banco).length;
     var totalPreco=Object.keys(bancoPreco).length;
-    setDot('ok','Conectado — '+totalProd+' produtos · '+totalPreco+' preços · temas automáticos calibrados pelo BANCO');
+    setDot('ok','Conectado — '+totalProd+' produtos, '+totalPreco+' preços');
   }catch(e){
     console.error(e);
     setDot('err','Erro: '+e.message);
@@ -1361,83 +927,49 @@ function temBaseProdutos(){return Object.keys(banco).length||Object.keys(bancoPr
 function consolidarProdutos(){
   if(_catalogoProdutosCache)return _catalogoProdutosCache;
   var map={};
-
-  function add(cod,nome,preco,unidade,fornecedor,temaAuto,oficial){
+  function add(cod,nome,preco,unidade){
     cod=normalizarCodigo(cod);
     nome=String(nome||'').replace(/^,\s*/,'').trim();
     preco=Number(preco)||0;
     unidade=normalizarUnidadeBanco(unidade);
     if(!cod&&!nome)return;
-
     var key=cod||normalizarTexto(nome);
     if(!key)return;
-
-    if(!map[key]){
-      map[key]={cod:cod,nome:'',preco:0,unidade:'',fornecedor:'',temaAuto:'padrao',oficial:false};
-    }
-
+    if(!map[key])map[key]={cod:cod,nome:nome,preco:0,unidade:''};
     if(cod&&!map[key].cod)map[key].cod=cod;
-
-    if(oficial){
-      // BANCO DE DADOS sempre vence qualquer fonte auxiliar.
-      if(nome)map[key].nome=nome;
-      map[key].preco=preco>0?preco:0;
-      map[key].unidade=unidade||'';
-      map[key].fornecedor=fornecedor||'';
-      map[key].temaAuto=temaAuto||'padrao';
-      map[key].oficial=true;
-      return;
-    }
-
-    // Catálogo auxiliar: só preenche NOME quando ainda não existe registro oficial.
-    // Nunca fornece preço nem unidade para o Arsenal.
-    if(!map[key].oficial && nome && !map[key].nome)map[key].nome=nome;
+    if(nome&&(!map[key].nome||map[key].nome.length<nome.length))map[key].nome=nome;
+    if(preco>0)map[key].preco=preco;
+    if(unidade&&!map[key].unidade)map[key].unidade=unidade;
   }
-
-  Object.keys(banco).forEach(function(cod){
-    add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'',bancoFornecedor[cod]||'',bancoTema[cod]||'padrao',true);
-  });
-
-  products.forEach(function(p){
-    add(p.cod,p.nome,0,'','','padrao',false);
-  });
-
-  _catalogoProdutosCache=Object.keys(map).map(function(k){return map[k];})
-    .filter(function(p){return p.nome||p.cod;});
-
+  Object.keys(banco).forEach(function(cod){add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'');});
+  products.forEach(function(p){add(p.cod,p.nome,p.preco||bancoPreco[normalizarCodigo(p.cod)]||0,p.unidade||bancoUnidade[normalizarCodigo(p.cod)]||'');});
+  _catalogoProdutosCache=Object.keys(map).map(function(k){return map[k];}).filter(function(p){return p.nome||p.cod;});
   _catalogoProdutosCache.forEach(function(p){
     p._nomeNorm=normalizarTexto(p.nome);
     p._codNorm=normalizarCodigo(p.cod);
   });
-
   return _catalogoProdutosCache;
 }
 
 function buscarPorCodigo(cod){
   var c=normalizarCodigo(cod);
   if(!c)return null;
-
   var nome=banco[c]||'';
   var preco=bancoPreco[c]||0;
   var unidade=bancoUnidade[c]||'';
-  var fornecedor=bancoFornecedor[c]||'';
-  var temaAuto=bancoTema[c]||'padrao';
-  var oficial=!!(banco[c] || bancoPreco[c] || bancoUnidade[c]);
-
-  // Se o código ainda não existe na aba BANCO DE DADOS, mantemos somente
-  // a descrição auxiliar para facilitar a localização. Preço e unidade ficam
-  // vazios para não apresentar dado antigo da aba de validades como oficial.
-  if(!nome){
+  // fallback: pega nome/preco/unidade a partir do array products (planilha principal)
+  if(!nome||!preco||!unidade){
     for(var i=0;i<products.length;i++){
       if(normalizarCodigo(products[i].cod)===c){
-        if(products[i].nome)nome=products[i].nome;
+        if(!nome&&products[i].nome)nome=products[i].nome;
+        if(!preco&&products[i].preco)preco=products[i].preco;
+        if(!unidade&&products[i].unidade)unidade=normalizarUnidadeBanco(products[i].unidade);
         break;
       }
     }
   }
-
   if(!nome&&!preco&&!unidade)return null;
-  return {cod:c,nome:nome,preco:preco,unidade:unidade,fornecedor:fornecedor,temaAuto:temaAuto,oficial:oficial};
+  return {cod:c,nome:nome,preco:preco,unidade:unidade};
 }
 
 function buscarProdutos(termo,limite){
@@ -2167,7 +1699,8 @@ async function buscarFotoWikimedia(query){
   }catch(e){return [];}
 }
 function temaHortiAtivo(){
-  return temaPlacaIdEfetivo_()==='horti';
+  var sel=document.getElementById('pTemaPlaca');
+  return !!(sel&&sel.value==='horti');
 }
 async function buscarFotoWeb(query,cod,statusFn,opcoes){
   opcoes=opcoes||{};
@@ -2440,14 +1973,6 @@ function preencherProduto(prod){
     document.getElementById('pDe').value=fmtDec(prod.preco);
   }
   onPrecoChange();
-
-  // Tema automático acompanha o produto carregado.
-  var selTemaAuto=document.getElementById('pTemaPlaca');
-  if(selTemaAuto&&selTemaAuto.value==='automatico'){
-    recalcularTemaAutomatico_(prod);
-    prepararTemaAtualSemDesenhar_();
-  }
-
   drawPlaca();
   buscarFotoCompleta(prod.cod,prod.nome);
 }
@@ -2809,7 +2334,7 @@ function loadTemplate(){
     img.crossOrigin='anonymous';
     img.onload=function(){templateImg=img;templateReady=true;resolve(img);};
     img.onerror=function(){resolve(null);};
-    img.src=new URL(temaPlacaAtual().templatePlaca,document.baseURI).href;
+    img.src=temaPlacaAtual().templatePlaca;
   });
 }
 
@@ -2820,7 +2345,7 @@ function loadTemplatePack(){
     img.crossOrigin='anonymous';
     img.onload=function(){templatePackImg=img;templatePackReady=true;resolve(img);};
     img.onerror=function(){resolve(null);};
-    img.src=new URL(temaPlacaAtual().templatePack,document.baseURI).href;
+    img.src=temaPlacaAtual().templatePack;
   });
 }
 
@@ -3299,15 +2824,15 @@ async function drawPlaca(){
   if(pct && !packOn){
     var cx=105,cy=1150,r=55;
     ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=10;
-    ctx.fillStyle=corUnidade;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FFD600';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=corBadgePreco;ctx.beginPath();ctx.arc(cx,cy,r-8,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;ctx.shadowColor='transparent';
-    ctx.fillStyle=corUnidade;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='#FFD600';ctx.textAlign='center';ctx.textBaseline='middle';
     var pctFs=36;
     ctx.font='900 '+pctFs+'px '+fonte;
     while(ctx.measureText(pct+'%').width>85&&pctFs>18){pctFs-=2;ctx.font='900 '+pctFs+'px '+fonte;}
     ctx.fillText(pct+'%',cx,cy-8);
-    ctx.fillStyle=corValor;ctx.font='900 18px '+fonte;
+    ctx.fillStyle='#ffffff';ctx.font='900 18px '+fonte;
     ctx.fillText('OFF',cx,cy+18);
   }
 
@@ -3398,7 +2923,7 @@ async function drawPlaca(){
       var priceY = my(PACK_MAP.preco.y); // Linha de base do preço (rebaixado)
       var topAlignY = priceY - (fsPreco * 0.38); // Altura padronizada para o R$ e Centavos
 
-      ctx.fillStyle=corValor;
+      ctx.fillStyle='#ffffff';
       ctx.textAlign='left';
 
       // "R$" alinhado na mesma altura superior do ",00"
@@ -3414,83 +2939,18 @@ async function drawPlaca(){
       ctx.font='900 '+fsCents+'px '+fonte;
       ctx.fillText(centavosFinal, startX + wRs + wPreco, topAlignY);
 
-      // Unidade de medida — permanece ancorada EXATAMENTE no mesmo ponto.
-      // Agora o HTML desenha um balão atrás do texto automaticamente.
-      // Isso vale para CADA e também para UN/KG/L/PC/CX/PCT quando escolhidos.
+      // Unidade de medida — selo próprio, ancorado num ponto fixo perto do
+      // canto do preço (não interfere na centralização do preço).
       if(apartir){
         var unidadeTxt=unidadeSel;
-        var badgeCfg=PACK_MAP.unidadeBadge||{};
-        var fsUnidade=my(badgeCfg.fontSize||4.5);
-
+        var fsUnidade=my(PACK_MAP.unidadeBadge.fontSize);
         ctx.save();
         ctx.font='900 italic '+fsUnidade+'px '+fonte;
         ctx.textAlign='left';
         ctx.textBaseline='alphabetic';
-
-        // Mantém a coordenada oficial já usada pelo Arsenal.
-        ctx.translate(mx(badgeCfg.x||72.0),my(badgeCfg.y||40.0));
-        ctx.rotate(((badgeCfg.rot==null?-8:badgeCfg.rot)*Math.PI)/180);
-
-        if(badgeCfg.bubble!==false){
-          var textW=ctx.measureText(unidadeTxt).width;
-
-          // Padding em proporção ao canvas para manter o mesmo visual em 1054x1492.
-          var padX=mx(badgeCfg.bubblePadX||1.25);
-          var padY=my(badgeCfg.bubblePadY||0.55);
-          var radius=Math.min(
-            mx(badgeCfg.bubbleRadius||1.05),
-            my(badgeCfg.bubbleRadius||1.05)
-          );
-          var tail=Math.min(
-            mx(badgeCfg.bubbleTail||1.25),
-            my(badgeCfg.bubbleTail||1.25)
-          );
-
-          // O texto original continua em (0,0); o balão cresce ao redor dele.
-          var boxX=-padX;
-          var boxY=-(fsUnidade*0.88)-padY;
-          var boxW=textW+(padX*2);
-          var boxH=(fsUnidade*1.12)+(padY*2);
-
-          ctx.save();
-          ctx.shadowColor='rgba(0,0,0,.30)';
-          ctx.shadowBlur=Math.max(6,my(.45));
-          ctx.shadowOffsetY=Math.max(2,my(.16));
-
-          // Fundo acompanha a cor do badge de preço do tema:
-          // vermelho, verde Farroupilha, azul Bebidas, marrom Padaria etc.
-          ctx.fillStyle=corBadgePreco;
-          ctx.strokeStyle=corUnidade;
-          ctx.lineWidth=Math.max(3,my(.18));
-
-          // Retângulo arredondado manual para compatibilidade ampla.
-          var r=Math.max(4,Math.min(radius,boxH/2,boxW/2));
-          ctx.beginPath();
-          ctx.moveTo(boxX+r,boxY);
-          ctx.lineTo(boxX+boxW-r,boxY);
-          ctx.quadraticCurveTo(boxX+boxW,boxY,boxX+boxW,boxY+r);
-          ctx.lineTo(boxX+boxW,boxY+boxH-r);
-          ctx.quadraticCurveTo(boxX+boxW,boxY+boxH,boxX+boxW-r,boxY+boxH);
-
-          // Pequena "fala" apontando para baixo/direita.
-          var tailBaseX=boxX+boxW-Math.max(r*1.25,tail*1.45);
-          var tailY=boxY+boxH;
-          ctx.lineTo(tailBaseX+tail,tailY);
-          ctx.lineTo(tailBaseX+tail*.55,tailY+tail);
-          ctx.lineTo(tailBaseX,tailY);
-
-          ctx.lineTo(boxX+r,boxY+boxH);
-          ctx.quadraticCurveTo(boxX,boxY+boxH,boxX,boxY+boxH-r);
-          ctx.lineTo(boxX,boxY+r);
-          ctx.quadraticCurveTo(boxX,boxY,boxX+r,boxY);
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        // Texto desenhado por cima, no MESMO ponto onde já era desenhado.
-        ctx.fillStyle=corUnidade;
+        ctx.fillStyle='#FFD600';
+        ctx.translate(mx(PACK_MAP.unidadeBadge.x),my(PACK_MAP.unidadeBadge.y));
+        ctx.rotate(-8*Math.PI/180);
         ctx.fillText(unidadeTxt,0,0);
         ctx.restore();
       }
@@ -3581,7 +3041,7 @@ async function drawPlaca(){
       ctx.fillText(labelDir,lblX+lblW/2,lblY+lblH/2+1);
     }else{
       // ── Rótulo direito em amarelo dentro da caixa (UNID) ──
-      ctx.fillStyle=corUnidade;
+      ctx.fillStyle='#FFD600';
       ctx.textAlign='right';ctx.textBaseline='top';
       var labelFs = (labelDir.length>6 ? 22 : 26);
       ctx.font='900 '+labelFs+'px '+fonte;
@@ -3593,10 +3053,10 @@ async function drawPlaca(){
     var startX=boxX+(boxW-totalW)/2;
     var baseY=boxY+boxH/2+valFs*0.34+(packOn?6:24);
     ctx.textAlign='left';ctx.textBaseline='alphabetic';
-    ctx.fillStyle=corUnidade;
+    ctx.fillStyle='#FFD600';
     ctx.font='900 '+rsFs+'px '+fonte;
     ctx.fillText('R$', startX, baseY-valFs*0.05);
-    ctx.fillStyle=corValor;
+    ctx.fillStyle='#FFFFFF';
     ctx.font='900 '+valFs+'px '+fonte;
     ctx.fillText(valTxt, startX+rsW+12, baseY);
   })();
@@ -4084,13 +3544,6 @@ async function editarEncarte(id){
   mostrarToast('Editando "'+(descricaoBanco||'promoção')+'". Ajuste os campos e clique em "Salvar edição".','ok');
   window.scrollTo({top:0,behavior:'smooth'});
   renderEncartes();
-
-  var selTemaEditar=document.getElementById('pTemaPlaca');
-  if(selTemaEditar&&selTemaEditar.value==='automatico'){
-    recalcularTemaAutomatico_(descricaoBanco);
-    prepararTemaAtualSemDesenhar_();
-  }
-
   drawPlaca();
   if(cod)await buscarFotoCompleta(cod,descricaoBanco);
 }
@@ -4410,12 +3863,6 @@ async function gerarImagemPlacaItem(it){
     fotoImg=foto.src?await carregarImagemUrl(foto.src):null;
     fotoOrigemDrive=(foto.origem==='Google Drive');
 
-    var selTemaPrint=document.getElementById('pTemaPlaca');
-    if(selTemaPrint&&selTemaPrint.value==='automatico'){
-      recalcularTemaAutomatico_(descricao);
-      prepararTemaAtualSemDesenhar_();
-    }
-
     await drawPlaca();
     return document.getElementById('placaCanvas').toDataURL('image/png');
   }finally{
@@ -4431,13 +3878,6 @@ async function gerarImagemPlacaItem(it){
     if(elDescFinal)elDescFinal.value=backup.descFinal;
     unirAtualizarBotoesLayout();
     fotoImg=backup.fotoImg;fotoOrigemDrive=backup.fotoOrigemDrive;prodAtualCod=backup.prodAtualCod;unirPrincipalCod=backup.unirPrincipalCod;
-
-    var selTemaRestore=document.getElementById('pTemaPlaca');
-    if(selTemaRestore&&selTemaRestore.value==='automatico'){
-      recalcularTemaAutomatico_('');
-      prepararTemaAtualSemDesenhar_();
-    }
-
     drawPlaca();
   }
 }
@@ -5100,109 +4540,11 @@ function moverSugestao(delta){
   renderSugestoes(sugestoesAtuais,document.getElementById('pCod').value);
 }
 
-// ============================================================
-// REAPROVEITAMENTO AUTOMÁTICO DA ÚLTIMA PLACA SALVA
-// Ao selecionar um produto na pesquisa, o Arsenal procura primeiro
-// na "Lista de placas geradas / promoções". Se achar o mesmo código,
-// chama EXATAMENTE a mesma função do lápis: editarEncarte(id).
-// ============================================================
-var _reaproveitarBuscaToken=0;
-
-function _dataEncarteMs_(it){
-  var d=Date.parse(String((it&&it.data)||''));
-  return isFinite(d)?d:0;
-}
-
-function buscarEncarteMaisRecentePorProduto_(prod){
-  if(!prod||!Array.isArray(encartesCache)||!encartesCache.length)return null;
-
-  var cod=normalizarCodigo(prod.cod||'');
-  var nomeNorm=normalizarTexto(prod.nome||'');
-  var candidatos=[];
-
-  encartesCache.forEach(function(it,idx){
-    var codIt=normalizarCodigo(it.codigo||'');
-    var nomeIt=normalizarTexto(it.produto||it.produtoDigitado||'');
-
-    // Regra principal: código/EAN exato.
-    if(cod && codIt && cod===codIt){
-      candidatos.push({it:it,idx:idx,data:_dataEncarteMs_(it)});
-      return;
-    }
-
-    // Fallback apenas quando o produto pesquisado não tem código:
-    // descrição normalizada precisa ser exatamente igual.
-    if(!cod && nomeNorm && nomeIt===nomeNorm){
-      candidatos.push({it:it,idx:idx,data:_dataEncarteMs_(it)});
-    }
-  });
-
-  if(!candidatos.length)return null;
-
-  // Última edição vence. Em registros antigos sem data confiável,
-  // encartesCache já vem com os mais recentes primeiro.
-  candidatos.sort(function(a,b){
-    if(b.data!==a.data)return b.data-a.data;
-    return a.idx-b.idx;
-  });
-
-  return candidatos[0].it;
-}
-
-async function garantirEncartesCarregadosParaPesquisa_(){
-  if(_encartesCarregadosUmaVez)return true;
-
-  try{
-    await carregarEncartes();
-  }catch(e){}
-
-  return _encartesCarregadosUmaVez;
-}
-
-async function abrirProdutoDaPesquisa_(prod){
-  if(!prod)return false;
-
-  var token=++_reaproveitarBuscaToken;
-
-  // Quando o campo está sendo usado para montar uma união, não abrimos
-  // histórico automaticamente. O botão "+" continua com o fluxo próprio.
-  var unirAtivo=!!(document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked);
-  if(unirAtivo && unirPrincipalCod){
-    preencherProduto(prod);
-    return true;
-  }
-
-  // A lista normalmente já é carregada na inicialização. Se o operador
-  // pesquisou antes dela terminar, aguardamos uma leitura rápida.
-  if(!_encartesCarregadosUmaVez){
-    await garantirEncartesCarregadosParaPesquisa_();
-  }
-  if(token!==_reaproveitarBuscaToken)return false;
-
-  var ultima=buscarEncarteMaisRecentePorProduto_(prod);
-  if(ultima){
-    // Mesma função usada pelo botão de lápis da lista.
-    await editarEncarte(ultima.id);
-
-    if(token!==_reaproveitarBuscaToken)return false;
-
-    mostrarToast(
-      'Última placa salva carregada. Ajuste somente o que mudou e salve a edição.',
-      'ok'
-    );
-    return true;
-  }
-
-  // Nunca teve placa salva: segue o fluxo normal do Banco de Dados.
-  preencherProduto(prod);
-  return true;
-}
-
-async function selecionarProduto(prod){
+function selecionarProduto(prod){
   if(!prod)return;
   document.getElementById('pCod').value=prod.cod||prod.nome||'';
   esconderSugestoes();
-  await abrirProdutoDaPesquisa_(prod);
+  preencherProduto(prod);
 }
 
 document.getElementById('pCod').addEventListener('input',function(e){
@@ -5221,7 +4563,7 @@ document.getElementById('pCod').addEventListener('input',function(e){
     if(ehBuscaCodigo(v)&&lista.length&&normalizarCodigo(lista[0].cod)===normalizarCodigo(v)){
       selecionarProduto(lista[0]);
     }
-  },140);
+  },(window.AURASearchCore&&AURASearchCore.isFullCode(v))?0:90);
 });
 document.getElementById('pCod').addEventListener('keydown',function(e){
   var aberto=document.getElementById('prodSug').classList.contains('open');
@@ -5236,7 +4578,7 @@ document.getElementById('pCod').addEventListener('keydown',function(e){
     }else{
       var p=buscarProduto(e.target.value);
       esconderSugestoes();
-      selecionarProduto(p);
+      preencherProduto(p);
     }
   }
 });
@@ -5279,7 +4621,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   // recupera cache local
   try{
     var s=localStorage.getItem(PROD_KEY);
-    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(c.bancoFornecedor)bancoFornecedor=c.bancoFornecedor;if(c.bancoTema)bancoTema=c.bancoTema;if(Array.isArray(c.products))products=c.products;}
+    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(Array.isArray(c.products))products=c.products;}
   }catch(e){}
   var cfg=loadCfg();
   var syncInicial=null;
@@ -5290,10 +4632,8 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     setDot('err','Configure o Google Sheets para começar');
     toggleCfg();
   }
-  popularSeletorTemaPlaca();
-  recalcularTemaAutomatico_('');
-  prepararTemaAtualSemDesenhar_();
   drawPlaca();
+  popularSeletorTemaPlaca();
   popularSeletorTema();
   if(cfg.id){
     Promise.resolve(syncInicial).then(function(){setTimeout(carregarEncartes,80);})
@@ -5306,5 +4646,85 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 
+
+<script id="auraSearchCoreV702">
+// ═══════════════════════════════════════════════════════════════
+// AURA SEARCH CORE v7.02
+// Padrão do ecossistema:
+// • EAN/GTIN completo -> índice O(1), sem varrer catálogo
+// • aliases UPC-12 <-> EAN-13 iniciado por zero
+// • busca textual pré-normalizada + índice de prefixos
+// • entrada digitada usa debounce curto; código completo não espera debounce
+// ═══════════════════════════════════════════════════════════════
+(function(g){
+  'use strict';
+  if(g.AURASearchCore&&g.AURASearchCore.version==='7.02')return;
+  function digits(v){return String(v==null?'':v).replace(/\D/g,'');}
+  function text(v){return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/(\d+)\s+(KG|G|GR|ML|L|LT|UN|UND|CX|PCT)\b/g,'$1$2').replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
+  function aliases(v){var d=digits(v),a=[];function add(x){if(x&&a.indexOf(x)<0)a.push(x);}add(d);if(d.length===12)add('0'+d);if(d.length===13&&d.charAt(0)==='0')add(d.substring(1));return a;}
+  function isFullCode(v){var d=digits(v),raw=String(v||'').replace(/\s/g,'');return /^\d{8,14}$/.test(d)&&d===raw;}
+  var C={version:'7.02',entries:[],byCode:Object.create(null),prefix:Object.create(null),codePrefix:Object.create(null),signature:'',ready:false};
+  function addList(map,k,i){if(!k)return;var a=map[k];if(!a)map[k]=[i];else if(a[a.length-1]!==i)a.push(i);}
+  function addAliases(entry,i){aliases(entry.ean).forEach(function(a){C.byCode[a]=entry;for(var n=2;n<=Math.min(a.length,14);n++)addList(C.codePrefix,a.slice(0,n),i);});}
+  C.build=function(records,signature){
+    records=Array.isArray(records)?records:[];
+    var sig=String(signature||records.length);
+    if(C.ready&&C.signature===sig)return C;
+    C.entries=[];C.byCode=Object.create(null);C.prefix=Object.create(null);C.codePrefix=Object.create(null);C.signature=sig;
+    var seen=Object.create(null);
+    records.forEach(function(r){
+      var ean='',descricao='',unidade='',preco='',custo='',fornecedor='',setor='';
+      if(Array.isArray(r)){ean=digits(r[0]);descricao=String(r[1]||'');unidade=String(r[2]||'');preco=r[3];custo=r[4];fornecedor=String(r[5]||'');setor=String(r[6]||'');}
+      else if(r){ean=digits(r.ean||r.cod||r.codigo||r.barras||'');descricao=String(r.descricao||r.nome||r.produto||'');unidade=String(r.unidade||r.un||'');preco=r.preco!=null?r.preco:r.precoNormal;custo=r.custo;fornecedor=String(r.fornecedor||'');setor=String(r.setor||'');}
+      if(!ean&&!descricao)return;
+      var key=ean||('N:'+text(descricao));if(seen[key])return;seen[key]=1;
+      var e={ean:ean,cod:ean,descricao:descricao,nome:descricao,unidade:unidade,preco:preco,custo:custo,fornecedor:fornecedor,setor:setor};
+      e._name=text(descricao);e._supplier=text(fornecedor);e._idx=C.entries.length;C.entries.push(e);addAliases(e,e._idx);
+      var toks=e._name.split(' ').filter(Boolean),tokSeen=Object.create(null);
+      toks.forEach(function(t){if(tokSeen[t])return;tokSeen[t]=1;for(var n=2;n<=Math.min(t.length,10);n++)addList(C.prefix,t.slice(0,n),e._idx);});
+    });
+    C.ready=true;return C;
+  };
+  C.lookup=function(v){var as=aliases(v);for(var i=0;i<as.length;i++){if(C.byCode[as[i]])return C.byCode[as[i]];}return null;};
+  C.search=function(q,limit){
+    q=String(q||'').trim();limit=Math.max(1,Number(limit)||20);if(!q)return[];
+    var d=digits(q),qn=text(q),codeOnly=/^[\d\s.\-\/]+$/.test(q);
+    if(codeOnly&&/^\d{8,14}$/.test(d)){var exact=C.lookup(d);if(exact)return[exact];}
+    var candidates=null;
+    if(codeOnly&&d.length>=2)candidates=C.codePrefix[d.slice(0,Math.min(d.length,14))]||[];
+    if(!codeOnly){
+      var qt=qn.split(' ').filter(Boolean),small=null;
+      qt.forEach(function(t){if(t.length<2)return;var a=C.prefix[t.slice(0,Math.min(t.length,10))]||[];if(small===null||a.length<small.length)small=a;});
+      candidates=small;
+    }
+    if(candidates===null)candidates=C.entries.map(function(_,i){return i;});
+    var qtoks=qn.split(' ').filter(Boolean),out=[];
+    for(var x=0;x<candidates.length;x++){
+      var e=C.entries[candidates[x]];if(!e)continue;var score=0;
+      if(codeOnly&&d){var ed=digits(e.ean);if(ed===d)score+=5000;else if(ed.indexOf(d)===0)score+=1800;else if(ed.indexOf(d)>0)score+=400;else continue;}
+      if(!codeOnly&&qn){var hay=e._name+' '+e._supplier;if(!qtoks.every(function(t){return hay.indexOf(t)>=0;}))continue;if(e._name===qn)score+=2400;else if(e._name.indexOf(qn)===0)score+=1700;else if(e._name.indexOf(qn)>=0)score+=1200;score+=qtoks.length*80;}
+      if(Number(e.preco)>0)score+=8;out.push({e:e,s:score});
+    }
+    out.sort(function(a,b){return b.s-a.s||String(a.e.descricao).localeCompare(String(b.e.descricao),'pt-BR');});
+    return out.slice(0,limit).map(function(x){return x.e;});
+  };
+  C.digits=digits;C.text=text;C.aliases=aliases;C.isFullCode=isFullCode;
+  g.AURASearchCore=C;
+  console.info('[AURA Search Core] v7.02 carregado');
+})(window);
+</script>
+
+<script id="arsenalSearchCoreV702">
+(function(){
+  'use strict';
+  var core=window.AURASearchCore;if(!core)return;
+  console.info('[Arsenal] Search Core v7.02 — EAN O(1), UPC/EAN alias, texto pré-indexado, debounce 90ms');
+  var origConsolidar=window.consolidarProdutos,lastLista=null,buildSeq=0;
+  function ensure(){var lista=origConsolidar?origConsolidar():[];if(lista!==lastLista){core.build(lista,'arsenal|'+lista.length+'|'+(++buildSeq));lastLista=lista;}return lista;}
+  window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?{cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''}:null;};
+  window.buscarProdutos=function(termo,limite){ensure();return core.search(termo,limite||10).map(function(p){return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''};});};
+  window.buscarProduto=function(termo){termo=String(termo||'').trim();if(!termo)return null;ensure();var p=core.lookup(termo);if(p)return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''};var a=buscarProdutos(termo,1);return a.length?a[0]:null;};
+})();
+</script>
 </body>
 </html>
