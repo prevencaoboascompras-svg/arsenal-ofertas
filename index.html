@@ -532,6 +532,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button class="btn btn-sm" onclick="carregarEncartes('manual')"><i class="ti ti-refresh"></i> Atualizar lista</button>
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(true)"><i class="ti ti-checkbox"></i> Selecionar tudo</button>
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(false)"><i class="ti ti-square"></i> Limpar seleção</button>
+        <button class="btn btn-green btn-sm" id="btnImprimirEncartesSelecionados" onclick="imprimirSelecionados(1)" disabled title="Marque os produtos que deseja imprimir"><i class="ti ti-printer"></i> Imprimir selecionados</button>
         <button class="btn btn-sm" id="btnExcluirSelecionados" onclick="excluirSelecionadosClick(event)" style="color:var(--red)"><i class="ti ti-trash-x"></i> Excluir selecionados</button>
         <button class="btn btn-sm" id="btnLimparLista" onclick="limparListaClick(event)" style="color:var(--red)"><i class="ti ti-trash"></i> Limpar lista toda</button>
       </div>
@@ -541,6 +542,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <label class="searchbox"><i class="ti ti-search"></i><input id="encartesBusca" type="search" autocomplete="off" placeholder="Buscar produto ou código na lista..." oninput="renderEncartes()" aria-label="Buscar produtos adicionados"></label>
       <span class="encartes-search-count" id="encartesBuscaInfo" aria-live="polite"></span>
     </div>
+    <div style="font-size:11px;color:var(--tx2);margin:0 0 5px">Marque as placas que deseja imprimir e use <b>Imprimir selecionados</b>. A seleção também pode ser feita clicando no card.</div>
     <div id="encartesList" class="encartes-grid"></div>
     <hr class="divider" style="width:100%">
     <div class="print-qtd-row">
@@ -591,7 +593,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </div>
 
 <script>
-window.ARSENAL_SEARCHCORE_BUILD='v7.05-busca-sem-duplicados';
+window.ARSENAL_SEARCHCORE_BUILD='v7.06-imprimir-selecionados';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
 window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-20261022';
 // ============================================================
@@ -4230,6 +4232,8 @@ function atualizarContagemSelecao(){
   var n=Object.keys(encartesSelecionados).length;
   var el=document.getElementById('encartesSelCount');
   if(el)el.textContent=n;
+  var btn=document.getElementById('btnImprimirEncartesSelecionados');
+  if(btn){btn.disabled=n===0;btn.title=n?'Abrir as opções de impressão para '+n+' placa(s) selecionada(s)':'Marque os produtos que deseja imprimir';}
 }
 
 // Reconstrói a arte de uma placa individual a partir do registro leve da lista:
@@ -5150,7 +5154,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
 (function(){
   'use strict';
   var core=window.AURASearchCore;if(!core)return;
-  console.info('[Arsenal] v7.05 — busca de placas salvas e deduplicação pelo produto mais recente');
+  console.info('[Arsenal] v7.06 — busca, lista sem duplicados e impressão dos produtos selecionados');
   var origConsolidar=window.consolidarProdutos,lastLista=null,buildSeq=0;
   function ensure(){var lista=origConsolidar?origConsolidar():[];if(lista!==lastLista){core.build(lista,'arsenal|'+lista.length+'|'+(++buildSeq));lastLista=lista;}return lista;}
   window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?{cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''}:null;};
