@@ -4066,20 +4066,15 @@ async function editarEncarte(id){
     unirAtualizarBotoesLayout();
   }
 
-  // Restaura o tema escolhido e as cores/visibilidades da placa. Registros
-  // anteriores a este salvamento não têm esses campos: nesses casos usa o
-  // tema automático detectado pelo produto e as opções padrão.
+  // Ao reabrir para edição, recalcula o tema pelo mesmo critério do modo
+  // Automático: usa a descrição oficial do produto e, se ela não existir,
+  // a descrição salva na promoção. Assim a edição acompanha o setor atual.
   var temaSel=document.getElementById('pTemaPlaca');
-  var temaSalvo=it.temaPlaca||'automatico';
-  var temaExiste=temaSel&&Array.prototype.some.call(temaSel.options,function(o){return o.value===temaSalvo;});
-  if(temaSel)temaSel.value=temaExiste?temaSalvo:'automatico';
-  if(!temaExiste||temaSalvo==='automatico')recalcularTemaAutomatico_(descricaoBanco);
+  if(temaSel)temaSel.value='automatico';
+  recalcularTemaAutomatico_(prod&&prod.nome?prod.nome:descricaoBanco);
   prepararTemaAtualSemDesenhar_();
-  var cores=it.coresPlaca||{};
-  if(cores.texto)document.getElementById('pCorTexto').value=cores.texto;
-  if(cores.valor)document.getElementById('pCorValor').value=cores.valor;
-  if(cores.unidade)document.getElementById('pCorUnidade').value=cores.unidade;
-  if(cores.badgePreco)document.getElementById('pCorBadgePreco').value=cores.badgePreco;
+  // Não reaplica cores antigas/manualizadas aqui: o tema automático define
+  // novamente a paleta coerente com o produto que está sendo editado.
   var opcoes=it.opcoesPlaca||{};
   document.getElementById('pShowPct').checked=typeof opcoes.mostrarPct==='boolean'?opcoes.mostrarPct:true;
   document.getElementById('pShowUnidade').checked=typeof opcoes.mostrarUnidade==='boolean'?opcoes.mostrarUnidade:true;
