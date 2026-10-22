@@ -3761,9 +3761,26 @@ async function adicionarNaListaAuto(){
 
   var produtoDigitado=(document.getElementById('pDescOverride').value||'').trim();
   var produtoBanco=(banco[cod]||(buscarPorCodigo(cod)||{}).nome||produtoDigitado||'PRODUTO').trim();
+  var produtoInfoBanco=buscarPorCodigo(cod)||{};
   var de=(document.getElementById('pDe').value||'').trim();
   var unidadePromocao=(document.getElementById('pShowUnidade').checked?(document.getElementById('pUnidade').value||''):'').trim();
   var unidadeBanco=normalizarUnidadeBanco(bancoUnidade[cod]||(buscarPorCodigo(cod)||{}).unidade||'');
+  var unidadeMedida=(document.getElementById('pUnidade').value||unidadeBanco||'').trim();
+  var temaPlaca=(document.getElementById('pTemaPlaca')||{}).value||'automatico';
+  var coresPlaca={
+    texto:(document.getElementById('pCorTexto')||{}).value||'#000000',
+    valor:(document.getElementById('pCorValor')||{}).value||'#ffffff',
+    unidade:(document.getElementById('pCorUnidade')||{}).value||'#FFD600',
+    badgePreco:(document.getElementById('pCorBadgePreco')||{}).value||'#E8000D'
+  };
+  var opcoesPlaca={
+    mostrarPct:!!document.getElementById('pShowPct').checked,
+    mostrarUnidade:!!document.getElementById('pShowUnidade').checked,
+    mostrarCodigo:!!document.getElementById('pShowCod').checked,
+    mostrarMensagem:!!document.getElementById('pShowMsg').checked,
+    mensagem:(document.getElementById('pMsg').value||'').trim()
+  };
+  var valorVendaBanco=Number(bancoPreco[cod]||produtoInfoBanco.preco||0)||0;
   var validade=(document.getElementById('pValidade').value||'').trim();
   var unirOn=!!(document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked);
   var produtosExtra=unirOn?unirExtras.filter(function(x){return x.cod||x.nome;}).map(function(x){return {codigo:x.cod,nome:x.nome};}):[];
@@ -3774,17 +3791,22 @@ async function adicionarNaListaAuto(){
     // no backend: não lê/regrava a lista inteira e não perde alterações de outro PC.
     var registro={
       id:editingEncarteId||gerarIdEncarte(),
-      versaoRegistro:6,
+      versaoRegistro:7,
       codigo:cod,
       produto:produtoBanco,
       produtoDigitado:produtoDigitado,
+      produtoInfo:{codigo:cod,descricao:produtoDigitado||produtoBanco,unidade:unidadeBanco||unidadeMedida,valorVenda:valorVendaBanco},
       de:de,
       por:precoPromo,
       precoPromocional:precoPromo,
       unidade:unidadePromocao||unidadeBanco,
       unidadePromocao:unidadePromocao,
       unidadeBanco:unidadeBanco,
+      unidadeMedida:unidadeMedida,
       validade:validade,
+      temaPlaca:temaPlaca,
+      coresPlaca:coresPlaca,
+      opcoesPlaca:opcoesPlaca,
       tipoPromocao:packOn?'PACK':'UNITARIA',
       packQtd:packOn?(parseInt(document.getElementById('pPackQtd').value,10)||0):0,
       packTipo:packOn?(packTipo||'leve'):'',
@@ -3971,8 +3993,11 @@ async function editarEncarte(id){
 
   var cod=normalizarCodigo(it.codigo);
   var prod=buscarPorCodigo(cod)||{};
-  var descricaoBanco=banco[cod]||prod.nome||it.produto||'';
-  var unidade=normalizarUnidadeBanco(it.unidadePromocao||it.unidade||bancoUnidade[cod]||prod.unidade||it.unidadeBanco||'');
+  var infoSalva=it.produtoInfo||{};
+  // A descrição digitada/editável é a fonte principal para reabrir a placa;
+  // o nome atual do banco fica como fallback para registros antigos.
+  var descricaoBanco=(it.produtoDigitado||infoSalva.descricao||it.produto||banco[cod]||prod.nome||'').trim();
+  var unidade=normalizarUnidadeBanco(it.unidadeMedida||it.unidadePromocao||it.unidade||infoSalva.unidade||bancoUnidade[cod]||prod.unidade||it.unidadeBanco||'');
   var precoPromo=it.precoPromocional||it.por||'';
   var packOn=it.tipoPromocao==='PACK';
 
@@ -3982,6 +4007,19 @@ async function editarEncarte(id){
   document.getElementById('pDescOverride').value=descricaoBanco;
   document.getElementById('pDe').value=it.de||'';
   document.getElementById('pValidade').value=it.validade||'';
+
+  // Mostra os dados do produto junto ao formulário mesmo quando a edição é
+  // aberta pela lista, sem depender de uma nova busca manual pelo código.
+  var infoProdutoEl=document.getElementById('prodInfo');
+  if(infoProdutoEl){
+    var unidadeInfo=normalizarUnidadeBanco(infoSalva.unidade||it.unidadeBanco||bancoUnidade[cod]||prod.unidade||unidade||'--');
+    var valorVendaInfo=Number(infoSalva.valorVenda||it.valorVendaBanco||bancoPreco[cod]||prod.preco||0)||0;
+    infoProdutoEl.innerHTML=''+
+      '<div class="prod-info-badge"><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+escapeHtml(cod||it.codigo||'(sem código)')+'</div></div>'+
+      '<div class="prod-info-badge"><span class="pi-label">Unidade</span><div class="pi-value">'+escapeHtml(unidadeInfo||'--')+'</div></div>'+
+      '<div class="prod-info-badge pi-sale"><span class="pi-label">Venda</span><div class="pi-price">'+(valorVendaInfo?fmtR(valorVendaInfo):'--')+'</div></div>'+
+      '<div class="prod-info-badge pi-description"><span class="pi-label">Descrição</span><div class="pi-value">'+escapeHtml(descricaoBanco||'(sem descrição)')+'</div></div>';
+  }
 
   var selUnidade=document.getElementById('pUnidade');
   if(unidade){
@@ -4027,6 +4065,27 @@ async function editarEncarte(id){
     unirLayoutPref='auto';
     unirAtualizarBotoesLayout();
   }
+
+  // Restaura o tema escolhido e as cores/visibilidades da placa. Registros
+  // anteriores a este salvamento não têm esses campos: nesses casos usa o
+  // tema automático detectado pelo produto e as opções padrão.
+  var temaSel=document.getElementById('pTemaPlaca');
+  var temaSalvo=it.temaPlaca||'automatico';
+  var temaExiste=temaSel&&Array.prototype.some.call(temaSel.options,function(o){return o.value===temaSalvo;});
+  if(temaSel)temaSel.value=temaExiste?temaSalvo:'automatico';
+  if(!temaExiste||temaSalvo==='automatico')recalcularTemaAutomatico_(descricaoBanco);
+  prepararTemaAtualSemDesenhar_();
+  var cores=it.coresPlaca||{};
+  if(cores.texto)document.getElementById('pCorTexto').value=cores.texto;
+  if(cores.valor)document.getElementById('pCorValor').value=cores.valor;
+  if(cores.unidade)document.getElementById('pCorUnidade').value=cores.unidade;
+  if(cores.badgePreco)document.getElementById('pCorBadgePreco').value=cores.badgePreco;
+  var opcoes=it.opcoesPlaca||{};
+  document.getElementById('pShowPct').checked=typeof opcoes.mostrarPct==='boolean'?opcoes.mostrarPct:true;
+  document.getElementById('pShowUnidade').checked=typeof opcoes.mostrarUnidade==='boolean'?opcoes.mostrarUnidade:true;
+  document.getElementById('pShowCod').checked=typeof opcoes.mostrarCodigo==='boolean'?opcoes.mostrarCodigo:true;
+  document.getElementById('pShowMsg').checked=typeof opcoes.mostrarMensagem==='boolean'?opcoes.mostrarMensagem:true;
+  document.getElementById('pMsg').value=opcoes.mensagem||'';
 
   var btn=document.getElementById('btnSalvarNuvem');
   if(btn){btn.style.display='inline-flex';btn.innerHTML='<i class="ti ti-device-floppy"></i> Salvar edição';}
