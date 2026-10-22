@@ -27,6 +27,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .btn-green{background:var(--green);border-color:var(--green);color:#fff}
 .btn-green:hover{background:var(--gd)}
 .btn-sm{padding:5px 11px;font-size:12px}
+.arsenal-preview-panel .ph-row .actions .btn-clear-placa{background:rgba(232,0,13,.08);border-color:rgba(232,0,13,.55);color:#d71920}
+.arsenal-preview-panel .ph-row .actions .btn-clear-placa:hover{background:rgba(232,0,13,.16);border-color:#e8000d}
 @keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite;display:inline-block}
 .cfg{background:var(--bg);border:2px dashed var(--bds);border-radius:var(--rl);padding:16px 18px;margin-bottom:14px;display:none}
 .cfg.open{display:block}
@@ -70,11 +72,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .sg-meta{font-size:11px;color:var(--tx2);margin-top:2px}
 .sg-price{font-size:13px;font-weight:800;color:var(--green);white-space:nowrap;align-self:center}
 .sg-empty{font-size:12px;color:var(--tx2);padding:10px;text-align:center}
-.prod-info{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;min-height:48px;display:flex;flex-direction:column;gap:4px}
-.prod-info .empty{color:var(--tx2);font-size:12px;text-align:center;padding:8px 0}
-.pi-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx2)}
-.pi-value{font-size:14px;font-weight:600;color:var(--tx)}
-.pi-price{font-size:20px;font-weight:700;color:var(--green)}
+.prod-info{margin-bottom:8px;min-height:42px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.prod-info .empty{grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);color:var(--tx2);font-size:12px;text-align:center;padding:10px 8px}
+.prod-info-badge{min-width:0;min-height:42px;padding:6px 9px;border-radius:9px;background:rgba(29,158,117,.08);border:1px solid rgba(29,158,117,.38);display:flex;flex-direction:column;justify-content:center;gap:2px;overflow:hidden}
+.prod-info-badge.pi-description{grid-column:1/-1}
+.prod-info-badge.pi-sale{background:rgba(29,158,117,.12);border-color:rgba(29,158,117,.62)}
+.pi-label{font-size:9px;line-height:1;text-transform:uppercase;letter-spacing:.045em;color:var(--tx2)}
+.pi-value{font-size:12px;line-height:1.2;font-weight:700;color:var(--tx);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pi-description .pi-value{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pi-price{font-size:15px;line-height:1.15;font-weight:800;color:var(--green)}
 .foto-panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
 .foto-preview{position:relative;width:62px;height:62px;border:1px dashed var(--bds);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:visible;flex-shrink:0;color:#777}
 .foto-preview img{max-width:100%;max-height:100%;object-fit:contain;display:block}
@@ -205,10 +211,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 #printArea{display:none}
 @media print{
   html,body{width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important}
-  /* Oculta o app fora do fluxo de layout. Só visibility:hidden mantinha a
-     altura inteira da página web e gerava folhas de impressão vazias. */
-  body>*:not(#printArea){display:none!important}
-  #printArea{display:block!important;position:static!important;width:100%;height:auto;margin:0;padding:0}
+  /* A área de impressão é filha direta de .wrap. Mantemos esse contêiner
+     visível e escondemos seus outros filhos; ocultar .wrap escondia também
+     #printArea e fazia a prévia nativa sair em branco. */
+  body>*:not(.wrap){display:none!important}
+  body>.wrap{display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important}
+  body>.wrap>*:not(#printArea){display:none!important}
+  body>.wrap>#printArea{display:block!important;position:static!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important}
   .print-page{width:100%;height:100vh;min-height:0;max-height:100vh;margin:0;display:grid;gap:4mm;padding:10mm;box-sizing:border-box;page-break-after:always;break-after:page;overflow:hidden}
   .print-page.layout-photo13{grid-template-columns:1fr 1fr!important;grid-template-rows:180mm!important;gap:4mm;padding:15mm}
   .print-page.layout-photo20{grid-template-columns:minmax(0,200mm)!important;grid-template-rows:250mm!important;gap:0;padding:23.5mm 5mm;justify-content:center}
@@ -547,6 +556,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           </label>
           <button class="btn btn-green btn-sm" onclick="downloadPlaca()"><i class="ti ti-download"></i> Baixar PNG</button>
           <button class="btn btn-green btn-sm" onclick="imprimirPlacaA4()"><i class="ti ti-printer"></i> Imprimir</button>
+          <button class="btn btn-sm btn-clear-placa" onclick="limparCampos()" title="Limpar os dados do formulário e da prévia atual"><i class="ti ti-eraser"></i> Limpar dados</button>
         </div>
       </div>
       <div class="canvas-wrap">
@@ -620,7 +630,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </div>
 
 <script>
-window.ARSENAL_SEARCHCORE_BUILD='v7.17-lista-sem-textos-explicativos';
+window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
 window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-20261022';
 // ============================================================
@@ -2307,10 +2317,10 @@ function preencherProduto(prod){
   if(!unirAtivoAgora)unirPrincipalCod=prodAtualCod;
   var precoTxt=prod.preco?fmtR(prod.preco):'--';
   info.innerHTML=''+
-    '<div><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+escapeHtml(prod.cod||'(sem código)')+'</div></div>'+
-    '<div><span class="pi-label">Descrição</span><div class="pi-value">'+escapeHtml(prod.nome||'(sem descrição)')+'</div></div>'+
-    '<div><span class="pi-label">Unidade do banco</span><div class="pi-value">'+escapeHtml(normalizarUnidadeBanco(prod.unidade)||'--')+'</div></div>'+
-    '<div><span class="pi-label">Valor de venda</span><div class="pi-price">'+precoTxt+'</div></div>';
+    '<div class="prod-info-badge"><span class="pi-label">Código</span><div class="pi-value" style="font-family:monospace">'+escapeHtml(prod.cod||'(sem código)')+'</div></div>'+
+    '<div class="prod-info-badge pi-description"><span class="pi-label">Descrição</span><div class="pi-value">'+escapeHtml(prod.nome||'(sem descrição)')+'</div></div>'+
+    '<div class="prod-info-badge"><span class="pi-label">Unidade do banco</span><div class="pi-value">'+escapeHtml(normalizarUnidadeBanco(prod.unidade)||'--')+'</div></div>'+
+    '<div class="prod-info-badge pi-sale"><span class="pi-label">Valor de venda</span><div class="pi-price">'+precoTxt+'</div></div>';
   document.getElementById('pDescOverride').value=prod.nome||'';
   if(prod.unidade){
     var unidadeBanco=normalizarUnidadeBanco(prod.unidade);
@@ -5181,7 +5191,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
 (function(){
   'use strict';
   var core=window.AURASearchCore;if(!core)return;
-  console.info('[Arsenal] v7.17 — lista limpa com botões e campo de busca');
+  console.info('[Arsenal] v7.18 — área de impressão visível na prévia nativa');
   var origConsolidar=window.consolidarProdutos,lastLista=null,buildSeq=0;
   function ensure(){var lista=origConsolidar?origConsolidar():[];if(lista!==lastLista){core.build(lista,'arsenal|'+lista.length+'|'+(++buildSeq));lastLista=lista;}return lista;}
   window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?{cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''}:null;};
