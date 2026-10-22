@@ -123,6 +123,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .print-qtd-opts button.active{background:var(--green);border-color:var(--green);color:#fff}
 .print-qtd-opts button.active small{color:rgba(255,255,255,.85)}
 .encartes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:6px;min-height:60px}
+.encartes-search{display:flex;align-items:center;gap:8px;margin:10px 0 4px;max-width:620px}
+.encartes-search .searchbox{position:relative;display:flex;align-items:center;flex:1;min-width:0}
+.encartes-search .searchbox>i{position:absolute;left:11px;color:var(--tx2);pointer-events:none}
+.encartes-search input{width:100%;height:40px;padding:0 12px 0 36px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font:inherit;font-size:13px;outline:none}
+.encartes-search input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,158,117,.13)}
+.encartes-search-count{font-size:11px;color:var(--tx2);white-space:nowrap}
 .enc-card{position:relative;border:1px solid var(--bd);border-radius:var(--r);background:var(--bg2);padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:border-color .15s}
 .enc-card:hover{border-color:var(--bds)}
 .enc-card.checked{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.18)}
@@ -531,6 +537,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
     </div>
     <div style="font-size:11px;color:var(--tx2);margin:2px 0 8px">Ao gerar o encarte, o sistema usa o <b>código do item</b> para buscar descrição, unidade e foto. O preço utilizado é sempre o <b>valor promocional salvo</b>, nunca o preço atual do banco.</div>
+    <div class="encartes-search">
+      <label class="searchbox"><i class="ti ti-search"></i><input id="encartesBusca" type="search" autocomplete="off" placeholder="Buscar produto ou código na lista..." oninput="renderEncartes()" aria-label="Buscar produtos adicionados"></label>
+      <span class="encartes-search-count" id="encartesBuscaInfo" aria-live="polite"></span>
+    </div>
     <div id="encartesList" class="encartes-grid"></div>
     <hr class="divider" style="width:100%">
     <div class="print-qtd-row">
@@ -581,7 +591,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </div>
 
 <script>
-window.ARSENAL_SEARCHCORE_BUILD='v7.03-temas-restaurados';
+window.ARSENAL_SEARCHCORE_BUILD='v7.05-busca-sem-duplicados';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
 window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-20261022';
 // ============================================================
@@ -3781,8 +3791,7 @@ async function carregarEncartes(){
   try{
     var res=await _gasGet('buscarEncartes');
     if(!res||!res.ok)throw new Error((res&&res.erro)||'resposta inválida do Apps Script');
-    var lista=(res.dados||[]).slice();
-    lista.reverse(); // mais recentes primeiro
+    var lista=encartesUnicosMaisRecentes_(res.dados||[]);
     encartesCache=lista;
     _encartesCarregadosUmaVez=true;
     infoEl.textContent=lista.length+' promoção(ões) na lista';
@@ -3793,14 +3802,64 @@ async function carregarEncartes(){
   }
 }
 
+function chaveProdutoEncarte_(it){
+  var cod=normalizarCodigo(it&&it.codigo);
+  if(cod)return 'ean:'+cod;
+  var nome=normalizarTexto((it&&(it.produto||it.produtoDigitado||it.descricaoFinal))||'');
+  return nome?'nome:'+nome:'';
+}
+
+function dataEncarteMs_(it){
+  var valor=it&&(it.data||it.atualizadoEm||it.criadoEm||it.dataCriacao)||'';
+  var ms=Date.parse(valor);
+  return isFinite(ms)?ms:0;
+}
+
+function encartesUnicosMaisRecentes_(dados){
+  var porProduto={};
+  (dados||[]).forEach(function(it,idx){
+    if(!it)return;
+    var chave=chaveProdutoEncarte_(it);
+    if(!chave){porProduto['id:'+(it.id||idx)]=it;return;}
+    var atual=porProduto[chave];
+    // Em caso de empate, mantém o registro recebido por último.
+    if(!atual||dataEncarteMs_(it)>=dataEncarteMs_(atual))porProduto[chave]=it;
+  });
+  return Object.keys(porProduto).map(function(k){return porProduto[k];})
+    .sort(function(a,b){return dataEncarteMs_(b)-dataEncarteMs_(a);});
+}
+
+function encartesVisiveis_(){
+  var campo=document.getElementById('encartesBusca');
+  var termo=normalizarTexto(campo&&campo.value||'');
+  if(!termo)return encartesCache.slice();
+  var termos=termo.split(/\s+/).filter(Boolean);
+  return encartesCache.filter(function(it){
+    var busca=normalizarTexto([
+      it.produto,it.produtoDigitado,it.descricaoFinal,it.codigo,it.unidade,
+      it.unidadePromocao,it.validade,it.precoPromocional,it.por,it.tipoPromocao
+    ].join(' '));
+    return termos.every(function(t){return busca.indexOf(t)>=0;});
+  });
+}
+
 function renderEncartes(){
   var listEl=document.getElementById('encartesList');
+  var buscaInfo=document.getElementById('encartesBuscaInfo');
   if(!encartesCache.length){
     listEl.innerHTML='<div class="enc-empty">Nenhuma promoção na lista. Gere uma placa (com código e valor preenchidos) e clique em "Baixar PNG" — ela entra na lista automaticamente.</div>';
+    if(buscaInfo)buscaInfo.textContent='';
     atualizarContagemSelecao();
     return;
   }
-  listEl.innerHTML=encartesCache.map(function(it){
+  var visiveis=encartesVisiveis_();
+  if(buscaInfo)buscaInfo.textContent=visiveis.length+' de '+encartesCache.length;
+  if(!visiveis.length){
+    listEl.innerHTML='<div class="enc-empty">Nenhum produto corresponde à busca.</div>';
+    atualizarContagemSelecao();
+    return;
+  }
+  listEl.innerHTML=visiveis.map(function(it){
     var marcado=!!encartesSelecionados[it.id];
     var ordem=marcado?encartesSelecionados[it.id]:0;
     var precoSalvo=it.precoPromocional||it.por||'';
@@ -4105,7 +4164,7 @@ function toggleEncarteCard(e,id){
 
 function selecionarTodosEncartes(v){
   encartesSelecionados={};
-  if(v)encartesCache.forEach(function(it,i){encartesSelecionados[it.id]=i+1;});
+  if(v)encartesVisiveis_().forEach(function(it,i){encartesSelecionados[it.id]=i+1;});
   renderEncartes();
 }
 
@@ -5091,7 +5150,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
 (function(){
   'use strict';
   var core=window.AURASearchCore;if(!core)return;
-  console.info('[Arsenal] v7.03 — Search Core compatível v7.02 · EAN O(1), UPC/EAN alias, texto pré-indexado, debounce 90ms');
+  console.info('[Arsenal] v7.05 — busca de placas salvas e deduplicação pelo produto mais recente');
   var origConsolidar=window.consolidarProdutos,lastLista=null,buildSeq=0;
   function ensure(){var lista=origConsolidar?origConsolidar():[];if(lista!==lastLista){core.build(lista,'arsenal|'+lista.length+'|'+(++buildSeq));lastLista=lista;}return lista;}
   window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?{cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''}:null;};
