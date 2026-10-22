@@ -11,8 +11,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#fff;--bg2:#f5f5f3;--bg3:#eeede8;--tx:#1a1a18;--tx2:#6b6b67;--bd:rgba(0,0,0,.12);--bds:rgba(0,0,0,.22);--r:8px;--rl:12px;--green:#1D9E75;--gd:#0F6E56;--blue:#378ADD;--amber:#BA7517;--red:#E24B4A;}
 @media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#282825;--bg3:#323230;--tx:#f0efe8;--tx2:#9b9b95;--bd:rgba(255,255,255,.1);--bds:rgba(255,255,255,.2);}}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg3);color:var(--tx);min-height:100vh;padding:10px}
-.wrap{max-width:1680px;margin:0 auto}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg3);color:var(--tx);min-height:100vh;padding:8px}
+.wrap{width:100%;max-width:none;margin:0}
 .hd{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .hd h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
 .hd h1 i{color:var(--green)}
@@ -36,12 +36,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cfg-field label{display:block;font-size:11px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
 .cfg-field input{width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg2);color:var(--tx);outline:none}
 .cfg-actions{margin-top:12px;display:flex;gap:8px}
-.grid2{display:grid;grid-template-columns:minmax(420px,540px) 1fr;gap:14px;align-items:start}
-@media(max-width:1100px){.grid2{grid-template-columns:1fr}}
+.arsenal-workspace{display:grid;grid-template-columns:540px minmax(0,1fr);gap:14px;align-items:stretch}
+.arsenal-right-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0;align-items:stretch}
+.arsenal-workspace>.panel,.arsenal-right-workspace>.panel{min-width:0;margin:0!important}
+.arsenal-workspace>.panel #btnSalvarNuvem,.arsenal-workspace>.panel #btnCancelarEdicao{margin:0 6px 8px 0}
+.arsenal-right-workspace>.panel:not(.arsenal-encartes-panel) .ph-row{display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.arsenal-right-workspace>.panel:not(.arsenal-encartes-panel) .ph-row .actions{justify-content:flex-start;grid-column:auto}
+@media(min-width:1850px){.arsenal-right-workspace{grid-template-columns:minmax(700px,1.6fr) minmax(500px,1fr)}}
+@media(max-width:1100px){.arsenal-workspace{grid-template-columns:1fr}.arsenal-right-workspace{grid-template-columns:1fr}}
 .panel{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rl);padding:12px 14px}
 .panel h2{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em}
 .f-row{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
-.row-3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
+.row-3{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr);gap:8px}
+.row-3>*,.row-2>*{min-width:0}
+.f-row{min-width:0}
+.f-row input,.f-row select{width:100%;min-width:0}
 @media(max-width:640px){.row-3{grid-template-columns:1fr}}
 .f-row label{font-size:12px;font-weight:600;color:var(--tx2)}
 .toggle-chip{display:flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
@@ -98,7 +107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .btn-ico{width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--bds);border-radius:6px;background:var(--bg);color:var(--tx);cursor:pointer;font-size:13px;padding:0}
 .btn-ico:hover{background:var(--bg2);border-color:var(--green);color:var(--green)}
 .btn-ico:active{transform:scale(.9)}
-.row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .pct-badge{font-size:12px;font-weight:700;color:var(--green);background:rgba(29,158,117,.12);padding:3px 8px;border-radius:12px;display:inline-block;margin-top:4px}
 .canvas-wrap{background:var(--bg2);border-radius:var(--rl);padding:10px;display:flex;flex-direction:column;align-items:center;gap:8px}
 #placaCanvas{max-width:100%;max-height:calc(100vh - 130px);width:auto;height:auto;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);background:#fff}
@@ -122,7 +131,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .print-qtd-opts button small{font-weight:400;color:var(--tx2);font-size:10px}
 .print-qtd-opts button.active{background:var(--green);border-color:var(--green);color:#fff}
 .print-qtd-opts button.active small{color:rgba(255,255,255,.85)}
-.encartes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:6px;min-height:60px}
+.encartes-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px;min-height:60px}
+.arsenal-encartes-panel{display:flex;flex-direction:column;min-height:0;overflow:visible}
+.arsenal-encartes-panel .ph-row{display:flex;flex-direction:column;align-items:stretch;gap:7px}
+.arsenal-encartes-panel .ph-row .actions{justify-content:flex-start;grid-column:auto}
+.arsenal-encartes-panel .encartes-grid{height:min(70vh,760px);max-height:min(70vh,760px);overflow-y:auto;overscroll-behavior:contain;align-content:start;padding:2px 4px 8px 2px;flex:0 0 auto}
+.arsenal-encartes-panel .enc-card{padding:8px;gap:6px}
+.arsenal-encartes-panel .enc-thumb{width:100%;height:auto;aspect-ratio:1054/1492;flex:0 0 auto;margin-inline:auto}
+.arsenal-encartes-panel .enc-meta{font-size:10px;gap:4px}
+.arsenal-encartes-panel .enc-meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arsenal-encartes-panel .enc-meta span:last-child{flex:0 0 auto}
+.arsenal-encartes-panel .print-qtd-row{position:sticky;bottom:0;background:var(--bg);padding:8px 0 0;border-top:1px solid var(--bd);z-index:2}
+@media(max-width:1849px){.arsenal-encartes-panel .encartes-grid{height:auto;max-height:70vh}}
+@media(max-width:640px){.encartes-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.arsenal-encartes-panel .encartes-grid{height:55vh;max-height:55vh}}
+.arsenal-preview-panel .ph-row{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.arsenal-preview-panel .ph-row .actions{justify-content:flex-start;grid-column:auto;gap:6px}
+.arsenal-preview-panel .ph-row .actions .btn{padding:6px 9px;font-size:12px}
+.arsenal-preview-panel .ph-row .actions select{max-width:210px}
+.arsenal-preview-panel .print-qtd-row{margin:0 0 6px;gap:7px}
+.arsenal-preview-panel{display:flex;flex-direction:column;min-height:0}
+.arsenal-preview-panel .canvas-wrap{padding:8px;flex:1;min-height:0;justify-content:center}
+.arsenal-preview-panel #placaCanvas{max-height:clamp(400px,calc(100vh - 220px),760px)}
+@media(min-width:1850px){
+  .arsenal-workspace{height:calc(100vh - 130px);min-height:0;align-items:stretch}
+  .arsenal-workspace>.panel{height:100%;overflow-x:hidden;overflow-y:auto}
+  .arsenal-right-workspace{height:100%;min-height:0;grid-template-rows:minmax(0,1fr);align-items:stretch}
+  .arsenal-right-workspace>.panel{height:100%;min-height:0}
+  .arsenal-preview-panel{overflow:hidden}
+  .arsenal-right-workspace>.panel.arsenal-preview-panel .ph-row{display:flex;flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:8px}
+  .arsenal-right-workspace>.panel.arsenal-preview-panel .ph-row h2{margin:0;white-space:nowrap}
+  .arsenal-right-workspace>.panel.arsenal-preview-panel .ph-row .actions{display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:6px}
+  .arsenal-preview-panel .canvas-wrap{flex:1;min-height:0;padding:4px;overflow:hidden;justify-content:center}
+  .arsenal-encartes-panel{overflow:hidden}
+  .arsenal-encartes-panel .encartes-grid{height:auto;max-height:none;min-height:0;flex:1 1 auto}
+}
 .encartes-search{display:flex;align-items:center;gap:8px;margin:10px 0 4px;max-width:620px}
 .encartes-search .searchbox{position:relative;display:flex;align-items:center;flex:1;min-width:0}
 .encartes-search .searchbox>i{position:absolute;left:11px;color:var(--tx2);pointer-events:none}
@@ -302,9 +344,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     </div>
   </div>
 
-  <div class="grid2">
+  <div class="arsenal-workspace">
     <div class="panel">
       <h2><i class="ti ti-barcode"></i> Dados do produto</h2>
+      <button class="btn btn-sm" id="btnSalvarNuvem" style="display:none" onclick="adicionarNaListaAuto()"><i class="ti ti-device-floppy"></i> Salvar edição</button>
+      <button class="btn btn-sm" id="btnCancelarEdicao" style="display:none" onclick="cancelarEdicaoEncarte()"><i class="ti ti-x"></i> Cancelar edição</button>
 
       <div class="f-row">
         <label for="pCod">Código interno, EAN ou produto</label>
@@ -491,7 +535,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
     </div>
 
-    <div class="panel">
+    <div class="arsenal-right-workspace">
+    <div class="panel arsenal-preview-panel">
       <div class="ph-row">
         <h2><i class="ti ti-photo"></i> Prévia da placa</h2>
         <div class="actions">
@@ -500,37 +545,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <span style="font-size:11px;font-weight:700">Tema</span>
             <select id="pTemaPlaca" onchange="aplicarTemaPlaca()" style="height:32px;padding:0 8px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600"></select>
           </label>
-          <button class="btn btn-green" onclick="downloadPlaca()"><i class="ti ti-download"></i> Baixar PNG</button>
-          <button class="btn" onclick="copiarPlaca()"><i class="ti ti-copy"></i> Copiar imagem</button>
-          <button class="btn" onclick="limparCampos()"><i class="ti ti-eraser"></i> Limpar campos</button>
+          <button class="btn btn-green btn-sm" onclick="downloadPlaca()"><i class="ti ti-download"></i> Baixar PNG</button>
+          <button class="btn btn-green btn-sm" onclick="imprimirPlacaA4()"><i class="ti ti-printer"></i> Imprimir</button>
         </div>
       </div>
       <div class="canvas-wrap">
         <canvas id="placaCanvas"></canvas>
       </div>
-      <hr class="divider" style="width:100%">
-      <div class="print-qtd-row">
-        <span class="lbl"><i class="ti ti-printer"></i> Imprimir em folha A4:</span>
-        <div class="print-qtd-opts" id="printQtdOpts">
-          <button type="button" data-qtd="1" class="active" onclick="setPrintQtd(1)">1 <small>por folha</small></button>
-          <button type="button" data-qtd="2" onclick="setPrintQtd(2)">2 <small>por folha</small></button>
-          <button type="button" data-qtd="4" onclick="setPrintQtd(4)">4 <small>por folha</small></button>
-        </div>
-        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);cursor:pointer">
-          <input type="checkbox" id="pPrintLinhaCorte" checked style="width:14px;height:14px;accent-color:var(--green)"> Linha de corte
-        </label>
-        <button class="btn btn-green btn-sm" onclick="imprimirPlacaA4()"><i class="ti ti-printer"></i> Imprimir</button>
-        <button class="btn btn-sm" id="btnSalvarNuvem" style="display:none" onclick="adicionarNaListaAuto()"><i class="ti ti-device-floppy"></i> Salvar edição</button>
-        <button class="btn btn-sm" id="btnCancelarEdicao" style="display:none" onclick="cancelarEdicaoEncarte()"><i class="ti ti-x"></i> Cancelar edição</button>
-      </div>
     </div>
-  </div>
-
-  <div class="panel" style="margin-top:14px">
+  <div class="panel arsenal-encartes-panel" aria-label="Lista de placas geradas e promoções">
     <div class="ph-row">
-      <h2><i class="ti ti-layout-grid"></i> Lista de placas geradas / promoções</h2>
       <div class="actions">
-        <span class="hint" id="encartesInfo" style="color:var(--tx2);font-size:12px"></span>
+        <span class="hint" id="encartesInfo" style="display:none" aria-hidden="true"></span>
         <button class="btn btn-sm" onclick="carregarEncartes('manual')"><i class="ti ti-refresh"></i> Atualizar lista</button>
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(true)"><i class="ti ti-checkbox"></i> Selecionar tudo</button>
         <button class="btn btn-sm" onclick="selecionarTodosEncartes(false)"><i class="ti ti-square"></i> Limpar seleção</button>
@@ -539,12 +565,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button class="btn btn-sm" id="btnLimparLista" onclick="limparListaClick(event)" style="color:var(--red)"><i class="ti ti-trash"></i> Limpar lista toda</button>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--tx2);margin:2px 0 8px">Ao gerar o encarte, o sistema usa o <b>código do item</b> para buscar descrição, unidade e foto. O preço utilizado é sempre o <b>valor promocional salvo</b>, nunca o preço atual do banco.</div>
     <div class="encartes-search">
       <label class="searchbox"><i class="ti ti-search"></i><input id="encartesBusca" type="search" autocomplete="off" placeholder="Buscar produto ou código na lista..." oninput="renderEncartes()" aria-label="Buscar produtos adicionados"></label>
-      <span class="encartes-search-count" id="encartesBuscaInfo" aria-live="polite"></span>
+      <span class="encartes-search-count" id="encartesBuscaInfo" aria-live="polite" style="display:none"></span>
     </div>
-    <div style="font-size:11px;color:var(--tx2);margin:0 0 5px">Marque as placas que deseja imprimir e use <b>Imprimir selecionados</b>. A seleção também pode ser feita clicando no card.</div>
     <div id="encartesList" class="encartes-grid"></div>
     <hr class="divider" style="width:100%">
     <div class="print-qtd-row">
@@ -562,6 +586,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <button class="btn btn-sm" onclick="imprimirSelecionados(4)">4 por folha</button>
       <button class="btn btn-green btn-sm" onclick="gerarEncarteDoDia()"><i class="ti ti-news"></i> Gerar Encarte do Dia</button>
     </div>
+  </div>
   </div>
 </div>
 
@@ -595,7 +620,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </div>
 
 <script>
-window.ARSENAL_SEARCHCORE_BUILD='v7.07-impressao-sem-paginas-brancas';
+window.ARSENAL_SEARCHCORE_BUILD='v7.17-lista-sem-textos-explicativos';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
 window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-20261022';
 // ============================================================
@@ -5156,7 +5181,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
 (function(){
   'use strict';
   var core=window.AURASearchCore;if(!core)return;
-  console.info('[Arsenal] v7.07 — impressão limitada às folhas com placas, sem páginas vazias');
+  console.info('[Arsenal] v7.17 — lista limpa com botões e campo de busca');
   var origConsolidar=window.consolidarProdutos,lastLista=null,buildSeq=0;
   function ensure(){var lista=origConsolidar?origConsolidar():[];if(lista!==lastLista){core.build(lista,'arsenal|'+lista.length+'|'+(++buildSeq));lastLista=lista;}return lista;}
   window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?{cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''}:null;};
