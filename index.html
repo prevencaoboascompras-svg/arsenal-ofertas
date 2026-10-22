@@ -631,7 +631,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-20261022';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -703,6 +703,13 @@ var TEMAS_PLACA={
     templatePack:'template pack fiambreria.png',
     corTexto:'#780e24',corValor:'#ffffff',corUnidade:'#FFD600',
     corBadgePreco:'#8f1530',usaBadgeFundo:true
+  },
+  laticinios:{
+    label:'Laticínios',
+    templatePlaca:'template laticinios.png',
+    templatePack:'template pack laticinios.png',
+    corTexto:'#075bad',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#075bad',usaBadgeFundo:true
   },
   horti:{
     label:'Hortifrúti',
@@ -791,11 +798,21 @@ function detectarTemaProduto_(nome){
     'linguica','linguiça'
   ]))return 'acougue';
 
-  // Bebidas — não inclui "leite" para evitar classificar laticínios como bebida.
+  // Laticínios não entram em Bebidas só por conterem a palavra "bebida".
+  // Tema visual próprio de Laticínios, separado de Bebidas e Fiambreria.
+  if(contemPalavraTema_(n,[
+    'bebida lactea','bebida láctea','bebidas lacteas','bebidas lácteas',
+    'iogurte','iogurte grego','leite fermentado','margarina','manteiga',
+    'leite integral','leite desnatado','leite semidesnatado','leite uht',
+    'leite longa vida','leite pasteurizado','leite zero lactose','requeijao','requeijão','nata'
+  ]))return 'laticinios';
+
+  // Bebidas: refrigerantes, sucos, destilados, cervejas e águas.
   if(contemPalavraTema_(n,[
     'refrigerante','refri','cerveja','chopp','chope','agua mineral','água mineral',
-    'agua com gas','água com gás','suco','nectar','néctar','energetico','energético',
+    'agua com gas','água com gás','agua sem gas','agua saborizada','agua de coco','suco','nectar','néctar','energetico','energético',
     'isotonico','isotônico','vinho','espumante','whisky','vodka','gin',
+    'rum','conhaque','cachaca','cachaça','aguardente','tequila','licor','destilado',
     'bebida energetica','bebida energética'
   ]))return 'bebidas';
 
@@ -834,6 +851,35 @@ function recalcularTemaAutomatico_(produtoOuNome){
   if(!nome)nome=descricaoProdutoAtualTema_();
   temaAutomaticoAtual=detectarTemaProduto_(nome);
   return temaAutomaticoAtual;
+}
+
+var temaSetorCentralCache_={};
+var temaSetorCentralSeq_=0;
+function auraTemaPorSetorCentral_(setor){
+  var s=normalizarTexto(String(setor||''));
+  if(s==='bebidas')return 'bebidas';
+  if(s==='horti')return 'horti';
+  if(s==='padaria')return 'padaria';
+  if(s==='acougue')return 'acougue';
+  if(s==='frios')return 'fiambreria';
+  if(s==='laticinios')return 'laticinios';
+  return '';
+}
+function auraAtualizarTemaPeloSetorCentral_(cod,nome,sequencia){
+  cod=normalizarCodigo(cod);if(!cod)return Promise.resolve(false);
+  var aplicar=function(setor){
+    if(sequencia!==temaSetorCentralSeq_)return false;
+    var sel=document.getElementById('pTemaPlaca');
+    if(!sel||sel.value!=='automatico'||normalizarCodigo(prodAtualCod)!==cod)return false;
+    var tema=auraTemaPorSetorCentral_(setor);if(!tema)return false;
+    temaAutomaticoAtual=tema;prepararTemaAtualSemDesenhar_();drawPlaca();return true;
+  };
+  if(temaSetorCentralCache_[cod])return Promise.resolve(aplicar(temaSetorCentralCache_[cod]));
+  return _gasGetJsonp('buscarEANCompleto','&ean='+encodeURIComponent(cod),12000).then(function(r){
+    if(!r||!r.ok||!r.setor)return false;
+    temaSetorCentralCache_[cod]=String(r.setor);
+    return aplicar(r.setor);
+  }).catch(function(){return false;});
 }
 
 function temaPlacaIdEfetivo_(){
@@ -879,6 +925,7 @@ function prepararTemaAtualSemDesenhar_(){
 }
 
 function aplicarTemaPlaca(){
+  temaSetorCentralSeq_++;
   var sel=document.getElementById('pTemaPlaca');
   if(sel&&sel.value==='automatico'){
     recalcularTemaAutomatico_('');
@@ -2301,6 +2348,7 @@ function loadFoto(input){
 }
 
 function preencherProduto(prod){
+  var temaSeqAtual=++temaSetorCentralSeq_;
   var info=document.getElementById('prodInfo');
   if(!prod){
     ++fotoToken;
@@ -2342,6 +2390,7 @@ function preencherProduto(prod){
   }
 
   drawPlaca();
+  if(prod.cod)auraAtualizarTemaPeloSetorCentral_(prod.cod,prod.nome,temaSeqAtual);
   buscarFotoCompleta(prod.cod,prod.nome);
 }
 
@@ -3989,6 +4038,7 @@ async function editarEncarte(id){
   var it=encartesCache.find(function(x){return x.id===id;});
   if(!it){mostrarToast('Promoção não encontrada.','err');return;}
   editingEncarteId=id;
+  var temaSeqEdicao=++temaSetorCentralSeq_;
 
   var cod=normalizarCodigo(it.codigo);
   var prod=buscarPorCodigo(cod)||{};
@@ -4066,11 +4116,11 @@ async function editarEncarte(id){
   }
 
   // Ao reabrir para edição, recalcula o tema pelo mesmo critério do modo
-  // Automático: usa a descrição oficial do produto e, se ela não existir,
-  // a descrição salva na promoção. Assim a edição acompanha o setor atual.
+  // Automático: usa a descrição salva na promoção, que identifica o item
+  // que está sendo editado; se ela não existir, usa o nome do banco atual.
   var temaSel=document.getElementById('pTemaPlaca');
   if(temaSel)temaSel.value='automatico';
-  recalcularTemaAutomatico_(prod&&prod.nome?prod.nome:descricaoBanco);
+  recalcularTemaAutomatico_(descricaoBanco||(prod&&prod.nome)||'');
   prepararTemaAtualSemDesenhar_();
   // Não reaplica cores antigas/manualizadas aqui: o tema automático define
   // novamente a paleta coerente com o produto que está sendo editado.
@@ -4089,6 +4139,7 @@ async function editarEncarte(id){
   window.scrollTo({top:0,behavior:'smooth'});
   renderEncartes();
   drawPlaca();
+  if(cod)auraAtualizarTemaPeloSetorCentral_(cod,descricaoBanco,temaSeqEdicao);
   if(cod)await buscarFotoCompleta(cod,descricaoBanco);
 }
 
