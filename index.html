@@ -159,13 +159,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   body *{visibility:hidden}
   #printArea,#printArea *{visibility:visible}
   #printArea{display:block !important;position:absolute;top:0;left:0;width:100%;margin:0;padding:0}
-  .print-page{width:100%;height:100vh;display:grid;gap:6mm;padding:6mm;box-sizing:border-box;page-break-after:always;break-after:page}
+  .print-page{width:100vw;height:100vh;display:grid;gap:4mm;padding:10mm;box-sizing:border-box;page-break-after:always;break-after:page;overflow:hidden}
+  .print-page.layout-photo13{grid-template-columns:1fr 1fr!important;grid-template-rows:180mm!important;gap:4mm;padding:15mm}
+  .print-page.layout-photo20{grid-template-columns:minmax(0,200mm)!important;grid-template-rows:250mm!important;gap:0;padding:23.5mm 5mm;justify-content:center}
+  .print-page.layout-grid4{grid-template-columns:1fr 1fr!important;grid-template-rows:1fr 1fr!important;gap:5mm;padding:10mm}
   .print-page:last-child{page-break-after:auto;break-after:auto}
   .print-cell{display:flex;align-items:center;justify-content:center;overflow:hidden}
   .print-cell.bordered{border:1px dashed #999}
-  .print-cell img{max-width:100%;max-height:100%;object-fit:contain}
+  .print-cell img{width:100%;height:100%;object-fit:contain}
+  .print-page.crop-images .print-cell img{object-fit:cover}
   @page{size:A4 portrait;margin:0}
 }
+.classic-print-overlay{position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:16px}
+.classic-print-overlay.open{display:flex}
+.classic-print-window{width:min(980px,100%);max-height:min(94vh,820px);background:#f7f8fa;color:#202124;border:1px solid #777;border-radius:8px;box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden;font-family:"Segoe UI",Arial,sans-serif}
+.classic-print-titlebar{height:38px;flex:0 0 38px;padding:0 12px;background:#fff;border-bottom:1px solid #d4d7dc;display:flex;align-items:center;gap:8px;font-size:13px}
+.classic-print-titlebar strong{font-weight:500}.classic-print-close{margin-left:auto;border:0;background:transparent;color:#555;font-size:21px;line-height:1;cursor:pointer;width:32px;height:30px;border-radius:4px}.classic-print-close:hover{background:#e81123;color:#fff}
+.classic-print-prompt{padding:14px 22px;background:#eaf2fb;color:#315b84;font-size:18px;border-bottom:1px solid #ccd8e4}
+.classic-print-body{display:grid;grid-template-columns:minmax(0,1fr) 250px;min-height:0;overflow:auto}
+.classic-print-main{padding:16px 20px;min-width:0}
+.classic-print-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.classic-print-field label{display:block;font-size:11px;color:#555;margin-bottom:4px}.classic-print-field select,.classic-print-field input{width:100%;height:32px;border:1px solid #aeb4bc;border-radius:3px;background:#fff;color:#222;padding:0 8px;font:13px "Segoe UI",Arial,sans-serif}
+.classic-print-printer-note{font-size:11px;color:#555;background:#fff;border:1px solid #d5d8dc;padding:9px 10px;margin-bottom:14px;line-height:1.4}
+.classic-print-stage{min-height:290px;display:flex;align-items:center;justify-content:center;background:#e5e6e8;border:1px solid #c9ccd1;padding:14px;overflow:auto}
+.classic-preview-page{width:190px;aspect-ratio:210/297;background:#fff;padding:8px;display:grid;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,.2);flex:0 0 auto}
+.classic-preview-page.layout-photo13{width:300px;aspect-ratio:297/210;grid-template-columns:1fr 1fr!important;grid-template-rows:1fr!important;padding:12px;gap:5px}
+.classic-preview-page.layout-photo20{grid-template-columns:1fr!important;grid-template-rows:1fr!important;padding:16px 12px}
+.classic-preview-page.layout-grid4{grid-template-columns:1fr 1fr!important;grid-template-rows:1fr 1fr!important;gap:4px;padding:8px}
+.classic-preview-cell{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #e1e1e1}
+.classic-preview-cell img{width:100%;height:100%;object-fit:contain}.classic-preview-page.crop-images .classic-preview-cell img{object-fit:cover}
+.classic-print-options{padding:14px;background:#fff;border-left:1px solid #d4d7dc}
+.classic-print-options h3{font-size:12px;font-weight:600;margin-bottom:10px;color:#444}
+.classic-layout-option{width:100%;min-height:78px;display:grid;grid-template-columns:76px 1fr;align-items:center;gap:10px;text-align:left;margin-bottom:8px;padding:7px;border:1px solid #c7cbd0;border-radius:3px;background:#fff;color:#222;cursor:pointer}
+.classic-layout-option:hover{background:#f3f7fb}.classic-layout-option.active{border:2px solid #1676d2;background:#f1f7fd;padding:6px}
+.classic-layout-icon{height:62px;display:flex;align-items:center;justify-content:center;background:#f0f1f2;border:1px solid #d7d9dc;padding:5px;gap:3px}
+.classic-layout-icon i{font-size:32px;color:#6994b9}.classic-layout-icon.two i{font-size:22px}.classic-layout-icon.four{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}.classic-layout-icon.four i{font-size:17px}
+.classic-layout-option b{font-size:12px;display:block}.classic-layout-option small{font-size:10px;color:#666;display:block;margin-top:3px;line-height:1.25}
+.classic-print-footer{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#f2f3f5;border-top:1px solid #d4d7dc}
+.classic-print-footer .spacer{flex:1}.classic-print-footer button{min-width:94px;height:34px;border:1px solid #aeb4bc;border-radius:3px;background:#fff;color:#222;font:13px "Segoe UI",Arial,sans-serif;cursor:pointer}.classic-print-footer button.primary{background:#1676d2;border-color:#1268bd;color:#fff}.classic-print-footer button:hover{filter:brightness(.97)}
+@media(max-width:700px){.classic-print-body{grid-template-columns:1fr}.classic-print-options{border-left:0;border-top:1px solid #d4d7dc}.classic-print-options h3{margin-bottom:6px}.classic-layout-option{display:inline-grid;width:calc(50% - 5px);vertical-align:top;grid-template-columns:1fr;min-height:96px}.classic-layout-icon{height:42px}.classic-print-stage{min-height:210px}.classic-print-controls{grid-template-columns:1fr 1fr}}
 .hd-red{background:linear-gradient(120deg,#6b1018 0%,#9c2230 45%,#7a151f 100%);border-radius:var(--rl);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,.28)}
 .hd-red-left{display:flex;flex-direction:column;gap:3px;min-width:0}
 .hd-brand{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -521,10 +553,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
 <div class="toast" id="toast"></div>
 <div id="printArea"></div>
+<div class="classic-print-overlay" id="classicPrintModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="classicPrintTitle">
+  <div class="classic-print-window">
+    <div class="classic-print-titlebar"><i class="ti ti-printer"></i><strong id="classicPrintTitle">Imprimir imagens</strong><button class="classic-print-close" onclick="fecharAssistenteImpressao_()" aria-label="Fechar">×</button></div>
+    <div class="classic-print-prompt">Como deseja imprimir as imagens?</div>
+    <div class="classic-print-body">
+      <div class="classic-print-main">
+        <div class="classic-print-controls">
+          <div class="classic-print-field"><label for="classicPrintCopies">Cópias de cada imagem</label><input id="classicPrintCopies" type="number" min="1" max="99" value="1" onchange="atualizarPreviaImpressao_()"></div>
+          <div class="classic-print-field"><label for="classicPrintPaper">Tamanho do papel</label><select id="classicPrintPaper" onchange="atualizarPapelImpressao_()"><option value="A4">A4</option><option value="letter">Carta</option></select></div>
+          <div class="classic-print-field"><label>Prévia</label><input id="classicPrintCount" type="text" readonly value="1 imagem"></div>
+        </div>
+        <div class="classic-print-printer-note"><b>Impressora, qualidade e tipo de papel:</b> escolha essas opções na janela de impressão do navegador/Windows que será aberta ao continuar.</div>
+        <div class="classic-print-stage"><div id="classicPrintPreview" class="classic-preview-page"></div></div>
+        <label style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12px;color:#444;cursor:pointer"><input id="classicPrintFit" type="checkbox" checked onchange="atualizarPreviaImpressao_()"> Ajustar imagem ao quadro</label>
+      </div>
+      <aside class="classic-print-options">
+        <h3>Layout de impressão</h3>
+        <button class="classic-layout-option active" data-layout="full" onclick="selecionarLayoutImpressao_('full')"><span class="classic-layout-icon"><i class="ti ti-photo"></i></span><span><b>Foto de página inteira</b><small>Uma placa por página A4</small></span></button>
+        <button class="classic-layout-option" data-layout="photo13" onclick="selecionarLayoutImpressao_('photo13')"><span class="classic-layout-icon two"><i class="ti ti-photo"></i><i class="ti ti-photo"></i></span><span><b>13 × 18 cm (2)</b><small>Duas placas por folha A4 paisagem</small></span></button>
+        <button class="classic-layout-option" data-layout="photo20" onclick="selecionarLayoutImpressao_('photo20')"><span class="classic-layout-icon"><i class="ti ti-photo"></i></span><span><b>20 × 25 cm (1)</b><small>Uma placa centralizada por folha</small></span></button>
+        <button class="classic-layout-option" data-layout="grid4" onclick="selecionarLayoutImpressao_('grid4')"><span class="classic-layout-icon four"><i class="ti ti-photo"></i><i class="ti ti-photo"></i><i class="ti ti-photo"></i><i class="ti ti-photo"></i></span><span><b>4 por folha</b><small>Quatro placas em grade A4</small></span></button>
+      </aside>
+    </div>
+    <div class="classic-print-footer"><span id="classicPrintStatus">Pronto para imprimir</span><span class="spacer"></span><button onclick="fecharAssistenteImpressao_()">Cancelar</button><button class="primary" onclick="confirmarImpressaoArsenal_()"><i class="ti ti-printer"></i> Imprimir</button></div>
+  </div>
+</div>
 
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.03-temas-restaurados';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903';
+window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-20261022';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -3490,6 +3549,8 @@ async function downloadPlaca(){
 }
 
 var printQtdAtual=1;
+var arsenalPrintQueue_=[];
+var arsenalPrintLayout_='full';
 function setPrintQtd(qtd){
   printQtdAtual=qtd;
   document.querySelectorAll('#printQtdOpts button').forEach(function(b){
@@ -3497,27 +3558,98 @@ function setPrintQtd(qtd){
   });
 }
 
+var ARSENAL_PRINT_LAYOUTS_={
+  full:{perPage:1,landscape:false,cols:1,rows:1},
+  photo13:{perPage:2,landscape:true,cols:2,rows:1},
+  photo20:{perPage:1,landscape:false,cols:1,rows:1},
+  grid4:{perPage:4,landscape:false,cols:2,rows:2}
+};
+function abrirAssistenteImpressao_(imagens,layoutInicial){
+  arsenalPrintQueue_=(imagens||[]).filter(Boolean);
+  if(!arsenalPrintQueue_.length){mostrarToast('Nenhuma placa ficou pronta para imprimir.','warn');return;}
+  arsenalPrintLayout_=ARSENAL_PRINT_LAYOUTS_[layoutInicial]?layoutInicial:'full';
+  var modal=document.getElementById('classicPrintModal');
+  if(!modal)return;
+  document.getElementById('classicPrintCopies').value='1';
+  document.getElementById('classicPrintPaper').value='A4';
+  document.getElementById('classicPrintFit').checked=true;
+  document.getElementById('classicPrintStatus').textContent=arsenalPrintQueue_.length+' imagem(ns) selecionada(s)';
+  selecionarLayoutImpressao_(arsenalPrintLayout_);
+  modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+  atualizarPreviaImpressao_();
+}
+function fecharAssistenteImpressao_(){
+  var modal=document.getElementById('classicPrintModal');
+  if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');}
+  document.body.style.overflow='';
+}
+function selecionarLayoutImpressao_(layout){
+  if(!ARSENAL_PRINT_LAYOUTS_[layout])return;
+  arsenalPrintLayout_=layout;
+  document.querySelectorAll('.classic-layout-option').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-layout')===layout);});
+  atualizarPreviaImpressao_();
+}
+function arsenalQuantidadeImpressao_(){
+  var el=document.getElementById('classicPrintCopies'),n=parseInt(el&&el.value,10);
+  n=Math.max(1,Math.min(99,isFinite(n)?n:1));if(el)el.value=String(n);return n;
+}
+function atualizarPapelImpressao_(){atualizarPreviaImpressao_();}
+function atualizarPreviaImpressao_(){
+  var prev=document.getElementById('classicPrintPreview'),count=document.getElementById('classicPrintCount');
+  if(!prev||!count)return;
+  var cfg=ARSENAL_PRINT_LAYOUTS_[arsenalPrintLayout_]||ARSENAL_PRINT_LAYOUTS_.full;
+  var copies=arsenalQuantidadeImpressao_(),total=arsenalPrintQueue_.length*copies,pages=Math.ceil(total/cfg.perPage);
+  count.value=total+' imagem(ns) · '+pages+' página(s)';
+  prev.className='classic-preview-page'+(cfg.landscape?' layout-photo13':'')+(arsenalPrintLayout_==='photo20'?' layout-photo20':'')+(arsenalPrintLayout_==='grid4'?' layout-grid4':'')+(!document.getElementById('classicPrintFit').checked?' crop-images':'');
+  prev.innerHTML='';
+  var items=[];for(var c=0;c<copies;c++)arsenalPrintQueue_.forEach(function(src){items.push(src);});
+  var mostrar=Math.max(cfg.perPage,Math.min(cfg.perPage,items.length));
+  for(var i=0;i<mostrar;i++){
+    var cell=document.createElement('div');cell.className='classic-preview-cell';
+    if(items[i]){var img=document.createElement('img');img.src=items[i];img.alt='Prévia da placa';cell.appendChild(img);}
+    prev.appendChild(cell);
+  }
+}
+function arsenalPrepararFolhasImpressao_(imagens,layout,copies,fit,corte){
+  var cfg=ARSENAL_PRINT_LAYOUTS_[layout]||ARSENAL_PRINT_LAYOUTS_.full,lista=[];
+  for(var c=0;c<copies;c++)imagens.forEach(function(src){lista.push(src);});
+  var area=document.getElementById('printArea'),html='',cols=cfg.cols,rows=cfg.rows;
+  for(var p=0;p<lista.length;p+=cfg.perPage){
+    var classe='print-page layout-'+layout+(cfg.landscape?' landscape':'')+(!fit?' crop-images':'');
+    html+='<div class="'+classe+'" style="grid-template-columns:repeat('+cols+',minmax(0,1fr));grid-template-rows:repeat('+rows+',minmax(0,1fr))">';
+    lista.slice(p,p+cfg.perPage).forEach(function(src){html+='<div class="print-cell'+(corte&&cfg.perPage>1?' bordered':'')+'"><img src="'+escapeHtml(src)+'" alt="placa de oferta"></div>';});
+    html+='</div>';
+  }
+  area.innerHTML=html;
+  var style=document.getElementById('arsenalPrintDynamicPageStyle');
+  if(!style){style=document.createElement('style');style.id='arsenalPrintDynamicPageStyle';document.head.appendChild(style);}
+  var papel=(document.getElementById('classicPrintPaper').value||'A4').toLowerCase();
+  style.textContent='@media print{@page{size:'+papel+(cfg.landscape?' landscape':' portrait')+';margin:0}}';
+  return Promise.all(Array.prototype.map.call(area.querySelectorAll('img'),function(img){
+    if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=img.onerror=resolve;});
+  }));
+}
+async function confirmarImpressaoArsenal_(){
+  var cfg=ARSENAL_PRINT_LAYOUTS_[arsenalPrintLayout_]||ARSENAL_PRINT_LAYOUTS_.full;
+  var copies=arsenalQuantidadeImpressao_(),fit=document.getElementById('classicPrintFit').checked;
+  var line=document.getElementById('pPrintLinhaCorte'),corte=!!(line&&line.checked);
+  var btn=document.querySelector('.classic-print-footer .primary');
+  if(btn){btn.disabled=true;btn.textContent='Preparando...';}
+  try{
+    await arsenalPrepararFolhasImpressao_(arsenalPrintQueue_,arsenalPrintLayout_,copies,fit,corte);
+    fecharAssistenteImpressao_();
+    setTimeout(function(){try{window.print();}finally{if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-printer"></i> Imprimir';}}},120);
+  }catch(e){if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-printer"></i> Imprimir';}mostrarToast('Não consegui preparar a impressão: '+(e&&e.message||e),'err');}
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')fecharAssistenteImpressao_();});
+
 async function imprimirPlacaA4(){
   await drawPlaca();
   var cv=document.getElementById('placaCanvas');
   var dataUrl=cv.toDataURL('image/png');
   var qtd=printQtdAtual||1;
-  var comLinha=document.getElementById('pPrintLinhaCorte').checked;
-
-  var cols=1,rows=1;
-  if(qtd===2){cols=1;rows=2;}
-  else if(qtd===4){cols=2;rows=2;}
-
-  var cells='';
-  for(var i=0;i<qtd;i++){
-    cells+='<div class="print-cell'+(comLinha&&qtd>1?' bordered':'')+'"><img src="'+dataUrl+'" alt="placa"></div>';
-  }
-  var area=document.getElementById('printArea');
-  area.innerHTML='<div class="print-page" style="grid-template-columns:repeat('+cols+',1fr);grid-template-rows:repeat('+rows+',1fr)">'+cells+'</div>';
-
-  setTimeout(function(){
-    window.print();
-  },80);
+  var imagens=[];for(var i=0;i<qtd;i++)imagens.push(dataUrl);
+  abrirAssistenteImpressao_(imagens,qtd===2?'photo13':(qtd===4?'grid4':'full'));
 }
 
 // ============================================================
@@ -4153,35 +4285,11 @@ async function imprimirSelecionados(qtd){
   if(!selecionados.length){mostrarToast('Selecione ao menos uma placa na lista.','warn');return;}
   var semPreco=selecionados.filter(function(it){return !(parseDec(String(it.precoPromocional||it.por||''))>0);});
   if(semPreco.length){mostrarToast(semPreco.length+' promoção(ões) sem preço promocional válido. Corrija antes de imprimir.','warn');return;}
-  var comLinha=document.getElementById('pPrintLinhaCorte').checked;
-  var cols=1,rows=1;
-  if(qtd===2){cols=1;rows=2;}
-  else if(qtd===4){cols=2;rows=2;}
-
   mostrarToast('Montando placas para impressão...','ok');
   // Esta rotina usa os mesmos inputs/fotoImg/canvas globais; por isso DEVE ser sequencial.
   var imagens=await mapComLimite(selecionados,1,function(it){return gerarImagemPlacaItem(it);});
-
-  var area=document.getElementById('printArea');
-  var html='';
-  for(var p=0;p<imagens.length;p+=qtd){
-    var grupo=imagens.slice(p,p+qtd);
-    html+='<div class="print-page" style="grid-template-columns:repeat('+cols+',1fr);grid-template-rows:repeat('+rows+',1fr)">';
-    grupo.forEach(function(src){
-      html+='<div class="print-cell'+(comLinha&&qtd>1?' bordered':'')+'"><img src="'+escapeHtml(src||'')+'" alt=""></div>';
-    });
-    html+='</div>';
-  }
-  area.innerHTML=html;
-
-  // espera as imagens carregarem antes de imprimir
-  var imgs=area.querySelectorAll('img');
-  var promessas=Array.prototype.map.call(imgs,function(img){
-    if(img.complete)return Promise.resolve();
-    return new Promise(function(res){img.onload=img.onerror=res;});
-  });
-  await Promise.all(promessas);
-  setTimeout(function(){window.print();},100);
+  if(imagens.length===1&&qtd>1){while(imagens.length<qtd)imagens.push(imagens[0]);}
+  abrirAssistenteImpressao_(imagens,qtd===2?'photo13':(qtd===4?'grid4':'full'));
 }
 
 // ============================================================
