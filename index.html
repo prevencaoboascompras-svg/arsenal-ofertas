@@ -1,6 +1,13 @@
 <!DOCTYPE html>
+<!-- Arsenal de Ofertas v7.31 — badge temático atrás da unidade dos packs -->
 <html lang="pt-BR">
 <head>
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://docs.google.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arsenal de Ofertas</title>
@@ -631,7 +638,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -738,11 +745,12 @@ var TEMAS_PLACA={
 // TEMA AUTOMÁTICO
 // Prioridade:
 // 1) De 10/09 a 20/09, todos os anos -> Semana Farroupilha.
-// 2) Fora desse período -> identifica o setor pela descrição.
-// 3) Se não houver identificação segura -> tema Padrão.
+// 2) Fora desse período -> usa o setor confirmado para o código na AURA.
+// 3) Sem setor confirmado -> tema Padrão.
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
+var AURA_ARSENAL_BUILD='v7.31-badge-unidade-pack-tematico';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -753,103 +761,21 @@ function estaNoPeriodoFarroupilha_(data){
 function textoTemaAuto_(){
   return estaNoPeriodoFarroupilha_(new Date())
     ?'Automático — Semana Farroupilha (10–20/09)'
-    :'Automático — identificar pelo produto';
+    :'Automático — setor confirmado no AURA';
 }
 
-function descricaoProdutoAtualTema_(){
-  var cod=normalizarCodigo(prodAtualCod||((document.getElementById('pCod')||{}).value||''));
-  if(cod){
-    try{
-      var p=buscarPorCodigo(cod);
-      if(p&&p.nome)return p.nome;
-    }catch(e){}
-  }
-  var el=document.getElementById('pDescOverride');
-  if(el&&el.value)return el.value;
-  el=document.getElementById('pDescFinal');
-  return el&&el.value?el.value:'';
-}
-
-function contemPalavraTema_(texto,lista){
-  var t=normalizarTexto(texto||'');
-  if(!t)return false;
-  for(var i=0;i<lista.length;i++){
-    var k=normalizarTexto(lista[i]);
-    if(k && (' '+t+' ').indexOf(' '+k+' ')>=0)return true;
-    if(k.length>=6 && t.indexOf(k)>=0)return true;
-  }
-  return false;
-}
-
-function detectarTemaProduto_(nome){
+// Tema automático depende de setor cadastrado/confirmado para o código do item.
+// Descrição e palavras-chave não determinam o setor; sem dado confiável, usa Padrão.
+function detectarTemaProduto_(produtoOuSetor){
   if(estaNoPeriodoFarroupilha_(new Date()))return 'farroupilha';
-
-  var n=String(nome||'');
-  if(!n)return 'padrao';
-
-  // Açougue — cortes bovinos, suínos e aves.
-  if(contemPalavraTema_(n,[
-    'bovino','carne bovina','carne moida','patinho','picanha','alcatra',
-    'coxao','coxao mole','coxao duro','maminha','fraldinha','entrecot',
-    'contrafile','contra file','file mignon','costela','peito bovino',
-    'musculo','paleta bovina','acém','acem','vazio','cupim',
-    'suino','pernil','lombo suino','bisteca','costelinha','panceta',
-    'frango','coxa','sobrecoxa','asa frango','coracao frango',
-    'linguica','linguiça'
-  ]))return 'acougue';
-
-  // Laticínios não entram em Bebidas só por conterem a palavra "bebida".
-  // Tema visual próprio de Laticínios, separado de Bebidas e Fiambreria.
-  if(contemPalavraTema_(n,[
-    'bebida lactea','bebida láctea','bebidas lacteas','bebidas lácteas',
-    'iogurte','iogurte grego','leite fermentado','margarina','manteiga',
-    'leite integral','leite desnatado','leite semidesnatado','leite uht',
-    'leite longa vida','leite pasteurizado','leite zero lactose','requeijao','requeijão','nata'
-  ]))return 'laticinios';
-
-  // Bebidas: refrigerantes, sucos, destilados, cervejas e águas.
-  if(contemPalavraTema_(n,[
-    'refrigerante','refri','cerveja','chopp','chope','agua mineral','água mineral',
-    'agua com gas','água com gás','agua sem gas','agua saborizada','agua de coco','suco','nectar','néctar','energetico','energético',
-    'isotonico','isotônico','vinho','espumante','whisky','vodka','gin',
-    'rum','conhaque','cachaca','cachaça','aguardente','tequila','licor','destilado',
-    'bebida energetica','bebida energética'
-  ]))return 'bebidas';
-
-  // Padaria — itens produzidos/servidos na padaria.
-  if(contemPalavraTema_(n,[
-    'pao','pão','cuca','bolo','torta','sonho','croissant','folhado',
-    'salgado','coxinha','risole','pastel','pizza','pao de queijo','pão de queijo',
-    'bisnaguinha','baguete','broa','rosca','cueca virada'
-  ]))return 'padaria';
-
-  // Fiambreria — frios, queijos e embutidos.
-  if(contemPalavraTema_(n,[
-    'presunto','mortadela','salame','apresuntado','peito de peru','queijo',
-    'mussarela','muçarela','mucarela','provolone','parmesao','parmesão',
-    'gorgonzola','ricota','requeijao','requeijão','bacon','copa fatiada',
-    'salsicha','fatiado','fatiada'
-  ]))return 'fiambreria';
-
-  // Hortifrúti — principais frutas, legumes e verduras.
-  if(contemPalavraTema_(n,[
-    'tomate','batata','cebola','cenoura','beterraba','abobora','abóbora',
-    'abobrinha','pepino','pimentao','pimentão','brocolis','brócolis','couve',
-    'alface','repolho','rucula','rúcula','espinafre','mandioca','aipim',
-    'banana','maca','maçã','laranja','bergamota','tangerina','uva','mamao','mamão',
-    'manga','pera','melancia','melao','melão','abacaxi','morango','kiwi',
-    'abacate','limao','limão','goiaba','maracuja','maracujá','hortifruti'
-  ]))return 'horti';
-
-  return 'padrao';
+  var setor='';
+  if(produtoOuSetor&&typeof produtoOuSetor==='object')setor=String(produtoOuSetor.setor||produtoOuSetor.setorConfirmado||'');
+  else setor=String(produtoOuSetor||'');
+  if(!setor&&prodAtualCod){try{var p=buscarPorCodigo(normalizarCodigo(prodAtualCod));if(p)setor=String(p.setor||'');}catch(e){}}
+  return auraTemaPorSetorCentral_(setor)||'padrao';
 }
-
-function recalcularTemaAutomatico_(produtoOuNome){
-  var nome='';
-  if(produtoOuNome&&typeof produtoOuNome==='object')nome=produtoOuNome.nome||produtoOuNome.descricao||'';
-  else nome=String(produtoOuNome||'');
-  if(!nome)nome=descricaoProdutoAtualTema_();
-  temaAutomaticoAtual=detectarTemaProduto_(nome);
+function recalcularTemaAutomatico_(produtoOuSetor){
+  temaAutomaticoAtual=detectarTemaProduto_(produtoOuSetor);
   return temaAutomaticoAtual;
 }
 
@@ -1246,7 +1172,18 @@ async function loadPrecos(cfg,tablePronta){
   try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,products:products,ts:Date.now()}));}catch(e){}
 }
 
-async function syncAll(){
+var _arsenalSyncInFlight_=null;
+var _arsenalSyncQueued_=false;
+function syncAll(){
+  if(_arsenalSyncInFlight_){_arsenalSyncQueued_=true;return _arsenalSyncInFlight_;}
+  _arsenalSyncInFlight_=(async function(){
+    var result;
+    do{_arsenalSyncQueued_=false;result=await _arsenalSyncRun_();}while(_arsenalSyncQueued_);
+    return result;
+  })().finally(function(){_arsenalSyncInFlight_=null;});
+  return _arsenalSyncInFlight_;
+}
+async function _arsenalSyncRun_(){
   var cfg=loadCfg();
   if(!cfg.id){setDot('err','Configure o Google Sheets primeiro');toggleCfg();return;}
   var btn=document.getElementById('btnSync');
@@ -3365,9 +3302,33 @@ async function drawPlaca(){
         ctx.font='900 italic '+fsUnidade+'px '+fonte;
         ctx.textAlign='left';
         ctx.textBaseline='alphabetic';
-        ctx.fillStyle=corUnidade;
         ctx.translate(mx(PACK_MAP.unidadeBadge.x),my(PACK_MAP.unidadeBadge.y));
         ctx.rotate(-8*Math.PI/180);
+        // Cápsula temática atrás da unidade: melhora o contraste sem mover
+        // o preço nem alterar o alinhamento da palavra CADA no template.
+        var unidadeW=ctx.measureText(unidadeTxt).width;
+        var unidadePadX=fsUnidade*.28, unidadeH=fsUnidade*1.18;
+        var unidadeX=-unidadePadX, unidadeY=-fsUnidade*.88;
+        var unidadeBadgeW=unidadeW+unidadePadX*2, unidadeBadgeR=unidadeH/2;
+        ctx.save();
+        ctx.shadowColor='rgba(0,0,0,.30)';ctx.shadowBlur=fsUnidade*.16;
+        ctx.shadowOffsetX=0;ctx.shadowOffsetY=fsUnidade*.06;
+        ctx.fillStyle=corBadgePreco;
+        ctx.beginPath();
+        ctx.moveTo(unidadeX+unidadeBadgeR,unidadeY);
+        ctx.lineTo(unidadeX+unidadeBadgeW-unidadeBadgeR,unidadeY);
+        ctx.quadraticCurveTo(unidadeX+unidadeBadgeW,unidadeY,unidadeX+unidadeBadgeW,unidadeY+unidadeBadgeR);
+        ctx.lineTo(unidadeX+unidadeBadgeW,unidadeY+unidadeH-unidadeBadgeR);
+        ctx.quadraticCurveTo(unidadeX+unidadeBadgeW,unidadeY+unidadeH,unidadeX+unidadeBadgeW-unidadeBadgeR,unidadeY+unidadeH);
+        ctx.lineTo(unidadeX+unidadeBadgeR,unidadeY+unidadeH);
+        ctx.quadraticCurveTo(unidadeX,unidadeY+unidadeH,unidadeX,unidadeY+unidadeH-unidadeBadgeR);
+        ctx.lineTo(unidadeX,unidadeY+unidadeBadgeR);
+        ctx.quadraticCurveTo(unidadeX,unidadeY,unidadeX+unidadeBadgeR,unidadeY);
+        ctx.closePath();ctx.fill();
+        ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
+        ctx.strokeStyle=corUnidade;ctx.lineWidth=Math.max(2,fsUnidade*.045);ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle=corUnidade;
         ctx.fillText(unidadeTxt,0,0);
         ctx.restore();
       }
@@ -4115,12 +4076,11 @@ async function editarEncarte(id){
     unirAtualizarBotoesLayout();
   }
 
-  // Ao reabrir para edição, recalcula o tema pelo mesmo critério do modo
-  // Automático: usa a descrição salva na promoção, que identifica o item
-  // que está sendo editado; se ela não existir, usa o nome do banco atual.
+  // Ao reabrir para edição, recalcula o tema pelo setor confirmado do código na AURA; a descrição
+  // salva na promoção não é usada como fonte de classificação.
   var temaSel=document.getElementById('pTemaPlaca');
   if(temaSel)temaSel.value='automatico';
-  recalcularTemaAutomatico_(descricaoBanco||(prod&&prod.nome)||'');
+  recalcularTemaAutomatico_({setor:it.setor||infoSalva.setor||(prod&&prod.setor)||''});
   prepararTemaAtualSemDesenhar_();
   // Não reaplica cores antigas/manualizadas aqui: o tema automático define
   // novamente a paleta coerente com o produto que está sendo editado.
