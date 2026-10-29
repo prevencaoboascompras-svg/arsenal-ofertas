@@ -68,7 +68,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .pack-type-options{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0}
 .pack-type-options .toggle-chip{flex:1 1 0;justify-content:center;height:30px;padding:0 8px;font-size:11px}
 .pack-type-options .toggle-chip i{font-size:14px}
-@media(max-width:640px){.f-row.pack-type-row{grid-template-columns:1fr;gap:5px}.offer-settings-row{grid-template-columns:1fr}}
+.pack-fields-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:7px;align-items:end}
+.pack-fields-grid.is-apartir{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto minmax(0,1.05fr)}
+.pack-fields-grid .f-row{margin:0!important;min-width:0}
+.pack-fields-grid .f-row label{min-height:28px;line-height:13px;display:flex;align-items:flex-end;font-size:10px}
+.pack-fields-grid .f-row>div{height:31px;padding-top:0!important;display:flex;align-items:center;white-space:nowrap}
+.pack-fields-grid #pPackUnidadeRow{display:none!important}
+.pack-fields-grid.is-apartir #pPackUnidadeRow{display:flex!important}
+@media(max-width:640px){.f-row.pack-type-row{grid-template-columns:1fr;gap:5px}.offer-settings-row{grid-template-columns:1fr}.pack-fields-grid,.pack-fields-grid.is-apartir{grid-template-columns:repeat(2,minmax(0,1fr))}.pack-fields-grid .f-row>div{white-space:normal}}
 .arsenal-right-workspace>.panel:not(.arsenal-encartes-panel) .ph-row{display:flex;flex-direction:column;align-items:flex-start;gap:7px}
 .arsenal-right-workspace>.panel:not(.arsenal-encartes-panel) .ph-row .actions{justify-content:flex-start;grid-column:auto}
 @media(min-width:1850px){.arsenal-right-workspace{grid-template-columns:minmax(700px,1.6fr) minmax(500px,1fr)}}
@@ -566,7 +573,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <button type="button" class="toggle-chip" id="packTipoBtnApartir" onclick="packSetTipo('apartir')" title="A PARTIR DE X UN PAGUE R$ Y (CADA)"><i class="ti ti-stack-2"></i><span>A partir de</span></button>
           </div>
         </div>
-        <div class="row-3">
+        <div class="row-3 pack-fields-grid" id="packFieldsGrid">
           <div class="f-row" style="margin-bottom:4px">
             <label for="pPackQtd" id="pPackQtdLabel">Quantidade (leve)</label>
             <input type="number" id="pPackQtd" min="1" step="1" value="3" oninput="onPackChange();drawPlaca()">
@@ -579,20 +586,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <label>Cada unidade</label>
             <div style="padding-top:6px;font-size:12px;color:var(--tx2)"><strong id="pPackCada" style="color:var(--green)">--</strong></div>
           </div>
+          <div class="f-row" id="pPackUnidadeRow" style="margin-bottom:4px;display:none">
+            <label for="pPackUnidade">Unidade no preço</label>
+            <select id="pPackUnidade" oninput="onPackChange();drawPlaca()" onchange="onPackChange();drawPlaca()">
+              <option value="UN">UN</option>
+              <option value="KG">KG</option>
+              <option value="CADA">CADA</option>
+              <option value="L">L</option>
+              <option value="PC">PC</option>
+              <option value="CX">CX</option>
+              <option value="PCT">PCT</option>
+            </select>
+          </div>
         </div>
-        <div class="f-row" id="pPackUnidadeRow" style="margin-bottom:4px;display:none">
-          <label for="pPackUnidade">Unidade de medida (aparece do lado do preço)</label>
-          <select id="pPackUnidade" oninput="onPackChange();drawPlaca()" onchange="onPackChange();drawPlaca()">
-            <option value="UN">UN</option>
-            <option value="KG">KG</option>
-            <option value="CADA">CADA</option>
-            <option value="L">L</option>
-            <option value="PC">PC</option>
-            <option value="CX">CX</option>
-            <option value="PCT">PCT</option>
-          </select>
-        </div>
-        <div style="font-size:11px;color:var(--tx2)" id="packFieldsHint">No modo Pack, o "Por" da placa é substituído pelo valor do pack.</div>
       </div>
 
       <div id="unirFields" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px">
@@ -718,7 +724,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-EM-LINHA-VALIDADE-ALINHADA-20261029';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -830,7 +836,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.36-pack-tipo-em-linha-validade-alinhada';
+var AURA_ARSENAL_BUILD='v7.37-pack-campos-em-linha-sem-textos-longos';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -2496,12 +2502,11 @@ function packSetTipo(tipo){
   document.getElementById('packTipoBtnLeve').classList.toggle('active',tipo==='leve');
   document.getElementById('packTipoBtnApartir').classList.toggle('active',tipo==='apartir');
   var apartir=tipo==='apartir';
+  var gridPack=document.getElementById('packFieldsGrid');
+  if(gridPack)gridPack.classList.toggle('is-apartir',apartir);
   document.getElementById('pPackUnidadeRow').style.display=apartir?'block':'none';
   document.getElementById('pPackQtdLabel').textContent=apartir?'A partir de (qtd)':'Quantidade (leve)';
   document.getElementById('pPackTotalLabel').textContent=apartir?'Preço por unidade (R$)':'Preço do pack (por R$)';
-  document.getElementById('packFieldsHint').textContent=apartir
-    ?'No modo "A partir de", o valor digitado já é o preço por unidade; a quantidade define a partir de quantas unidades a condição vale, e a unidade escolhida aparece ao lado do preço.'
-    :'No modo Pack, o "Por" da placa é substituído pelo valor do pack.';
   onPackChange();
   drawPlaca();
 }
