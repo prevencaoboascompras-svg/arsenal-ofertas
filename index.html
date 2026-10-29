@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v7.34 — ações de edição alinhadas ao título do painel -->
+<!-- Arsenal de Ofertas v7.39 — calendário de período corrigido -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -98,6 +98,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .f-row input,.f-row select{height:36px;padding:0 10px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:14px;outline:none;font-family:inherit}
 .f-row input:focus,.f-row select:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
 .f-row .hint{font-size:11px;color:var(--tx2)}
+
+/* Calendário de intervalo da promoção */
+.p-validade-control{display:flex;align-items:center;gap:4px;width:100%;min-width:0}
+.p-validade-control input{flex:1;min-width:0;cursor:pointer}
+.p-validade-open{width:32px;height:31px;flex:0 0 32px;border:1px solid var(--bds);border-radius:7px;background:var(--bg);color:var(--green);cursor:pointer}
+.p-validade-open:hover{border-color:var(--green);background:rgba(29,158,117,.09)}
+.p-validade-calendar{position:fixed;z-index:2500;width:min(300px,calc(100vw - 20px));max-height:calc(100vh - 20px);overflow:auto;padding:8px;background:var(--bg);border:1px solid var(--bds);border-radius:12px;box-shadow:0 14px 38px rgba(0,0,0,.32);color:var(--tx)}
+.offer-settings-row .p-validade-calendar{height:auto!important;min-height:0;display:block!important;padding:11px!important}
+.p-validade-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.p-validade-cal-head strong{font-size:13px;text-transform:capitalize}
+.p-validade-cal-nav{display:flex;gap:5px}
+.p-validade-cal-nav button,.p-validade-cal-clear{height:25px;min-width:28px;padding:0 7px;border:1px solid var(--bd);border-radius:7px;background:var(--bg2);color:var(--tx);cursor:pointer}
+.p-validade-cal-nav button:hover,.p-validade-cal-clear:hover{border-color:var(--green);color:var(--green)}
+.p-validade-cal-hint{min-height:24px;margin-bottom:5px;padding:4px 7px;border-radius:7px;background:var(--bg2);color:var(--tx2);font-size:10px;line-height:1.4}
+.p-validade-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.p-validade-cal-weekday{text-align:center;padding:2px 0;color:var(--tx2);font-size:10px;font-weight:800}
+.p-validade-cal-day{height:27px;border:0;border-radius:7px;background:transparent;color:var(--tx);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.p-validade-cal-day:hover{background:rgba(29,158,117,.15)}
+.p-validade-cal-day.today{outline:1px solid var(--green)}
+.p-validade-cal-day.in-range{background:rgba(29,158,117,.16);border-radius:0}
+.p-validade-cal-day.range-start,.p-validade-cal-day.range-end{background:var(--green);color:#fff;border-radius:7px;font-weight:900}
+.p-validade-cal-day:disabled{opacity:.35;cursor:default}
+.p-validade-cal-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)}
+.p-validade-cal-foot small{font-size:9px;color:var(--tx2)}
+
 .cod-input{font-family:monospace;font-size:15px!important;letter-spacing:.5px}
 .search-wrap{position:relative}
 .suggestions{display:none;position:absolute;z-index:50;left:0;right:0;top:calc(100% + 4px);max-height:400px;overflow:auto;background:var(--bg);border:1px solid var(--bds);border-radius:var(--r);box-shadow:0 14px 36px rgba(0,0,0,.22);padding:4px}
@@ -547,9 +572,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <option value="">(nenhuma)</option>
           </select>
         </div>
-        <div class="f-row">
+        <div class="f-row p-validade-row">
           <label for="pValidade">Validade da oferta (opcional)</label>
-          <input type="text" id="pValidade" placeholder="dd/mm/aaaa" oninput="drawPlaca()">
+          <div class="p-validade-control">
+            <input type="text" id="pValidade" placeholder="Selecionar período" readonly onclick="pValidadeAbrir_()" aria-haspopup="dialog" aria-controls="pValidadeCalendario">
+            <button type="button" class="p-validade-open" onclick="pValidadeAlternar_(event)" aria-label="Abrir calendário de validade"><i class="ti ti-calendar"></i></button>
+          </div>
+          <div id="pValidadeCalendario" class="p-validade-calendar" role="dialog" aria-label="Selecionar período da promoção" hidden></div>
         </div>
         <div class="f-row">
           <label>% de desconto (calculado)</label>
@@ -2750,6 +2779,67 @@ function adicionarProdutoUnificado(){
   input.focus();
 }
 
+var pValidadeRangeState_={start:null,end:null,view:null,awaitingEnd:false,priorValue:''};
+function pValidadePad_(n){return String(n).padStart(2,'0');}
+function pValidadeDateKey_(d){return d?d.getFullYear()+'-'+pValidadePad_(d.getMonth()+1)+'-'+pValidadePad_(d.getDate()):'';}
+function pValidadeFmt_(d){return d?pValidadePad_(d.getDate())+'/'+pValidadePad_(d.getMonth()+1)+'/'+d.getFullYear():'';}
+function pValidadeParse_(raw){
+  var out=[],txt=String(raw||''),re=/(\d{4})-(\d{2})-(\d{2})|(\d{2})\/(\d{2})\/(\d{4})/g,m;
+  while((m=re.exec(txt))){var y=m[1]?Number(m[1]):Number(m[6]),mo=m[1]?Number(m[2]):Number(m[5]),d=m[1]?Number(m[3]):Number(m[4]);var dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)out.push(dt);}
+  return out;
+}
+function pValidadeCarregar_(raw){
+  var dates=pValidadeParse_(raw);pValidadeRangeState_.start=dates[0]||null;pValidadeRangeState_.end=dates.length>1?dates[1]:(dates[0]||null);pValidadeRangeState_.awaitingEnd=false;
+  var d=dates[0]||new Date();pValidadeRangeState_.view=new Date(d.getFullYear(),d.getMonth(),1);
+}
+function pValidadePosicionar_(){
+  var pop=document.getElementById('pValidadeCalendario'),anchor=document.getElementById('pValidade');if(!pop||!anchor)return;
+  pop.hidden=false;var r=anchor.getBoundingClientRect(),w=pop.offsetWidth||310,h=pop.offsetHeight||320;
+  var left=Math.max(10,Math.min(r.left,window.innerWidth-w-10)),top=r.bottom+5;
+  if(top+h>window.innerHeight-10){var above=r.top-h-5;top=above>=10?above:Math.max(10,window.innerHeight-h-10);}
+  pop.style.left=left+'px';pop.style.top=top+'px';
+}
+function pValidadeRender_(){
+  var pop=document.getElementById('pValidadeCalendario'),st=pValidadeRangeState_;if(!pop)return;
+  if(!st.view)st.view=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  var y=st.view.getFullYear(),mo=st.view.getMonth(),first=new Date(y,mo,1).getDay(),days=new Date(y,mo+1,0).getDate();
+  var title=st.view.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}),hint=st.awaitingEnd&&st.start?'Início selecionado: '+pValidadeFmt_(st.start)+'. Agora clique no último dia.':(st.start&&st.end?'Período: '+pValidadeFmt_(st.start)+(pValidadeDateKey_(st.start)===pValidadeDateKey_(st.end)?'':' a '+pValidadeFmt_(st.end)):'Clique na data inicial e depois na data final.');
+  var html='<div class="p-validade-cal-head"><strong>'+title+'</strong><span class="p-validade-cal-nav"><button type="button" onclick="pValidadeNavegar_(-1)" aria-label="Mês anterior">‹</button><button type="button" onclick="pValidadeNavegar_(1)" aria-label="Próximo mês">›</button></span></div><div class="p-validade-cal-hint">'+hint+'</div><div class="p-validade-cal-grid">';
+  ['D','S','T','Q','Q','S','S'].forEach(function(x){html+='<span class="p-validade-cal-weekday">'+x+'</span>';});
+  for(var b=0;b<first;b++)html+='<span></span>';
+  var today=pValidadeDateKey_(new Date()),start=st.start?pValidadeDateKey_(st.start):'',end=st.end?pValidadeDateKey_(st.end):'';
+  for(var day=1;day<=days;day++){
+    var dt=new Date(y,mo,day),key=pValidadeDateKey_(dt),cls='p-validade-cal-day';
+    if(key===today)cls+=' today';if(start&&end&&key>=start&&key<=end)cls+=' in-range';if(key===start)cls+=' range-start';if(key===end)cls+=' range-end';
+    html+='<button type="button" class="'+cls+'" onclick="pValidadeEscolherDia_('+y+','+mo+','+day+')">'+day+'</button>';
+  }
+  html+='</div><div class="p-validade-cal-foot"><small>Selecione início e fim da promoção</small><button type="button" class="p-validade-cal-clear" onclick="pValidadeLimpar_()">Limpar</button></div>';
+  pop.innerHTML=html;pValidadePosicionar_();
+}
+function pValidadeAbrir_(){var pop=document.getElementById('pValidadeCalendario');if(!pop)return;if(pop.hidden){var raw=document.getElementById('pValidade').value;if(!pValidadeRangeState_.start)pValidadeCarregar_(raw);pValidadeRender_();}else pValidadeFechar_(true);}
+function pValidadeAlternar_(ev){if(ev){ev.preventDefault();ev.stopPropagation();}pValidadeAbrir_();}
+function pValidadeNavegar_(delta){var v=pValidadeRangeState_.view||new Date();pValidadeRangeState_.view=new Date(v.getFullYear(),v.getMonth()+delta,1);pValidadeRender_();}
+function pValidadeEscolherDia_(y,mo,d){
+  var st=pValidadeRangeState_,dt=new Date(y,mo,d),input=document.getElementById('pValidade');
+  if(!st.awaitingEnd){st.priorValue=input.value;st.start=dt;st.end=null;st.awaitingEnd=true;input.value='Início '+pValidadeFmt_(dt)+' — selecione o fim';pValidadeRender_();return;}
+  if(pValidadeDateKey_(dt)<pValidadeDateKey_(st.start)){st.end=st.start;st.start=dt;}else st.end=dt;
+  st.awaitingEnd=false;input.value=pValidadeFmt_(st.start)+(pValidadeDateKey_(st.start)===pValidadeDateKey_(st.end)?'':' a '+pValidadeFmt_(st.end));
+  pValidadeRender_();pValidadeFechar_(false);drawPlaca();
+}
+function pValidadeFechar_(restorePending){
+  var pop=document.getElementById('pValidadeCalendario');if(pop)pop.hidden=true;
+  var st=pValidadeRangeState_,input=document.getElementById('pValidade');
+  if(restorePending&&st.awaitingEnd&&input){input.value=st.priorValue;pValidadeCarregar_(input.value);}
+  if(!st.awaitingEnd)st.priorValue='';
+}
+function pValidadeLimpar_(skipDraw){var input=document.getElementById('pValidade');if(input)input.value='';pValidadeRangeState_={start:null,end:null,view:new Date(new Date().getFullYear(),new Date().getMonth(),1),awaitingEnd:false,priorValue:''};var pop=document.getElementById('pValidadeCalendario');if(pop)pop.hidden=true;if(!skipDraw)drawPlaca();}
+var pValidadePopEl_=document.getElementById('pValidadeCalendario');
+if(pValidadePopEl_)pValidadePopEl_.addEventListener('click',function(e){e.stopPropagation();});
+document.addEventListener('click',function(e){var pop=document.getElementById('pValidadeCalendario'),control=document.querySelector('.p-validade-control'),path=e.composedPath?e.composedPath():[];if(pop&&!pop.hidden&&path.indexOf(pop)<0&&!pop.contains(e.target)&&control&&!control.contains(e.target))pValidadeFechar_(true);});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')pValidadeFechar_(true);});
+window.addEventListener('resize',function(){var pop=document.getElementById('pValidadeCalendario');if(pop&&!pop.hidden)pValidadePosicionar_();});
+window.addEventListener('scroll',function(){var pop=document.getElementById('pValidadeCalendario');if(pop&&!pop.hidden)pValidadePosicionar_();},true);
+
 function limparCampos(){
   esconderSugestoes();
   ++fotoToken;
@@ -2763,6 +2853,7 @@ function limparCampos(){
   document.getElementById('pDe').value='';
   document.getElementById('pPor').value='';
   document.getElementById('pValidade').value='';
+  pValidadeLimpar_(true);
   var ft=document.getElementById('pFotoTermo');if(ft)ft.value='';
   var fu=document.getElementById('pFotoUrl');if(fu)fu.value='';
   var pf=document.getElementById('pFoto');if(pf)pf.value='';
@@ -4129,6 +4220,7 @@ async function editarEncarte(id){
   descricaoTransform=Object.assign({scale:1,dx:0,dy:0},it.descricaoTransform||{});
   document.getElementById('pDe').value=it.de||'';
   document.getElementById('pValidade').value=it.validade||'';
+  pValidadeCarregar_(it.validade||'');
 
   // Mostra os dados do produto junto ao formulário mesmo quando a edição é
   // aberta pela lista, sem depender de uma nova busca manual pelo código.
