@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v7.32 — descrição editável com quebra de linha manual -->
+<!-- Arsenal de Ofertas v7.33 — descrição com posicionamento e escala ajustáveis -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -118,6 +118,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 @media(max-width:640px){.foto-panel{align-items:stretch}.foto-search{grid-template-columns:1fr}.foto-preview{width:56px;height:56px}}
 .foto-ajuste{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;align-items:center}
 .foto-ajuste .sep{width:1px;align-self:stretch;background:var(--bds);margin:0 2px}
+.desc-ajuste{display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-wrap:nowrap;margin-top:3px}
+.desc-ajuste .btn-ico{width:21px;height:21px;font-size:11px}
+.desc-ajuste .sep{width:1px;height:18px;background:var(--bds);margin:0 2px}
 .btn-ico{width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--bds);border-radius:6px;background:var(--bg);color:var(--tx);cursor:pointer;font-size:13px;padding:0}
 .btn-ico:hover{background:var(--bg2);border-color:var(--green);color:var(--green)}
 .btn-ico:active{transform:scale(.9)}
@@ -179,6 +182,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   .arsenal-encartes-panel{overflow:hidden}
   .arsenal-encartes-panel .encartes-grid{height:auto;max-height:none;min-height:0;flex:1 1 auto}
 }
+/* Em desktop amplo, os controles do produto usam o espaço horizontal do painel
+   para que a visão geral caiba na tela sem uma segunda barra de rolagem. */
+@media(min-width:1850px) and (min-height:900px){
+  body{padding:6px}
+  .aura-header{padding:10px 18px;margin-bottom:8px}
+  .aura-header h1{font-size:21px}
+  .arsenal-workspace{height:calc(100vh - 116px)}
+  .arsenal-workspace>.panel{overflow-x:hidden;overflow-y:auto;padding:8px 10px;scrollbar-width:thin}
+  .arsenal-workspace>.panel h2{margin-bottom:5px}
+  .arsenal-workspace>.panel .f-row{gap:3px;margin-bottom:5px}
+  .arsenal-workspace>.panel .divider{margin:5px 0}
+  .arsenal-workspace>.panel .hint{display:none}
+  .arsenal-workspace>.panel .prod-info{margin-bottom:5px;gap:4px;min-height:36px}
+  .arsenal-workspace>.panel .prod-info-badge{min-height:36px;padding:4px 7px}
+  .arsenal-workspace>.panel .foto-panel{padding:6px 8px;margin-bottom:5px;gap:7px}
+  .arsenal-workspace>.panel .foto-preview{width:54px;height:54px}
+  .arsenal-workspace>.panel .foto-status{display:none}
+  .arsenal-workspace>.panel .foto-search{margin-bottom:3px;gap:4px}
+  .arsenal-workspace>.panel .foto-search input{height:27px;font-size:11px}
+  .arsenal-workspace>.panel .foto-search .btn,.arsenal-workspace>.panel .foto-actions .btn{padding:4px 7px;font-size:10px}
+  .arsenal-workspace>.panel .foto-actions{gap:4px}
+  .arsenal-workspace>.panel .foto-ajuste{margin-top:4px;gap:3px}
+  .arsenal-workspace>.panel .foto-ajuste .btn-ico{width:23px;height:23px}
+  .arsenal-workspace>.panel .row-3{gap:5px}
+  .arsenal-workspace>.panel .f-row input,.arsenal-workspace>.panel .f-row select{height:31px;padding-inline:8px}
+  .arsenal-workspace>.panel #pDescOverride{min-height:46px!important;height:46px;resize:none}
+  .arsenal-workspace>.panel .color-row{gap:5px}
+  .arsenal-workspace>.panel .color-row label{font-size:10px;gap:3px}
+  .arsenal-workspace>.panel .color-row input[type=color]{width:27px;height:25px}
+  .arsenal-workspace>.panel #packFields{padding:6px 8px!important;margin-bottom:5px!important}
+  .arsenal-workspace>.panel #packFields .f-row{margin-bottom:4px!important}
+  .arsenal-workspace>.panel #unirFields{padding:6px 8px!important;margin-bottom:5px!important}
+  .arsenal-workspace>.panel .row-3 .f-row{margin-bottom:4px}
+  .arsenal-workspace>.panel .opts{gap:8px;font-size:10px;margin-bottom:5px!important}
+  .arsenal-workspace>.panel .opts label{gap:3px}
+  .arsenal-workspace>.panel .opts input[type=checkbox]{width:13px;height:13px}
+}
 .encartes-search{display:flex;align-items:center;gap:8px;margin:10px 0 4px;max-width:620px}
 .encartes-search .searchbox{position:relative;display:flex;align-items:center;flex:1;min-width:0}
 .encartes-search .searchbox>i{position:absolute;left:11px;color:var(--tx2);pointer-events:none}
@@ -213,7 +253,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .ed-modal-loading p{font-size:13px;color:#555}
 .enc-thumb{width:100%;aspect-ratio:1054/1492;background:#fff;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--bd)}
 .enc-thumb img{max-width:100%;max-height:100%;object-fit:contain}
-.enc-nome{font-size:12px;font-weight:700;line-height:1.25;max-height:2.5em;overflow:hidden}
+.enc-nome{font-size:12px;font-weight:700;line-height:1.25;max-height:2.5em;overflow:hidden;white-space:pre-line}
 .enc-meta{font-size:11px;color:var(--tx2);display:flex;justify-content:space-between}
 .enc-empty{grid-column:1/-1;text-align:center;color:var(--tx2);font-size:12px;padding:18px 0}
 #printArea{display:none}
@@ -367,7 +407,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <button class="btn btn-sm" id="btnSalvarNuvem" style="display:none" onclick="adicionarNaListaAuto()"><i class="ti ti-device-floppy"></i> Salvar edição</button>
       <button class="btn btn-sm" id="btnCancelarEdicao" style="display:none" onclick="cancelarEdicaoEncarte()"><i class="ti ti-x"></i> Cancelar edição</button>
 
-      <div class="f-row">
+          <div class="f-row">
         <label for="pCod">Código interno, EAN ou produto</label>
         <div class="search-wrap" style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
           <div style="position:relative;flex:1;min-width:160px">
@@ -433,7 +473,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <div class="f-row">
           <label for="pDescOverride">Descrição da placa (editável)</label>
           <textarea id="pDescOverride" rows="2" placeholder="Preencha o código para carregar" oninput="drawPlaca()" style="resize:vertical;min-height:54px;line-height:1.25;padding:7px 10px"></textarea>
-          <span class="hint">Use Enter para escolher onde o nome continua na linha de baixo. A descrição editada fica salva na promoção.</span>
+          <div class="desc-ajuste" title="Ajustar posição e tamanho do texto na placa">
+            <button type="button" class="btn-ico" onclick="ajustarDescricao('zoom-out')" title="Diminuir texto"><i class="ti ti-zoom-out"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarDescricao('zoom-in')" title="Aumentar texto"><i class="ti ti-zoom-in"></i></button>
+            <span class="sep"></span>
+            <button type="button" class="btn-ico" onclick="ajustarDescricao('left')" title="Mover texto para a esquerda"><i class="ti ti-arrow-left"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarDescricao('right')" title="Mover texto para a direita"><i class="ti ti-arrow-right"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarDescricao('up')" title="Mover texto para cima"><i class="ti ti-arrow-up"></i></button>
+            <button type="button" class="btn-ico" onclick="ajustarDescricao('down')" title="Mover texto para baixo"><i class="ti ti-arrow-down"></i></button>
+            <span class="sep"></span>
+            <button type="button" class="btn-ico" onclick="ajustarDescricao('reset')" title="Restaurar padrão do tema"><i class="ti ti-restore"></i></button>
+          </div>
+          <span class="hint">Enter define a quebra de linha. As setas movem o texto; as lupas ajustam o tamanho. O padrão do tema pode ser restaurado.</span>
         </div>
         <div class="f-row">
           <label for="pDe">Valor de venda (De)</label>
@@ -641,7 +692,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-QUEBRAS-LINHA-20261029';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-AJUSTE-TEXTO-20261029';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -753,7 +804,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.32-descricao-editavel-quebras-linha';
+var AURA_ARSENAL_BUILD='v7.33-descricao-posicao-escala';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -886,6 +937,7 @@ var templatePackReady=false;
 var fotoImg=null;
 var fotoToken=0;
 var fotoTransform=null; // {scale,dx,dy,rot} ajuste manual da foto principal
+var descricaoTransform={scale:1,dx:0,dy:0}; // ajuste manual do nome na placa, salvo com a promoção
 var prodAtualCod='';
 var unirPrincipalCod=''; // código estável do produto principal enquanto o modo Unir estiver sendo montado
 var unirExtras=[];   // produtos extras unidos ao principal: cada item {id,cod,nome,img,imgRecortada,token}
@@ -1667,6 +1719,20 @@ function ajustarFoto(alvo,acao){
   }
   drawPlaca();
 }
+function ajustarDescricao(acao){
+  if(!descricaoTransform)descricaoTransform={scale:1,dx:0,dy:0};
+  var t=descricaoTransform;
+  switch(acao){
+    case 'zoom-in':t.scale=Math.min(1.45,(t.scale||1)+0.05);break;
+    case 'zoom-out':t.scale=Math.max(0.65,(t.scale||1)-0.05);break;
+    case 'left':t.dx=Math.max(-180,(t.dx||0)-18);break;
+    case 'right':t.dx=Math.min(180,(t.dx||0)+18);break;
+    case 'up':t.dy=Math.max(-90,(t.dy||0)-14);break;
+    case 'down':t.dy=Math.min(90,(t.dy||0)+14);break;
+    case 'reset':descricaoTransform={scale:1,dx:0,dy:0};break;
+  }
+  drawPlaca();
+}
 function carregarImagemUrl(url,semProxy){
   return new Promise(function(resolve){
     if(!url){resolve(null);return;}
@@ -2309,6 +2375,7 @@ function preencherProduto(prod){
     '<div class="prod-info-badge pi-sale"><span class="pi-label">Venda</span><div class="pi-price">'+precoTxt+'</div></div>'+
     '<div class="prod-info-badge pi-description"><span class="pi-label">Descrição</span><div class="pi-value">'+escapeHtml(prod.nome||'(sem descrição)')+'</div></div>';
   document.getElementById('pDescOverride').value=prod.nome||'';
+  if(!editingEncarteId)descricaoTransform={scale:1,dx:0,dy:0};
   if(prod.unidade){
     var unidadeBanco=normalizarUnidadeBanco(prod.unidade);
     var selUnidade=document.getElementById('pUnidade');
@@ -2661,6 +2728,7 @@ function limparCampos(){
   fotoOrigemDrive=false;
   document.getElementById('pCod').value='';
   document.getElementById('pDescOverride').value='';
+  descricaoTransform={scale:1,dx:0,dy:0};
   document.getElementById('pDe').value='';
   document.getElementById('pPor').value='';
   document.getElementById('pValidade').value='';
@@ -2808,30 +2876,33 @@ async function drawPlaca(){
     .replace(/\s*\{.*?\}/g,'')
     .replace(/\s*\(\d+\)/g,'')
     .trim();
+  var dt=descricaoTransform||{scale:1,dx:0,dy:0};
+  var titleScale=Math.max(0.65,Math.min(1.45,Number(dt.scale)||1));
+  var titleDx=Number(dt.dx)||0,titleDy=Number(dt.dy)||0;
   if(!packOn){
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=corTexto;
-  var fs=76;
-  while(fs>26){
+  var fs=76*titleScale;
+  while(fs>26*titleScale){
     ctx.font='900 '+fs+'px '+fonte;
-    var lines=splitLines(nomeClean,960);
-    if(lines.length<=3 && lines.length*fs*1.10<=200)break;
-    fs-=4;
+    var lines=splitLines(nomeClean,960/titleScale);
+    if(lines.length<=3 && lines.length*fs*1.10<=200*titleScale)break;
+    fs-=4*titleScale;
   }
   ctx.font='900 '+fs+'px '+fonte;
-  var nLines=splitLines(nomeClean,960);
+  var nLines=splitLines(nomeClean,960/titleScale);
   var lh=fs*1.10;
-  var nomeCY=525; // centro vertical dentro da área branca
+  var nomeCY=525+titleDy; // centro vertical padrão, ajustável pelas setas
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
-  for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2,nomeStartY+ni*lh);
+  for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2+titleDx,nomeStartY+ni*lh);
   }else{
     // No modo Pack — coordenadas do template atual (PACK_MAP.titulo), até 2 linhas.
     // O bloco não pode ultrapassar o topo do card de imagem (PACK_MAP.imagem).
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=corTexto;
     var tCfg=PACK_MAP.titulo;
-    var pTop=my(tCfg.y), pCX=mx(tCfg.x)+mx(tCfg.width)/2;
-    var pMaxW=mx(tCfg.width);
-    var pfs=my(tCfg.fontSize), plhRatio=tCfg.lineHeight/tCfg.fontSize;
-    var plh=my(tCfg.lineHeight);
+    var pTop=my(tCfg.y)+titleDy, pCX=mx(tCfg.x)+mx(tCfg.width)/2+titleDx;
+    var pMaxW=mx(tCfg.width)/titleScale;
+    var pfs=my(tCfg.fontSize)*titleScale, plhRatio=tCfg.lineHeight/tCfg.fontSize;
+    var plh=my(tCfg.lineHeight)*titleScale;
     var pLimite=my(PACK_MAP.imagem.y)-8;
     ctx.font='900 '+pfs+'px '+fonte;
     var pLines=splitLines(nomeClean,pMaxW);
@@ -3801,6 +3872,7 @@ async function adicionarNaListaAuto(){
   var unirOn=!!(document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked);
   var produtosExtra=unirOn?unirExtras.filter(function(x){return x.cod||x.nome;}).map(function(x){return {codigo:x.cod,nome:x.nome};}):[];
   var descricaoFinalManual=unirOn?((document.getElementById('pDescFinal')&&document.getElementById('pDescFinal').value||'').trim()):'';
+  var transformDescricao=Object.assign({scale:1,dx:0,dy:0},descricaoTransform||{});
 
   try{
     // Lista leve: guarda só os dados do produto. v6.31.2 usa upsert atômico
@@ -3811,6 +3883,7 @@ async function adicionarNaListaAuto(){
       codigo:cod,
       produto:produtoBanco,
       produtoDigitado:produtoDigitado,
+      descricaoTransform:transformDescricao,
       produtoInfo:{codigo:cod,descricao:produtoDigitado||produtoBanco,unidade:unidadeBanco||unidadeMedida,valorVenda:valorVendaBanco},
       de:de,
       por:precoPromo,
@@ -4022,6 +4095,7 @@ async function editarEncarte(id){
   unirPrincipalCod=cod;
   document.getElementById('pCod').value=cod||it.codigo||'';
   document.getElementById('pDescOverride').value=descricaoBanco;
+  descricaoTransform=Object.assign({scale:1,dx:0,dy:0},it.descricaoTransform||{});
   document.getElementById('pDe').value=it.de||'';
   document.getElementById('pValidade').value=it.validade||'';
 
@@ -4112,6 +4186,7 @@ async function editarEncarte(id){
 
 function cancelarEdicaoEncarte(){
   editingEncarteId=null;
+  descricaoTransform={scale:1,dx:0,dy:0};
   var btn=document.getElementById('btnSalvarNuvem');
   if(btn)btn.style.display='none';
   var btnCancel=document.getElementById('btnCancelarEdicao');
