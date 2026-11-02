@@ -759,7 +759,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CESTAS-MULTIPLAS-FORMULAS-BANCO-STORY-20261102';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CESTAS-MULTIPLAS-FORMULAS-AUTODETECT-20261102';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -2466,6 +2466,7 @@ function preencherProduto(prod){
   drawPlaca();
   if(prod.cod)auraAtualizarTemaPeloSetorCentral_(prod.cod,prod.nome,temaSeqAtual);
   buscarFotoCompleta(prod.cod,prod.nome);
+  if(typeof window.abrirFormulaCestaPorProduto==='function')window.abrirFormulaCestaPorProduto(prod);
 }
 
 var unirLayoutPref='auto'; // 'auto' | 'juntinho' | 'vertical' | 'grid'
@@ -5631,8 +5632,18 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
  function prepararCorrespondencias_(){formulaAtual.itens.forEach(function(it){it.produtoBanco=buscarCorrespondenciaBanco_(it);it.nomeBanco=it.produtoBanco&&it.produtoBanco.nome||'';it.codigoBanco=it.produtoBanco&&it.produtoBanco.cod||'';});}
  function nomeItem_(it){return it.nomeBanco||it.descricao;}
  function totalUnidades_(f){return f.itens.reduce(function(s,it){return s+(Number(it.qtd)||0);},0);}
+ function formulaCorrespondenteProduto_(prod){
+  if(!prod)return null;
+  var nome=normalizarTexto(prod.nome||prod.descricao||''),cod=normalizarCodigo(prod.cod||prod.codigo||'');
+  var exata=FORMULAS.find(function(f){return normalizarTexto(f.nome)===nome;});
+  if(exata)return exata;
+  // O código 664 foi confirmado no cadastro da Sacola Básica Limpeza.
+  if(cod==='664')return FORMULAS.find(function(f){return f.id==='sacola-basica-limpeza';})||null;
+  return null;
+ }
+ window.abrirFormulaCestaPorProduto=function(prod){var f=formulaCorrespondenteProduto_(prod);if(f)window.abrirCestasArsenal(f.id);};
  function atualizarCards(){var host=document.getElementById('cestaFormulaItems');if(!host)return;host.innerHTML='';prepararCorrespondencias_();formulaAtual.itens.forEach(function(it){var c=document.createElement('div');c.className='cesta-formula-card';c.innerHTML='<div class="cesta-formula-photo" id="fotoFormula_'+esc(it.ean)+'">Aguardando foto…</div><div class="cesta-formula-name">'+esc(nomeItem_(it))+'</div><div class="cesta-formula-code">'+(it.nomeBanco?'Banco vinculado':'Sem correspondência no banco')+'<br>Cód. '+esc(it.codigo)+' · EAN '+esc(it.ean)+' · '+it.qtd+' un.</div>';host.appendChild(c);});}
- window.abrirCestasArsenal=async function(){var m=document.getElementById('cestasStoryModal');if(!m)return;m.classList.add('open');status('Aguardando a sincronização do banco de produtos…');try{if(window._arsenalSyncInFlight_)await window._arsenalSyncInFlight_;else if(!temBaseProdutos()&&typeof syncAll==='function')await syncAll();}catch(e){console.warn('[Arsenal Cestas] Banco indisponível; exibindo os dados da fórmula.',e);}var s=document.getElementById('cestaFormulaSelect');if(s&&!s.options.length)FORMULAS.forEach(function(f){var o=document.createElement('option');o.value=f.id;o.textContent=f.nome+' ('+f.itens.length+' itens)';s.appendChild(o);});selecionarFormulaCesta();};
+ window.abrirCestasArsenal=async function(formulaId){var m=document.getElementById('cestasStoryModal');if(!m)return;m.classList.add('open');status('Aguardando a sincronização do banco de produtos…');try{if(window._arsenalSyncInFlight_)await window._arsenalSyncInFlight_;else if(!temBaseProdutos()&&typeof syncAll==='function')await syncAll();}catch(e){console.warn('[Arsenal Cestas] Banco indisponível; exibindo os dados da fórmula.',e);}var s=document.getElementById('cestaFormulaSelect');if(s&&!s.options.length)FORMULAS.forEach(function(f){var o=document.createElement('option');o.value=f.id;o.textContent=f.nome+' ('+f.itens.length+' itens)';s.appendChild(o);});if(s&&FORMULAS.some(function(f){return f.id===formulaId;}))s.value=formulaId;selecionarFormulaCesta();};
  window.fecharCestasArsenal=function(){var m=document.getElementById('cestasStoryModal');if(m)m.classList.remove('open');};
  window.selecionarFormulaCesta=function(){var s=document.getElementById('cestaFormulaSelect'),f=FORMULAS.find(function(x){return x.id===(s&&s.value);})||FORMULAS[0];fotoLoadToken++;formulaAtual=f;document.getElementById('cestasStoryTitle').textContent=f.nome;fotos={};fotoImages={};atualizarCards();atualizarStoryCesta();carregarFotosCesta();};
  window.carregarFotosCesta=async function(){var token=++fotoLoadToken,f=formulaAtual,itens=f.itens.slice(),total=itens.length,feito=0,proximo=0,carregadas=0;prepararCorrespondencias_();status('Consultando banco e fotos: 0 de '+total+' itens…');async function worker(){while(proximo<total&&token===fotoLoadToken){var i=proximo++,it=itens[i];try{var nome=it.nomeBanco||it.descricao;var r=await _resolverFotoAura(it.ean,'produto',nome,true);if(!r||!r.src){var codAlternativo=it.codigoBanco||it.codigo;if(codAlternativo&&codAlternativo!==it.ean)r=await _resolverFotoAura(codAlternativo,'produto',nome,true);}if(token!==fotoLoadToken)return;if(r&&r.src){fotos[it.ean]=r.src;carregadas++;}}catch(e){console.warn('[Arsenal Cestas] Foto não disponível para',it.ean,e);}if(token!==fotoLoadToken)return;feito++;var box=document.getElementById('fotoFormula_'+it.ean);if(box){if(fotos[it.ean]){var im=new Image();im.alt=it.nomeBanco||it.descricao;im.src=fotos[it.ean];box.textContent='';box.appendChild(im);}else box.textContent=it.nomeBanco?'Foto não encontrada':'Item não localizado no banco';}status('Consultando banco e fotos: '+feito+' de '+total+' itens…');atualizarStoryCesta();}}
