@@ -759,7 +759,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CESTAS-AUTODETECT-PRECO-BANCO-BUSCA-FOTOS-20261102';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CESTAS-AUTODETECT-PRECO-BUSCA-FOTOS-STORY-VERMELHO-AMARELO-20261102';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -5668,8 +5668,8 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
  function arredondar(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
  function textoQuebra(ctx,texto,x,y,maxW,lineH,maxLinhas){var palavras=String(texto||'').split(/\s+/),linha='',linhas=[];palavras.forEach(function(p){var teste=linha?linha+' '+p:p;if(ctx.measureText(teste).width>maxW&&linha){linhas.push(linha);linha=p;}else linha=teste;});if(linha)linhas.push(linha);if(linhas.length>maxLinhas){linhas=linhas.slice(0,maxLinhas);var z=linhas[maxLinhas-1];while(ctx.measureText(z+'…').width>maxW&&z.length)z=z.slice(0,-1);linhas[maxLinhas-1]=z+'…';}linhas.forEach(function(l,i){ctx.fillText(l,x,y+i*lineH);});}
  function desenharStory(){var cv=document.getElementById('cestasStoryCanvas'),ctx=cv.getContext('2d'),W=1080,H=1920;ctx.clearRect(0,0,W,H);
-  var bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#b5121b');bg.addColorStop(.42,'#e22b24');bg.addColorStop(.421,'#fffdf6');bg.addColorStop(1,'#fff5c9');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(255,255,255,.10)';ctx.beginPath();ctx.arc(1000,125,300,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,210,0,.15)';ctx.beginPath();ctx.arc(35,480,180,0,Math.PI*2);ctx.fill();
+  var bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#a90f19');bg.addColorStop(.27,'#d71920');bg.addColorStop(.43,'#f04424');bg.addColorStop(.62,'#ffb900');bg.addColorStop(.82,'#ffdc00');bg.addColorStop(1,'#ffc400');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.08)';ctx.beginPath();ctx.arc(1000,125,300,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,245,160,.22)';ctx.beginPath();ctx.arc(35,480,180,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#fff';ctx.font='800 28px Arial';ctx.fillText('SUPERMERCADO BOAS COMPRAS',64,82);
   ctx.fillStyle='#ffdf00';ctx.font='900 58px Arial';textoQuebra(ctx,formulaAtual.nome.toUpperCase(),64,176,940,66,2);
   var subtitulo=formulaAtual.itens.length+' ITENS · '+totalUnidades_(formulaAtual)+' UNIDADES';ctx.fillStyle='rgba(255,255,255,.95)';arredondar(ctx,64,252,470,58,29);ctx.fill();ctx.fillStyle='#8e1118';ctx.font='800 25px Arial';ctx.fillText(subtitulo,88,290);
