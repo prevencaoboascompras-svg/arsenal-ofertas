@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v7.42 — revisão de português na validade -->
+<!-- Arsenal de Ofertas v7.44 — fórmulas múltiplas de cestas -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -425,6 +425,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     </div>
     <div class="aura-header-actions">
       <div class="aura-header-actions-row">
+        <button class="aura-btn" type="button" id="btnCestasFormula" onclick="abrirCestasArsenal()" title="Montar cesta promocional e gerar Story">
+          <i class="ti ti-basket" style="font-size:16px"></i>
+          <span>Cestas</span>
+        </button>
         <button class="aura-btn" id="btnCfg" onclick="toggleCfg()" title="Configurar conexão">
           <i class="ti ti-settings" style="font-size:16px"></i>
           <span>Configurar</span>
@@ -755,7 +759,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CESTAS-MULTIPLAS-FORMULAS-BANCO-STORY-20261102';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -5520,6 +5524,140 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
 
 <script id="aura-process-loader-hooks">
 (function(){if(!window.AuraLoader)return;var ops=[["imprimirSelecionados", "Preparando a impressão…", "Impressão preparada"], ["syncAll", "Sincronizando as ofertas…", "Ofertas sincronizadas"], ["buscarFotoPorTermoManual", "Buscando a imagem do produto…", "Imagem carregada"], ["usarFotoUrlManual", "Carregando a imagem informada…", "Imagem carregada"], ["downloadPlaca", "Baixando a placa…", "Placa baixada"], ["copiarPlaca", "Copiando a placa…", "Placa copiada"], ["imprimirPlacaA4", "Preparando a placa A4…", "Placa pronta para impressão"], ["adicionarNaListaAuto", "Adicionando o produto à lista…", "Produto adicionado"], ["gerarEncarteDoDia", "Gerando o encarte do dia…", "Encarte gerado"], ["editarEncarte", "Salvando o encarte…", "Encarte salvo"], ["baixarEncartePNG", "Gerando o arquivo do encarte…", "Arquivo gerado"], ["carregarEncartes", "Atualizando a lista de encartes…", "Encartes atualizados", "manualTag"]];ops.forEach(function(x){window.AuraLoader.wrapAction(x[0],x[1],x[2],x[3])});})();
+</script>
+
+<style id="arsenal-cestas-story-style">
+.cestas-story-back{display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.76);align-items:center;justify-content:center;padding:18px}
+.cestas-story-back.open{display:flex}
+.cestas-story-box{width:min(1120px,96vw);height:min(94vh,900px);background:#1d1d1d;border:1px solid #454545;border-radius:16px;box-shadow:0 24px 80px #0009;display:grid;grid-template-rows:auto 1fr;overflow:hidden;color:#f5f5f5}
+.cestas-story-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #444;background:linear-gradient(90deg,#b91c1c,#991b1b)}
+.cestas-story-head h2{font-size:18px;margin:0;flex:1}.cestas-story-head small{font-size:11px;opacity:.85}
+.cestas-story-close{border:1px solid #ffffff55;border-radius:8px;background:#ffffff18;color:#fff;height:36px;padding:0 12px;cursor:pointer;font-weight:700}
+.cestas-story-body{min-height:0;display:grid;grid-template-columns:minmax(360px,1fr) minmax(300px,.72fr);gap:16px;padding:16px;overflow:auto}
+.cestas-story-controls{min-width:0;display:flex;flex-direction:column;gap:10px}
+.cestas-story-controls label{font-size:11px;color:#bdbdbd;font-weight:700;display:block;margin-bottom:4px}
+.cestas-story-controls select,.cestas-story-controls input{width:100%;height:40px;background:#292929;color:#fff;border:1px solid #555;border-radius:8px;padding:0 10px;font:14px inherit}
+.cesta-formula-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cesta-formula-card{min-width:0;background:#292929;border:1px solid #444;border-radius:9px;padding:7px;display:flex;flex-direction:column;gap:5px}
+.cesta-formula-photo{height:95px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#888;font-size:11px;text-align:center}
+.cesta-formula-photo img{width:100%;height:100%;object-fit:contain;display:block}
+.cesta-formula-name{font-size:10px;font-weight:800;line-height:1.25;min-height:27px;overflow:hidden}
+.cesta-formula-code{font-size:9px;color:#aaa}
+.cestas-story-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.cestas-story-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cestas-story-preview{min-height:0;display:flex;align-items:center;justify-content:center;background:#111;border:1px solid #383838;border-radius:12px;padding:10px;overflow:hidden}
+.cestas-story-preview img{display:block;max-height:100%;max-width:100%;height:auto;width:auto;aspect-ratio:9/16;object-fit:contain;border-radius:8px;background:#fff}
+#cestasStoryCanvas{display:none}
+.cestas-story-status{min-height:20px;font-size:11px;color:#b8b8b8}
+@media(max-width:760px){.cestas-story-back{padding:6px}.cestas-story-box{width:100%;height:96dvh;border-radius:12px}.cestas-story-body{grid-template-columns:1fr;grid-template-rows:auto minmax(360px,1fr);padding:10px;gap:10px}.cesta-formula-items{grid-template-columns:repeat(3,minmax(0,1fr))}.cesta-formula-photo{height:78px}.cestas-story-preview{min-height:380px}.cestas-story-preview img{max-height:70vh}}
+</style>
+
+<div class="cestas-story-back" id="cestasStoryModal" role="dialog" aria-modal="true" aria-labelledby="cestasStoryTitle" onclick="if(event.target===this)fecharCestasArsenal()">
+ <div class="cestas-story-box">
+  <div class="cestas-story-head"><i class="ti ti-basket" style="font-size:21px"></i><div style="flex:1"><h2 id="cestasStoryTitle">Fórmula da cesta</h2><small>Produtos vinculados pelo EAN; fotos consultadas no banco central AURA</small></div><button class="cestas-story-close" type="button" onclick="fecharCestasArsenal()">Fechar</button></div>
+  <div class="cestas-story-body">
+   <section class="cestas-story-controls">
+    <div><label for="cestaFormulaSelect">Fórmula reconhecida</label><select id="cestaFormulaSelect" onchange="selecionarFormulaCesta()"></select></div>
+    <div class="cestas-story-row"><div><label for="cestaPrecoStory">Valor da cesta (opcional)</label><input id="cestaPrecoStory" inputmode="decimal" placeholder="Deixe vazio para preencher depois" oninput="atualizarStoryCesta()"></div><button type="button" class="btn btn-sm" onclick="carregarFotosCesta()"><i class="ti ti-refresh"></i> Atualizar fotos</button></div>
+    <div class="cestas-story-status" id="cestasStoryStatus">Carregando a fórmula…</div>
+    <div class="cesta-formula-items" id="cestaFormulaItems"></div>
+    <div class="cestas-story-actions"><button type="button" class="btn btn-green" onclick="baixarStoryCesta()"><i class="ti ti-download"></i> Baixar Story PNG</button><button type="button" class="btn" onclick="atualizarStoryCesta()"><i class="ti ti-refresh"></i> Atualizar prévia</button></div>
+    <small style="font-size:10px;color:#aaa;line-height:1.4">As fórmulas foram importadas dos relatórios Telecon. O Arsenal cruza código de barras e descrição com o banco de produtos e consulta as fotos pelo EAN. O preço da cesta pode ser informado antes de gerar a arte.</small>
+   </section>
+   <div class="cestas-story-preview"><img id="cestasStoryPreview" alt="Prévia do Story da cesta de limpeza"><canvas id="cestasStoryCanvas" width="1080" height="1920"></canvas></div>
+  </div>
+ </div>
+</div>
+
+<script id="arsenal-cestas-story-js">
+(function(){
+ 'use strict';
+ var FORMULAS=[
+  {id:'sacola-basica-limpeza',nome:'Sacola Básica Limpeza',itens:[
+   {codigo:'10670',ean:'7896098909751',descricao:'LAVA ROUPAS TIXAN YPE 800G MACIE',qtd:1},
+   {codigo:'10724',ean:'7896540900336',descricao:'DETERGENTE GOTA LIMPA MACA 500',qtd:1},
+   {codigo:'11858',ean:'7897664171701',descricao:'SABONETE ALBANY AMENDOAS 85G',qtd:1},
+   {codigo:'12753',ean:'7898906657618',descricao:'AGUA SANITARIA BRILHA SUL 2L',qtd:1},
+   {codigo:'13098',ean:'7891037744257',descricao:'CLOSEUP 360 MENTHOL 90G',qtd:1},
+   {codigo:'16437',ean:'7898906657403',descricao:'AMACIANTE BRILHA SUL ACONCHEG',qtd:1},
+   {codigo:'16445',ean:'7898906657564',descricao:'DESINFETANTE BRILHA SUL EUCALIP',qtd:1},
+   {codigo:'18158',ean:'7891055228401',descricao:'ESPONJA MULTI USO CONDOR',qtd:1},
+   {codigo:'19030',ean:'7898976806022',descricao:'PAPEL HIGIENICO FINOPEL F DUPLA',qtd:1}
+  ]},
+  {id:'sacola-basica-economica',nome:'Sacola Básica Econômica',itens:[
+   {codigo:'4905',ean:'7890300155929',descricao:'FEIJAO FRITZ E FRIDA PRETO 1KG',qtd:2},
+   {codigo:'4908',ean:'7890300127957',descricao:'SAL MOIDO FRITZ E FRIDA 1KG',qtd:1},
+   {codigo:'6045',ean:'7896035733326',descricao:'CAFE BOM JESUS 500G',qtd:1},
+   {codigo:'7085',ean:'7898045271836',descricao:'BISCOITO GERMANI ROSCA LEITE 30',qtd:1},
+   {codigo:'9011',ean:'7898949706038',descricao:'ARROZ BEM GAUCHO 5 KG',qtd:1},
+   {codigo:'12258',ean:'7898247780297',descricao:'OLEO SOJA VITALIV 900ML',qtd:1},
+   {codigo:'16112',ean:'7898384160259',descricao:'FARINHA DE MILHO MARAVILHOSA G',qtd:1},
+   {codigo:'16492',ean:'7896490351042',descricao:'FARINHA TRIGO CISNE 1KG',qtd:1},
+   {codigo:'16519',ean:'7898187830021',descricao:'ACUCAR CRISTAL SANTA ISABEL 2KG',qtd:1},
+   {codigo:'20627',ean:'631430418990',descricao:'MASSA FAROTTI PENNE 400G',qtd:2}
+  ]},
+  {id:'sacola-basica-familia',nome:'Sacola Básica Família',itens:[
+   {codigo:'4462',ean:'7898930141800',descricao:'MILHO CAJAMAR 170G',qtd:1},
+   {codigo:'4464',ean:'7898930141817',descricao:'ERVILHA CAJAMAR 170G',qtd:1},
+   {codigo:'4908',ean:'7890300127957',descricao:'SAL MOIDO FRITZ E FRIDA 1KG',qtd:1},
+   {codigo:'6086',ean:'7897517206086',descricao:'MOLHO FUGINI 300G',qtd:1},
+   {codigo:'6541',ean:'7896279600538',descricao:'OLEO DE SOJA COAMO 900ML',qtd:3},
+   {codigo:'8103',ean:'7896045102440',descricao:'CAFE 3 CORACOES TRADICIONAL 50',qtd:1},
+   {codigo:'9011',ean:'7898949706038',descricao:'ARROZ BEM GAUCHO 5 KG',qtd:2},
+   {codigo:'12230',ean:'7896045104147',descricao:'CHOCOLATTO 3 CORACOES 560G',qtd:1},
+   {codigo:'12904',ean:'7898941416041',descricao:'ACUCAR GASPARIN 1KG CRISTAL',qtd:3},
+   {codigo:'16111',ean:'7898384160266',descricao:'FARINHA DE MILHO MARAVILHOSA M',qtd:1},
+   {codigo:'16492',ean:'7896490351042',descricao:'FARINHA TRIGO CISNE 1KG',qtd:2},
+   {codigo:'16984',ean:'7898384160105',descricao:'FEIJAO PRETO FLATUT 1KG',qtd:2},
+   {codigo:'18415',ean:'7898665611975',descricao:'MASSA ESPAGUETE PANFACIL 500G',qtd:1},
+   {codigo:'18416',ean:'7898665611982',descricao:'MASSA PARAFUSO PANFACIL 500G',qtd:1},
+   {codigo:'20060',ean:'7898088103019',descricao:'BISCOITO DOMELLY GLACEADOS CH',qtd:2}
+  ]}
+ ];
+ var formulaAtual=FORMULAS[0],fotos={},fotoImages={},fotoLoadToken=0;
+ function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+ function status(t){var e=document.getElementById('cestasStoryStatus');if(e)e.textContent=t;}
+ function buscarCorrespondenciaBanco_(it){
+  var p=null;
+  try{p=buscarPorCodigo(it.ean)||buscarPorCodigo(it.codigo);}catch(e){}
+  if(p&&p.nome)return p;
+  try{
+   var lista=buscarProdutos(it.descricao,20)||[],norm=normalizarTexto(it.descricao);
+   var exato=lista.find(function(x){return normalizarTexto(x.nome)===norm;});
+   if(exato)return exato;
+  }catch(e2){}
+  return p||null;
+ }
+ function prepararCorrespondencias_(){formulaAtual.itens.forEach(function(it){it.produtoBanco=buscarCorrespondenciaBanco_(it);it.nomeBanco=it.produtoBanco&&it.produtoBanco.nome||'';it.codigoBanco=it.produtoBanco&&it.produtoBanco.cod||'';});}
+ function nomeItem_(it){return it.nomeBanco||it.descricao;}
+ function totalUnidades_(f){return f.itens.reduce(function(s,it){return s+(Number(it.qtd)||0);},0);}
+ function atualizarCards(){var host=document.getElementById('cestaFormulaItems');if(!host)return;host.innerHTML='';prepararCorrespondencias_();formulaAtual.itens.forEach(function(it){var c=document.createElement('div');c.className='cesta-formula-card';c.innerHTML='<div class="cesta-formula-photo" id="fotoFormula_'+esc(it.ean)+'">Aguardando foto…</div><div class="cesta-formula-name">'+esc(nomeItem_(it))+'</div><div class="cesta-formula-code">'+(it.nomeBanco?'Banco vinculado':'Sem correspondência no banco')+'<br>Cód. '+esc(it.codigo)+' · EAN '+esc(it.ean)+' · '+it.qtd+' un.</div>';host.appendChild(c);});}
+ window.abrirCestasArsenal=async function(){var m=document.getElementById('cestasStoryModal');if(!m)return;m.classList.add('open');status('Aguardando a sincronização do banco de produtos…');try{if(window._arsenalSyncInFlight_)await window._arsenalSyncInFlight_;else if(!temBaseProdutos()&&typeof syncAll==='function')await syncAll();}catch(e){console.warn('[Arsenal Cestas] Banco indisponível; exibindo os dados da fórmula.',e);}var s=document.getElementById('cestaFormulaSelect');if(s&&!s.options.length)FORMULAS.forEach(function(f){var o=document.createElement('option');o.value=f.id;o.textContent=f.nome+' ('+f.itens.length+' itens)';s.appendChild(o);});selecionarFormulaCesta();};
+ window.fecharCestasArsenal=function(){var m=document.getElementById('cestasStoryModal');if(m)m.classList.remove('open');};
+ window.selecionarFormulaCesta=function(){var s=document.getElementById('cestaFormulaSelect'),f=FORMULAS.find(function(x){return x.id===(s&&s.value);})||FORMULAS[0];fotoLoadToken++;formulaAtual=f;document.getElementById('cestasStoryTitle').textContent=f.nome;fotos={};fotoImages={};atualizarCards();atualizarStoryCesta();carregarFotosCesta();};
+ window.carregarFotosCesta=async function(){var token=++fotoLoadToken,f=formulaAtual,itens=f.itens.slice(),total=itens.length,feito=0,proximo=0,carregadas=0;prepararCorrespondencias_();status('Consultando banco e fotos: 0 de '+total+' itens…');async function worker(){while(proximo<total&&token===fotoLoadToken){var i=proximo++,it=itens[i];try{var nome=it.nomeBanco||it.descricao;var r=await _resolverFotoAura(it.ean,'produto',nome,true);if(!r||!r.src){var codAlternativo=it.codigoBanco||it.codigo;if(codAlternativo&&codAlternativo!==it.ean)r=await _resolverFotoAura(codAlternativo,'produto',nome,true);}if(token!==fotoLoadToken)return;if(r&&r.src){fotos[it.ean]=r.src;carregadas++;}}catch(e){console.warn('[Arsenal Cestas] Foto não disponível para',it.ean,e);}if(token!==fotoLoadToken)return;feito++;var box=document.getElementById('fotoFormula_'+it.ean);if(box){if(fotos[it.ean]){var im=new Image();im.alt=it.nomeBanco||it.descricao;im.src=fotos[it.ean];box.textContent='';box.appendChild(im);}else box.textContent=it.nomeBanco?'Foto não encontrada':'Item não localizado no banco';}status('Consultando banco e fotos: '+feito+' de '+total+' itens…');atualizarStoryCesta();}}
+  await Promise.all([worker(),worker(),worker()]);if(token===fotoLoadToken){status('Itens da fórmula: '+total+' · produtos vinculados ao banco: '+f.itens.filter(function(it){return !!it.nomeBanco;}).length+' · fotos carregadas: '+carregadas+'/'+total);atualizarStoryCesta();}};
+ function arredondar(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+ function textoQuebra(ctx,texto,x,y,maxW,lineH,maxLinhas){var palavras=String(texto||'').split(/\s+/),linha='',linhas=[];palavras.forEach(function(p){var teste=linha?linha+' '+p:p;if(ctx.measureText(teste).width>maxW&&linha){linhas.push(linha);linha=p;}else linha=teste;});if(linha)linhas.push(linha);if(linhas.length>maxLinhas){linhas=linhas.slice(0,maxLinhas);var z=linhas[maxLinhas-1];while(ctx.measureText(z+'…').width>maxW&&z.length)z=z.slice(0,-1);linhas[maxLinhas-1]=z+'…';}linhas.forEach(function(l,i){ctx.fillText(l,x,y+i*lineH);});}
+ function desenharStory(){var cv=document.getElementById('cestasStoryCanvas'),ctx=cv.getContext('2d'),W=1080,H=1920;ctx.clearRect(0,0,W,H);
+  var bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#b5121b');bg.addColorStop(.42,'#e22b24');bg.addColorStop(.421,'#fffdf6');bg.addColorStop(1,'#fff5c9');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.10)';ctx.beginPath();ctx.arc(1000,125,300,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,210,0,.15)';ctx.beginPath();ctx.arc(35,480,180,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='800 28px Arial';ctx.fillText('SUPERMERCADO BOAS COMPRAS',64,82);
+  ctx.fillStyle='#ffdf00';ctx.font='900 58px Arial';textoQuebra(ctx,formulaAtual.nome.toUpperCase(),64,176,940,66,2);
+  var subtitulo=formulaAtual.itens.length+' ITENS · '+totalUnidades_(formulaAtual)+' UNIDADES';ctx.fillStyle='rgba(255,255,255,.95)';arredondar(ctx,64,252,470,58,29);ctx.fill();ctx.fillStyle='#8e1118';ctx.font='800 25px Arial';ctx.fillText(subtitulo,88,290);
+  var n=formulaAtual.itens.length,cols=n<=9?3:(n<=16?4:5),rows=Math.ceil(n/cols),x0=40,y0=340,gap=12,priceY=1480,gridBottom=priceY-28,cw=(W-80-gap*(cols-1))/cols,ch=(gridBottom-y0-gap*(rows-1))/rows,ph=Math.min(220,Math.max(105,ch-105)),fontName=cols>=4?17:20,lineHeight=cols>=4?20:24;
+  formulaAtual.itens.forEach(function(it,i){var col=i%cols,row=Math.floor(i/cols),x=x0+col*(cw+gap),y=y0+row*(ch+gap);ctx.save();ctx.shadowColor='rgba(0,0,0,.15)';ctx.shadowBlur=10;ctx.shadowOffsetY=4;ctx.fillStyle='#fff';arredondar(ctx,x,y,cw,ch,18);ctx.fill();ctx.restore();
+   var src=fotos[it.ean],py=y+9,im=fotoImages[it.ean];if(src){if(!im){im=new Image();fotoImages[it.ean]=im;im.onload=function(){if(fotoImages[it.ean]===im)atualizarStoryCesta();};im.src=src;}if(im.complete&&im.naturalWidth){var ratio=Math.min((cw-22)/im.naturalWidth,ph/im.naturalHeight),iw=im.naturalWidth*ratio,ih=im.naturalHeight*ratio;ctx.drawImage(im,x+(cw-iw)/2,py+(ph-ih)/2,iw,ih);}else{ctx.fillStyle='#f0f0f0';ctx.fillRect(x+11,py,cw-22,ph);ctx.fillStyle='#777';ctx.font='16px Arial';ctx.textAlign='center';ctx.fillText('Foto carregando…',x+cw/2,py+ph/2);ctx.textAlign='left';}}else{ctx.fillStyle='#f4f4f4';arredondar(ctx,x+11,py,cw-22,ph,10);ctx.fill();ctx.fillStyle='#999';ctx.font='16px Arial';ctx.textAlign='center';ctx.fillText('Foto não cadastrada',x+cw/2,py+ph/2);ctx.textAlign='left';}
+   ctx.fillStyle='#232323';ctx.font='800 '+fontName+'px Arial';textoQuebra(ctx,nomeItem_(it),x+12,y+ph+31,cw-24,lineHeight,2);ctx.fillStyle='#555';ctx.font='700 '+(cols>=4?15:17)+'px Arial';ctx.fillText(String(it.qtd)+' un.',x+12,y+ch-11);
+  });
+  ctx.fillStyle='#fff';arredondar(ctx,48,priceY,984,314,30);ctx.fill();ctx.strokeStyle='#edc400';ctx.lineWidth=7;arredondar(ctx,48,priceY,984,314,30);ctx.stroke();ctx.textAlign='center';ctx.fillStyle='#a70f19';ctx.font='800 32px Arial';ctx.fillText('LEVE A CESTA COMPLETA POR',W/2,priceY+58);ctx.fillStyle='#111';ctx.font='900 31px Arial';ctx.fillText('VALOR DA CESTA',W/2,priceY+105);
+  var raw=document.getElementById('cestaPrecoStory').value.trim(),v=raw.replace(/\./g,'').replace(',','.');var nPreco=v?Number(v):NaN;var price=Number.isFinite(nPreco)&&nPreco>0?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(nPreco):'R$ ______';ctx.fillStyle='#e60012';arredondar(ctx,216,priceY+130,648,104,22);ctx.fill();ctx.fillStyle='#fff';ctx.font='900 62px Arial';ctx.fillText(price,W/2,priceY+201);ctx.fillStyle='#7a1016';ctx.font='700 23px Arial';ctx.fillText('Oferta enquanto durarem os estoques',W/2,priceY+274);
+  ctx.fillStyle='#b5121b';ctx.fillRect(0,1848,W,72);ctx.fillStyle='#fff';ctx.font='800 23px Arial';ctx.fillText('O SUPER PARA TODA A FAMÍLIA',W/2,1893);ctx.textAlign='left';var prev=document.getElementById('cestasStoryPreview');if(prev)prev.src=cv.toDataURL('image/png');
+ }
+ window.atualizarStoryCesta=function(){if(typeof requestAnimationFrame==='function')requestAnimationFrame(desenharStory);else desenharStory();};
+ window.baixarStoryCesta=function(){desenharStory();var cv=document.getElementById('cestasStoryCanvas'),a=document.createElement('a'),slug=normalizarTexto(formulaAtual.nome).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');a.download=(slug||'cesta')+'-story.png';a.href=cv.toDataURL('image/png');document.body.appendChild(a);a.click();a.remove();};
+ document.addEventListener('keydown',function(e){if(e.key==='Escape')fecharCestasArsenal();});
+})();
 </script>
 </body>
 </html>
