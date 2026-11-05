@@ -479,11 +479,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           </div>
           <button type="button" class="btn btn-sm btn-green" id="pAddUnirBtn" onclick="adicionarProdutoUnificado()" title="Adicionar este produto à união (mesmo preço/pack)"><i class="ti ti-plus"></i></button>
           <button type="button" class="toggle-chip" id="pPackBtn" onclick="clicarTogglePack()" title="Ativar/desativar Modo Pack (leve X, pague Y)"><i class="ti ti-stack-2"></i><span>Pack</span></button>
-          <button type="button" class="toggle-chip" id="pUnirBtn" onclick="clicarToggleUnir()" title="Ativar/desativar união de vários produtos (mesmo preço/pack)"><i class="ti ti-git-merge"></i><span>Unir</span></button>
+          <button type="button" class="toggle-chip" id="pUnirBtn" onclick="clicarToggleUnir()" title="Ativar/desativar união manual de produtos"><i class="ti ti-git-merge"></i><span>Unir</span></button>
+          <button type="button" class="toggle-chip" id="pGrupoBtn" onclick="detectarGrupoProdutos()" title="Localizar sabores ou variantes do mesmo produto com custo e preço iguais"><i class="ti ti-category-2"></i><span>Grupo</span></button>
           <input type="checkbox" id="pPackOn" style="display:none" onchange="togglePack();drawPlaca()">
           <input type="checkbox" id="pUnirOn" style="display:none" onchange="toggleUnir();drawPlaca()">
         </div>
-        <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN. Use o "+" para juntar mais produtos no mesmo preço/pack.</span>
+        <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN. Use "Grupo" para localizar sabores/variantes com custo e venda iguais, ou "+" para unir produtos manualmente.</span>
       </div>
 
       <div class="prod-info" id="prodInfo">
@@ -759,7 +760,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-CUSTO-VENDA-20261105';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -769,6 +770,7 @@ var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk
 var banco={};          // cod -> descrição OFICIAL da aba BANCO DE DADOS
 var bancoPreco={};     // cod -> preço de venda OFICIAL da aba BANCO DE DADOS
 var bancoUnidade={};   // cod -> unidade/medida OFICIAL da aba BANCO DE DADOS
+var bancoCusto={};     // cod -> custo OFICIAL da aba BANCO DE DADOS
 var products=[];       // catálogo AUXILIAR da aba de validades (não fornece preço/unidade oficial)
 var _catalogoProdutosCache=null; // catálogo consolidado/normalizado, reconstruído só após sincronização
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
@@ -1192,20 +1194,23 @@ async function loadBanco(cfg,tablePronta){
   var rows=rawRows(table);
   banco={};
   bancoPreco={};
+  bancoCusto={};
   bancoUnidade={};
-  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciUnidade=-1;
+  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciCusto=-1,ciUnidade=-1;
   function isCod(t){return /\bEAN\b|\bGTIN\b|\bPLU\b|COD[\s._\-]?BARRA|BARRAS?\b|C[OÓ]D(IGO)?/.test(t);}
   function isNome(t){return /DESC(RI)?|NOME|PRODUTO|ITEM\b/.test(t);}
   function isPreco(t){return /PRE[CÇ]O|VALOR|VENDA|VLR|PR\.?\s*VENDA|P\.?\s*VENDA/.test(t);}
+  function isCusto(t){return /CUSTO|C\.\s*COMPRA|PRE[CÇ]O\s*(DE\s*)?CUSTO/.test(t);}
   function isUnidade(t){return /(^|\b)(UNIDADE|UNID|UND|MEDIDA|UM|U\.M\.)(\b|$)/.test(t);}
 
   if(table.cols&&table.cols.length){
     var colTexts=table.cols.map(function(c){return String(c.label||'').toUpperCase();});
     var ci2=colTexts.findIndex(isCod);
     var ni2=colTexts.findIndex(isNome);
-    var pi2=colTexts.findIndex(isPreco);
+    var pi2=colTexts.findIndex(function(t){return isPreco(t)&&!isCusto(t);});
+    var coi2=colTexts.findIndex(isCusto);
     var ui2=colTexts.findIndex(isUnidade);
-    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciUnidade=ui2;}
+    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciCusto=coi2;ciUnidade=ui2;}
   }
   if(ciCod<0||ciNome<0){
     for(var i=0;i<Math.min(5,rows.length);i++){
@@ -1213,9 +1218,10 @@ async function loadBanco(cfg,tablePronta){
       var rowTexts=cells.map(function(c){return String((c&&c.f)||(c&&c.v)||'').toUpperCase();});
       var ci=rowTexts.findIndex(isCod);
       var ni=rowTexts.findIndex(isNome);
-      var pi=rowTexts.findIndex(isPreco);
+      var pi=rowTexts.findIndex(function(t){return isPreco(t)&&!isCusto(t);});
+      var coi=rowTexts.findIndex(isCusto);
       var ui=rowTexts.findIndex(isUnidade);
-      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciUnidade=ui;break;}
+      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciCusto=coi;ciUnidade=ui;break;}
     }
   }
   if(ciCod<0||ciNome<0){hIdx=0;ciCod=0;ciNome=1;}
@@ -1228,6 +1234,10 @@ async function loadBanco(cfg,tablePronta){
     if(cod&&ciPreco>=0){
       var precoBanco=cellNum(cells[ciPreco]);
       if(precoBanco>0)bancoPreco[cod]=precoBanco;
+    }
+    if(cod&&ciCusto>=0){
+      var custoBanco=cellNum(cells[ciCusto]);
+      if(custoBanco>0)bancoCusto[cod]=custoBanco;
     }
     if(cod&&ciUnidade>=0){
       var unidadeBanco=normalizarUnidadeBanco(cellStr(cells[ciUnidade]));
@@ -1365,7 +1375,7 @@ function consolidarProdutos(){
   if(_catalogoProdutosCache)return _catalogoProdutosCache;
   var map={};
 
-  function add(cod,nome,preco,unidade,oficial){
+  function add(cod,nome,preco,unidade,oficial,custo){
     cod=normalizarCodigo(cod);
     nome=String(nome||'').replace(/^,\s*/,'').trim();
     preco=Number(preco)||0;
@@ -1376,7 +1386,7 @@ function consolidarProdutos(){
     if(!key)return;
 
     if(!map[key]){
-      map[key]={cod:cod,nome:'',preco:0,unidade:'',oficial:false};
+      map[key]={cod:cod,nome:'',preco:0,custo:0,unidade:'',oficial:false};
     }
 
     if(cod&&!map[key].cod)map[key].cod=cod;
@@ -1385,6 +1395,7 @@ function consolidarProdutos(){
       // BANCO DE DADOS sempre vence qualquer fonte auxiliar.
       if(nome)map[key].nome=nome;
       map[key].preco=preco>0?preco:0;
+      map[key].custo=Number(custo)||0;
       map[key].unidade=unidade||'';
       map[key].oficial=true;
       return;
@@ -1396,11 +1407,11 @@ function consolidarProdutos(){
   }
 
   Object.keys(banco).forEach(function(cod){
-    add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'',true);
+    add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'',true,bancoCusto[cod]||0);
   });
 
   products.forEach(function(p){
-    add(p.cod,p.nome,0,'',false);
+    add(p.cod,p.nome,0,'',false,0);
   });
 
   _catalogoProdutosCache=Object.keys(map).map(function(k){return map[k];})
@@ -2750,6 +2761,66 @@ async function unirBuscarExtraFoto(id,cod,nome){
     if(statusEl)statusEl.textContent='Erro ao buscar: '+e.message;
   }
   drawPlaca();
+}
+
+// Localiza variantes/sabores da mesma linha no banco, mas só oferece produtos
+// cujo custo e preço oficial sejam ambos iguais aos do item principal.
+function grupoTokenBase_(nome){
+  var tokens=normalizarTexto(nome).split(/\s+/).filter(Boolean);
+  var variantes={INTEGRAL:1,DESNATADO:1,SEMIDESNATADO:1,SEMI:1,ORIGINAL:1,TRADICIONAL:1,MELANCIA:1,TROPICAL:1,PERA:1,LIMONETO:1,MATE:1,ACAI:1,ACAÍ:1,FRUTAS:1,VERMELHAS:1,CITRUS:1,MACA:1,LARANJA:1,LIMAO:1,GUARANA:1,ZERO:1,DIET:1,LIGHT:1};
+  return tokens.filter(function(t){
+    if(variantes[t])return false;
+    if(/^\d+(?:[.,]\d+)?(?:KG|G|GR|ML|L|LT|LTS|UN|UND|CX|PCT)$/.test(t))return false;
+    if(/^\d+(?:[.,]\d+)?$/.test(t))return false;
+    return true;
+  });
+}
+function grupoApresentacao_(nome){
+  var n=normalizarTexto(nome).replace(/(\d)\s+(KG|G|GR|ML|L|LT|LTS|UN|UND|CX|PCT)\b/g,'$1$2');
+  var m=n.match(/\b(\d+(?:[.,]\d+)?(?:KG|G|GR|ML|LTS|LT|L))\b/g);
+  return m?m[m.length-1].replace(',', '.') : '';
+}
+function grupoMesmoFamilia_(nomeA,nomeB){
+  var packA=grupoApresentacao_(nomeA),packB=grupoApresentacao_(nomeB);
+  if(packA!==packB)return false;
+  var a=grupoTokenBase_(nomeA),b=grupoTokenBase_(nomeB);
+  if(a.length<2||b.length<2)return false;
+  var comuns=a.filter(function(t){return b.indexOf(t)>=0;});
+  var menor=Math.min(a.length,b.length);
+  // Exige forte sobreposição de marca/linha após retirar sabores e apresentações.
+  return comuns.length>=2 && comuns.length/menor>=0.72;
+}
+function detectarGrupoProdutos(){
+  var input=document.getElementById('pCod'),v=(input.value||'').trim(),prod=null;
+  if(v){
+    if(document.getElementById('prodSug').classList.contains('open')&&sugestoesAtuais.length)prod=sugestoesAtuais[Math.max(0,sugestaoAtiva)];
+    if(!prod)prod=buscarProduto(v);
+  }
+  if(!prod&&prodAtualCod)prod=buscarPorCodigo(prodAtualCod);
+  if(!prod){mostrarToast('Busque e selecione um produto antes de procurar o grupo.','warn');return;}
+  var principal=buscarPorCodigo(prod.cod)||prod;
+  var preco=Number(principal.preco)||0,custo=Number(principal.custo)||Number(bancoCusto[normalizarCodigo(principal.cod)]||0);
+  if(!(preco>0&&custo>0)){mostrarToast('O produto precisa ter custo e preço de venda cadastrados no BANCO DE DADOS para validar o grupo.','warn');return;}
+  var candidatos=consolidarProdutos().filter(function(p){
+    if(normalizarCodigo(p.cod)===normalizarCodigo(principal.cod))return false;
+    var pPreco=Number(p.preco)||0,pCusto=Number(p.custo)||Number(bancoCusto[normalizarCodigo(p.cod)]||0);
+    if(!(pPreco>0&&pCusto>0))return false;
+    if(Math.round(pPreco*100)!==Math.round(preco*100)||Math.round(pCusto*100)!==Math.round(custo*100))return false;
+    var ua=normalizarUnidadeBanco(principal.unidade||''),ub=normalizarUnidadeBanco(p.unidade||'');
+    if(ua&&ub&&ua!==ub)return false;
+    return grupoMesmoFamilia_(principal.nome||'',p.nome||'');
+  });
+  if(!candidatos.length){mostrarToast('Não encontrei variantes da mesma família com custo e venda iguais.','info');return;}
+  var nomes=[principal.nome].concat(candidatos.map(function(p){return p.nome;}));
+  if(!window.confirm('Grupo identificado ('+nomes.length+' produtos), todos com custo e venda iguais:\n\n'+nomes.map(function(n){return '• '+n;}).join('\n')+'\n\nAdicionar as variantes à placa?'))return;
+  if(!document.getElementById('pUnirOn').checked){document.getElementById('pUnirOn').checked=true;toggleUnir();atualizarEstadoToggleChips();}
+  unirPrincipalCod=normalizarCodigo(principal.cod||prodAtualCod);
+  candidatos.forEach(function(p){unirAdicionarProdutoObj({cod:p.cod,nome:p.nome});});
+  if(candidatos.length>=3)unirLayoutPref='grid';
+  unirAtualizarBotoesLayout();
+  if(input){input.value='';esconderSugestoes();}
+  atualizarDescFinalAuto();drawPlaca();
+  mostrarToast('Grupo criado com '+nomes.length+' produtos pelo mesmo preço.','ok');
 }
 
 // Chamado pelo botão "+" ao lado da caixa principal de busca: pega o
@@ -5472,9 +5543,9 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   console.info('[Arsenal] v7.18 — área de impressão visível na prévia nativa');
   var origConsolidar=window.consolidarProdutos,lastLista=null,buildSeq=0;
   function ensure(){var lista=origConsolidar?origConsolidar():[];if(lista!==lastLista){core.build(lista,'arsenal|'+lista.length+'|'+(++buildSeq));lastLista=lista;}return lista;}
-  window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?{cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''}:null;};
-  window.buscarProdutos=function(termo,limite){ensure();return core.search(termo,limite||10).map(function(p){return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''};});};
-  window.buscarProduto=function(termo){termo=String(termo||'').trim();if(!termo)return null;ensure();var p=core.lookup(termo);if(p)return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,unidade:p.unidade||''};var a=buscarProdutos(termo,1);return a.length?a[0]:null;};
+  window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?{cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||''}:null;};
+  window.buscarProdutos=function(termo,limite){ensure();return core.search(termo,limite||10).map(function(p){return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||''};});};
+  window.buscarProduto=function(termo){termo=String(termo||'').trim();if(!termo)return null;ensure();var p=core.lookup(termo);if(p)return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||''};var a=buscarProdutos(termo,1);return a.length?a[0]:null;};
 })();
 </script>
 <style id="aura-loading-gauge-css">
