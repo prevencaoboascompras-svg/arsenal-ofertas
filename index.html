@@ -2780,6 +2780,16 @@ function grupoApresentacao_(nome){
   var m=n.match(/\b(\d+(?:[.,]\d+)?(?:KG|G|GR|ML|LTS|LT|L))\b/g);
   return m?m[m.length-1].replace(',', '.') : '';
 }
+function grupoEhZeroLactose_(nome){return /\bZERO\s+LACTOSE\b/.test(normalizarTexto(nome));}
+function grupoDescricaoComum_(produtos){
+  if(!produtos||!produtos.length)return '';
+  var comuns=grupoTokenBase_(produtos[0].nome||'').filter(function(t){
+    return produtos.slice(1).every(function(p){return grupoTokenBase_(p.nome||'').indexOf(t)>=0;});
+  });
+  var pack=grupoApresentacao_(produtos[0].nome||'');
+  if(pack)comuns.push(pack);
+  return comuns.join(' ');
+}
 function grupoMesmoFamilia_(nomeA,nomeB){
   var packA=grupoApresentacao_(nomeA),packB=grupoApresentacao_(nomeB);
   if(packA!==packB)return false;
@@ -2799,10 +2809,12 @@ function detectarGrupoProdutos(){
   if(!prod&&prodAtualCod)prod=buscarPorCodigo(prodAtualCod);
   if(!prod){mostrarToast('Busque e selecione um produto antes de procurar o grupo.','warn');return;}
   var principal=buscarPorCodigo(prod.cod)||prod;
+  if(grupoEhZeroLactose_(principal.nome||'')){mostrarToast('Produtos zero lactose ficam fora deste grupo.','warn');return;}
   var preco=Number(principal.preco)||0,custo=Number(principal.custo)||Number(bancoCusto[normalizarCodigo(principal.cod)]||0);
   if(!(preco>0&&custo>0)){mostrarToast('O produto precisa ter custo e preço de venda cadastrados no BANCO DE DADOS para validar o grupo.','warn');return;}
   var candidatos=consolidarProdutos().filter(function(p){
     if(normalizarCodigo(p.cod)===normalizarCodigo(principal.cod))return false;
+    if(grupoEhZeroLactose_(p.nome||''))return false;
     var pPreco=Number(p.preco)||0,pCusto=Number(p.custo)||Number(bancoCusto[normalizarCodigo(p.cod)]||0);
     if(!(pPreco>0&&pCusto>0))return false;
     if(Math.round(pPreco*100)!==Math.round(preco*100)||Math.round(pCusto*100)!==Math.round(custo*100))return false;
@@ -2811,7 +2823,9 @@ function detectarGrupoProdutos(){
     return grupoMesmoFamilia_(principal.nome||'',p.nome||'');
   });
   if(!candidatos.length){mostrarToast('Não encontrei variantes da mesma família com custo e venda iguais.','info');return;}
-  var nomes=[principal.nome].concat(candidatos.map(function(p){return p.nome;}));
+  var produtosGrupo=[principal].concat(candidatos);
+  var descricaoGrupo=grupoDescricaoComum_(produtosGrupo);
+  var nomes=produtosGrupo.map(function(p){return p.nome;});
   if(!window.confirm('Grupo identificado ('+nomes.length+' produtos), todos com custo e venda iguais:\n\n'+nomes.map(function(n){return '• '+n;}).join('\n')+'\n\nAdicionar as variantes à placa?'))return;
   if(!document.getElementById('pUnirOn').checked){document.getElementById('pUnirOn').checked=true;toggleUnir();atualizarEstadoToggleChips();}
   unirPrincipalCod=normalizarCodigo(principal.cod||prodAtualCod);
@@ -2819,8 +2833,10 @@ function detectarGrupoProdutos(){
   if(candidatos.length>=3)unirLayoutPref='grid';
   unirAtualizarBotoesLayout();
   if(input){input.value='';esconderSugestoes();}
-  atualizarDescFinalAuto();drawPlaca();
-  mostrarToast('Grupo criado com '+nomes.length+' produtos pelo mesmo preço.','ok');
+  var descFinalGrupo=document.getElementById('pDescFinal');
+  if(descFinalGrupo){descFinalGrupo.value=descricaoGrupo||principal.nome||'';unirDescManual=true;}
+  drawPlaca();
+  mostrarToast('Grupo criado com '+nomes.length+' produtos. Descrição resumida e editável.','ok');
 }
 
 // Chamado pelo botão "+" ao lado da caixa principal de busca: pega o
