@@ -760,7 +760,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-FAMILIA-20261105';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -771,6 +771,7 @@ var banco={};          // cod -> descrição OFICIAL da aba BANCO DE DADOS
 var bancoPreco={};     // cod -> preço de venda OFICIAL da aba BANCO DE DADOS
 var bancoUnidade={};   // cod -> unidade/medida OFICIAL da aba BANCO DE DADOS
 var bancoCusto={};     // cod -> custo OFICIAL da aba BANCO DE DADOS
+var bancoAtualizadoEm={}; // cod -> data/hora da última atualização de custo ou venda
 var products=[];       // catálogo AUXILIAR da aba de validades (não fornece preço/unidade oficial)
 var _catalogoProdutosCache=null; // catálogo consolidado/normalizado, reconstruído só após sincronização
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
@@ -1180,6 +1181,19 @@ function cellNum(c){
   var n=parseFloat(s);return isNaN(n)?0:n;
 }
 function rawRows(t){return t.rows||[];}
+function parseDataAtualizacaoBanco_(cell){
+  if(!cell)return 0;
+  var raw=cell.v,formatted=String(cell.f||'').trim(),s=formatted||String(raw==null?'':raw).trim();
+  if(raw instanceof Date&&!isNaN(raw.getTime()))return raw.getTime();
+  var gviz=s.match(/Date\((\d{4}),(\d{1,2}),(\d{1,2})(?:,(\d{1,2}),(\d{1,2}),(\d{1,2}))?\)/);
+  if(gviz)return Date.UTC(Number(gviz[1]),Number(gviz[2]),Number(gviz[3]),Number(gviz[4]||0),Number(gviz[5]||0),Number(gviz[6]||0));
+  var iso=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(iso)return Date.UTC(Number(iso[1]),Number(iso[2])-1,Number(iso[3]),Number(iso[4]||0),Number(iso[5]||0),Number(iso[6]||0));
+  var br=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(br){var ano=Number(br[3]);if(ano<100)ano+=ano<50?2000:1900;return Date.UTC(ano,Number(br[2])-1,Number(br[1]),Number(br[4]||0),Number(br[5]||0),Number(br[6]||0));}
+  if(typeof raw==='number'&&raw>0){if(raw>1e12)return raw;if(raw>1e9)return raw*1000;return Date.UTC(1899,11,30)+raw*86400000;}
+  return 0;
+}
 
 // ============================================================
 // CARREGAR BANCO DE DADOS (cod -> nome)
@@ -1196,11 +1210,13 @@ async function loadBanco(cfg,tablePronta){
   bancoPreco={};
   bancoCusto={};
   bancoUnidade={};
-  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciCusto=-1,ciUnidade=-1;
+  bancoAtualizadoEm={};
+  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciCusto=-1,ciUnidade=-1,ciAtualizadoEm=-1;
   function isCod(t){return /\bEAN\b|\bGTIN\b|\bPLU\b|COD[\s._\-]?BARRA|BARRAS?\b|C[OÓ]D(IGO)?/.test(t);}
   function isNome(t){return /DESC(RI)?|NOME|PRODUTO|ITEM\b/.test(t);}
   function isPreco(t){return /PRE[CÇ]O|VALOR|VENDA|VLR|PR\.?\s*VENDA|P\.?\s*VENDA/.test(t);}
   function isCusto(t){return /CUSTO|C\.\s*COMPRA|PRE[CÇ]O\s*(DE\s*)?CUSTO/.test(t);}
+  function isAtualizacao(t){return /DATA.*ATUAL|ATUALIZA[CÇ][AÃ]O|ULTIMA.*ATUAL/.test(t);}
   function isUnidade(t){return /(^|\b)(UNIDADE|UNID|UND|MEDIDA|UM|U\.M\.)(\b|$)/.test(t);}
 
   if(table.cols&&table.cols.length){
@@ -1210,7 +1226,8 @@ async function loadBanco(cfg,tablePronta){
     var pi2=colTexts.findIndex(function(t){return isPreco(t)&&!isCusto(t);});
     var coi2=colTexts.findIndex(isCusto);
     var ui2=colTexts.findIndex(isUnidade);
-    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciCusto=coi2;ciUnidade=ui2;}
+    var dai2=colTexts.findIndex(isAtualizacao);
+    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciCusto=coi2;ciUnidade=ui2;ciAtualizadoEm=dai2;}
   }
   if(ciCod<0||ciNome<0){
     for(var i=0;i<Math.min(5,rows.length);i++){
@@ -1221,7 +1238,8 @@ async function loadBanco(cfg,tablePronta){
       var pi=rowTexts.findIndex(function(t){return isPreco(t)&&!isCusto(t);});
       var coi=rowTexts.findIndex(isCusto);
       var ui=rowTexts.findIndex(isUnidade);
-      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciCusto=coi;ciUnidade=ui;break;}
+      var dai=rowTexts.findIndex(isAtualizacao);
+      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciCusto=coi;ciUnidade=ui;ciAtualizadoEm=dai;break;}
     }
   }
   if(ciCod<0||ciNome<0){hIdx=0;ciCod=0;ciNome=1;}
@@ -1242,6 +1260,10 @@ async function loadBanco(cfg,tablePronta){
     if(cod&&ciUnidade>=0){
       var unidadeBanco=normalizarUnidadeBanco(cellStr(cells[ciUnidade]));
       if(unidadeBanco)bancoUnidade[cod]=unidadeBanco;
+    }
+    if(cod&&ciAtualizadoEm>=0){
+      var atualizadoEm=parseDataAtualizacaoBanco_(cells[ciAtualizadoEm]);
+      if(atualizadoEm)bancoAtualizadoEm[cod]=atualizadoEm;
     }
   }
   _catalogoProdutosCache=null;
@@ -1301,7 +1323,7 @@ async function loadPrecos(cfg,tablePronta){
     products.push({cod:cod,nome:nome,preco:0,unidade:'',origem:'catalogo_auxiliar'});
   }
   _catalogoProdutosCache=null;
-  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,products:products,ts:Date.now()}));}catch(e){}
+  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,bancoAtualizadoEm:bancoAtualizadoEm,products:products,ts:Date.now()}));}catch(e){}
 }
 
 var _arsenalSyncInFlight_=null;
@@ -1375,7 +1397,7 @@ function consolidarProdutos(){
   if(_catalogoProdutosCache)return _catalogoProdutosCache;
   var map={};
 
-  function add(cod,nome,preco,unidade,oficial,custo){
+  function add(cod,nome,preco,unidade,oficial,custo,atualizadoEm){
     cod=normalizarCodigo(cod);
     nome=String(nome||'').replace(/^,\s*/,'').trim();
     preco=Number(preco)||0;
@@ -1386,7 +1408,7 @@ function consolidarProdutos(){
     if(!key)return;
 
     if(!map[key]){
-      map[key]={cod:cod,nome:'',preco:0,custo:0,unidade:'',oficial:false};
+      map[key]={cod:cod,nome:'',preco:0,custo:0,unidade:'',atualizadoEm:0,oficial:false};
     }
 
     if(cod&&!map[key].cod)map[key].cod=cod;
@@ -1396,6 +1418,7 @@ function consolidarProdutos(){
       if(nome)map[key].nome=nome;
       map[key].preco=preco>0?preco:0;
       map[key].custo=Number(custo)||0;
+      map[key].atualizadoEm=Number(atualizadoEm)||0;
       map[key].unidade=unidade||'';
       map[key].oficial=true;
       return;
@@ -1407,11 +1430,11 @@ function consolidarProdutos(){
   }
 
   Object.keys(banco).forEach(function(cod){
-    add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'',true,bancoCusto[cod]||0);
+    add(cod,banco[cod],bancoPreco[cod]||0,bancoUnidade[cod]||'',true,bancoCusto[cod]||0,bancoAtualizadoEm[cod]||0);
   });
 
   products.forEach(function(p){
-    add(p.cod,p.nome,0,'',false,0);
+    add(p.cod,p.nome,0,'',false,0,0);
   });
 
   _catalogoProdutosCache=Object.keys(map).map(function(k){return map[k];})
@@ -2859,7 +2882,7 @@ function detectarGrupoProdutos(produtoSelecionado, automatico){
   if(!(preco>0)){if(!automatico)mostrarToast('O produto precisa ter preço de venda cadastrado no BANCO DE DADOS para validar o grupo.','warn');return;}
   var nomesGrupoVistos=Object.create(null);
   var nomePrincipalGrupo=normalizarTexto(principal.nome||'');
-  var candidatos=consolidarProdutos().filter(function(p){
+  var candidatos=consolidarProdutos().slice().sort(function(a,b){return (Number(b.atualizadoEm)||0)-(Number(a.atualizadoEm)||0);}).filter(function(p){
     if(normalizarCodigo(p.cod)===normalizarCodigo(principal.cod))return false;
     var nomeGrupo=normalizarTexto(p.nome||'');
     if(!nomeGrupo||nomeGrupo===nomePrincipalGrupo||nomesGrupoVistos[nomeGrupo])return false;
@@ -5510,7 +5533,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   // recupera cache local
   try{
     var s=localStorage.getItem(PROD_KEY);
-    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(Array.isArray(c.products))products=c.products;}
+    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(c.bancoAtualizadoEm)bancoAtualizadoEm=c.bancoAtualizadoEm;if(Array.isArray(c.products))products=c.products;}
   }catch(e){}
   var cfg=loadCfg();
   var syncInicial=null;
@@ -5565,12 +5588,12 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     C.entries=[];C.byCode=Object.create(null);C.prefix=Object.create(null);C.codePrefix=Object.create(null);C.signature=sig;
     var seen=Object.create(null);
     records.forEach(function(r){
-      var ean='',descricao='',unidade='',preco='',custo='',fornecedor='',setor='';
+      var ean='',descricao='',unidade='',preco='',custo='',fornecedor='',setor='',atualizadoEm=0;
       if(Array.isArray(r)){ean=digits(r[0]);descricao=String(r[1]||'');unidade=String(r[2]||'');preco=r[3];custo=r[4];fornecedor=String(r[5]||'');setor=String(r[6]||'');}
-      else if(r){ean=digits(r.ean||r.cod||r.codigo||r.barras||'');descricao=String(r.descricao||r.nome||r.produto||'');unidade=String(r.unidade||r.un||'');preco=r.preco!=null?r.preco:r.precoNormal;custo=r.custo;fornecedor=String(r.fornecedor||'');setor=String(r.setor||'');}
+      else if(r){ean=digits(r.ean||r.cod||r.codigo||r.barras||'');descricao=String(r.descricao||r.nome||r.produto||'');unidade=String(r.unidade||r.un||'');preco=r.preco!=null?r.preco:r.precoNormal;custo=r.custo;fornecedor=String(r.fornecedor||'');setor=String(r.setor||'');atualizadoEm=Number(r.atualizadoEm||r.dataAtualizacao)||0;}
       if(!ean&&!descricao)return;
       var key=ean||('N:'+text(descricao));if(seen[key])return;seen[key]=1;
-      var e={ean:ean,cod:ean,descricao:descricao,nome:descricao,unidade:unidade,preco:preco,custo:custo,fornecedor:fornecedor,setor:setor};
+      var e={ean:ean,cod:ean,descricao:descricao,nome:descricao,unidade:unidade,preco:preco,custo:custo,fornecedor:fornecedor,setor:setor,atualizadoEm:atualizadoEm};
       e._name=text(descricao);e._supplier=text(fornecedor);e._idx=C.entries.length;C.entries.push(e);addAliases(e,e._idx);
       var toks=e._name.split(' ').filter(Boolean),tokSeen=Object.create(null);
       toks.forEach(function(t){if(tokSeen[t])return;tokSeen[t]=1;for(var n=2;n<=Math.min(t.length,10);n++)addList(C.prefix,t.slice(0,n),e._idx);});
@@ -5611,11 +5634,25 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   'use strict';
   var core=window.AURASearchCore;if(!core)return;
   console.info('[Arsenal] v7.18 — área de impressão visível na prévia nativa');
-  var origConsolidar=window.consolidarProdutos,lastLista=null,buildSeq=0;
-  function ensure(){var lista=origConsolidar?origConsolidar():[];if(lista!==lastLista){core.build(lista,'arsenal|'+lista.length+'|'+(++buildSeq));lastLista=lista;}return lista;}
-  window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?{cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||''}:null;};
-  window.buscarProdutos=function(termo,limite){ensure();return core.search(termo,limite||10).map(function(p){return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||''};});};
-  window.buscarProduto=function(termo){termo=String(termo||'').trim();if(!termo)return null;ensure();var p=core.lookup(termo);if(p)return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||''};var a=buscarProdutos(termo,1);return a.length?a[0]:null;};
+  var origConsolidar=window.consolidarProdutos,lastLista=null,buildSeq=0,maisRecentePorDescricao=Object.create(null);
+  function ensure(){
+    var lista=origConsolidar?origConsolidar():[];
+    if(lista!==lastLista){
+      core.build(lista,'arsenal|'+lista.length+'|'+(++buildSeq));lastLista=lista;
+      maisRecentePorDescricao=Object.create(null);
+      core.entries.forEach(function(p){var k=p._name||'';if(!k)return;var atual=maisRecentePorDescricao[k];if(!atual||(Number(p.atualizadoEm)||0)>(Number(atual.atualizadoEm)||0))maisRecentePorDescricao[k]=p;});
+    }
+    return lista;
+  }
+  function produtoObj(p){return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||'',atualizadoEm:Number(p.atualizadoEm)||0};}
+  window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?produtoObj(p):null;};
+  window.buscarProdutos=function(termo,limite){
+    ensure();limite=Math.max(1,Number(limite)||10);termo=String(termo||'').trim();
+    var resultados=core.search(termo,core.isFullCode(termo)?limite:Math.max(limite*12,120)),saida=[],vistos=Object.create(null),codigo=core.isFullCode(termo);
+    resultados.forEach(function(p){if(!codigo)p=maisRecentePorDescricao[p._name]||p;var k=p._name||p.ean;if(vistos[k])return;vistos[k]=1;saida.push(produtoObj(p));});
+    return saida.slice(0,limite);
+  };
+  window.buscarProduto=function(termo){termo=String(termo||'').trim();if(!termo)return null;ensure();var p=core.lookup(termo);if(p)return produtoObj(p);var a=buscarProdutos(termo,1);return a.length?a[0]:null;};
 })();
 </script>
 <style id="aura-loading-gauge-css">
