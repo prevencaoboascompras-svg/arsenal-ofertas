@@ -480,11 +480,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <button type="button" class="btn btn-sm btn-green" id="pAddUnirBtn" onclick="adicionarProdutoUnificado()" title="Adicionar este produto à união (mesmo preço/pack)"><i class="ti ti-plus"></i></button>
           <button type="button" class="toggle-chip" id="pPackBtn" onclick="clicarTogglePack()" title="Ativar/desativar Modo Pack (leve X, pague Y)"><i class="ti ti-stack-2"></i><span>Pack</span></button>
           <button type="button" class="toggle-chip" id="pUnirBtn" onclick="clicarToggleUnir()" title="Ativar/desativar união manual de produtos"><i class="ti ti-git-merge"></i><span>Unir</span></button>
-          <button type="button" class="toggle-chip" id="pGrupoBtn" onclick="detectarGrupoProdutos()" title="Localizar sabores ou variantes do mesmo produto com custo e preço iguais"><i class="ti ti-category-2"></i><span>Grupo</span></button>
+          <button type="button" class="toggle-chip" id="pGrupoBtn" onclick="detectarGrupoProdutos()" title="Buscar novamente as variantes desta família com custo e preço iguais"><i class="ti ti-category-2"></i><span>Grupo</span></button>
           <input type="checkbox" id="pPackOn" style="display:none" onchange="togglePack();drawPlaca()">
           <input type="checkbox" id="pUnirOn" style="display:none" onchange="toggleUnir();drawPlaca()">
         </div>
-        <span class="hint">Digite para ver sugestões. Enter seleciona o primeiro item ou busca por código/EAN. Use "Grupo" para localizar sabores/variantes com custo e venda iguais, ou "+" para unir produtos manualmente.</span>
+        <span class="hint">Digite para ver sugestões. Ao selecionar um produto, o Arsenal sugere automaticamente as variantes da família com custo e venda iguais. Marque quais incluir; a placa abre lado a lado. Use "Grupo" para buscar novamente ou "+" para unir produtos manualmente.</span>
       </div>
 
       <div class="prod-info" id="prodInfo">
@@ -760,7 +760,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-CUSTO-VENDA-20261105';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-AUTO-SELECAO-20261105';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -2800,18 +2800,60 @@ function grupoMesmoFamilia_(nomeA,nomeB){
   // Exige forte sobreposição de marca/linha após retirar sabores e apresentações.
   return comuns.length>=2 && comuns.length/menor>=0.72;
 }
-function detectarGrupoProdutos(){
-  var input=document.getElementById('pCod'),v=(input.value||'').trim(),prod=null;
-  if(v){
+function grupoAbrirSelecao_(principal,candidatos,aoConfirmar){
+  var overlay=document.createElement('div');
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
+  overlay.style.cssText='position:fixed;inset:0;z-index:25000;background:rgba(0,0,0,.68);display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit';
+  var box=document.createElement('div');
+  box.style.cssText='width:min(620px,96vw);max-height:88vh;display:flex;flex-direction:column;background:#222;color:#f7f7f7;border:1px solid #555;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.55);overflow:hidden';
+  var titulo=document.createElement('div');
+  titulo.style.cssText='padding:15px 18px;background:#b71920;font-size:16px;font-weight:800';
+  titulo.textContent='Produtos encontrados para este grupo';box.appendChild(titulo);
+  var intro=document.createElement('div');
+  intro.style.cssText='padding:12px 18px 8px;font-size:13px;line-height:1.45;color:#eee';
+  intro.innerHTML='Encontrei variantes da mesma família com custo e preço de venda iguais. Selecione quais deseja colocar na placa. O produto principal <strong>'+escapeHtml(principal.nome||'')+'</strong> já está incluído.';box.appendChild(intro);
+  var controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;padding:0 18px 10px';
+  var selectAll=document.createElement('button'),clearAll=document.createElement('button');
+  [selectAll,clearAll].forEach(function(b){b.type='button';b.style.cssText='border:1px solid #666;border-radius:7px;background:#333;color:#fff;padding:6px 10px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600';});
+  selectAll.textContent='Marcar todos';clearAll.textContent='Desmarcar todos';controls.appendChild(selectAll);controls.appendChild(clearAll);box.appendChild(controls);
+  var list=document.createElement('div');list.style.cssText='overflow:auto;min-height:80px;padding:0 18px 14px';
+  candidatos.forEach(function(p,i){
+    var label=document.createElement('label');label.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 11px;margin:0 0 7px;border:1px solid #4b4b4b;border-radius:9px;background:#2b2b2b;cursor:pointer;font-size:13px;line-height:1.35';
+    var cb=document.createElement('input');cb.type='checkbox';cb.checked=false;cb.value=String(i);cb.style.cssText='width:18px;height:18px;accent-color:#e60012;flex:0 0 auto';
+    var name=document.createElement('span');name.textContent=p.nome||p.cod||'Produto sem descrição';name.style.cssText='flex:1';
+    var same=document.createElement('small');same.textContent='Mesmo custo e venda';same.style.cssText='color:#84ddb7;font-size:10px;white-space:nowrap';
+    label.appendChild(cb);label.appendChild(name);label.appendChild(same);list.appendChild(label);
+  });
+  box.appendChild(list);
+  var footer=document.createElement('div');footer.style.cssText='display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid #444;background:#252525';
+  var cancel=document.createElement('button'),add=document.createElement('button');
+  cancel.type=add.type='button';cancel.textContent='Cancelar';add.textContent='Adicionar selecionados';
+  cancel.style.cssText='border:1px solid #666;border-radius:8px;background:#333;color:#fff;padding:9px 13px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700';
+  add.style.cssText='border:0;border-radius:8px;background:#e60012;color:#fff;padding:9px 13px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800';
+  footer.appendChild(cancel);footer.appendChild(add);box.appendChild(footer);overlay.appendChild(box);document.body.appendChild(overlay);
+  function fechar(){overlay.remove();document.removeEventListener('keydown',onKey);}
+  function onKey(e){if(e.key==='Escape')fechar();}
+  selectAll.onclick=function(){list.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=true;});};
+  clearAll.onclick=function(){list.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=false;});};
+  cancel.onclick=fechar;
+  overlay.onclick=function(e){if(e.target===overlay)fechar();};
+  add.onclick=function(){var selecionados=[];list.querySelectorAll('input[type=checkbox]:checked').forEach(function(c){var p=candidatos[Number(c.value)];if(p)selecionados.push(p);});fechar();aoConfirmar(selecionados);};
+  document.addEventListener('keydown',onKey);
+  add.focus();
+}
+
+function detectarGrupoProdutos(produtoSelecionado, automatico){
+  var input=document.getElementById('pCod'),v=(input.value||'').trim(),prod=produtoSelecionado||null;
+  if(!prod&&v){
     if(document.getElementById('prodSug').classList.contains('open')&&sugestoesAtuais.length)prod=sugestoesAtuais[Math.max(0,sugestaoAtiva)];
     if(!prod)prod=buscarProduto(v);
   }
   if(!prod&&prodAtualCod)prod=buscarPorCodigo(prodAtualCod);
-  if(!prod){mostrarToast('Busque e selecione um produto antes de procurar o grupo.','warn');return;}
+  if(!prod){if(!automatico)mostrarToast('Busque e selecione um produto antes de procurar o grupo.','warn');return;}
   var principal=buscarPorCodigo(prod.cod)||prod;
-  if(grupoEhZeroLactose_(principal.nome||'')){mostrarToast('Produtos zero lactose ficam fora deste grupo.','warn');return;}
+  if(grupoEhZeroLactose_(principal.nome||'')){if(!automatico)mostrarToast('Produtos zero lactose ficam fora deste grupo.','warn');return;}
   var preco=Number(principal.preco)||0,custo=Number(principal.custo)||Number(bancoCusto[normalizarCodigo(principal.cod)]||0);
-  if(!(preco>0&&custo>0)){mostrarToast('O produto precisa ter custo e preço de venda cadastrados no BANCO DE DADOS para validar o grupo.','warn');return;}
+  if(!(preco>0&&custo>0)){if(!automatico)mostrarToast('O produto precisa ter custo e preço de venda cadastrados no BANCO DE DADOS para validar o grupo.','warn');return;}
   var candidatos=consolidarProdutos().filter(function(p){
     if(normalizarCodigo(p.cod)===normalizarCodigo(principal.cod))return false;
     if(grupoEhZeroLactose_(p.nome||''))return false;
@@ -2822,21 +2864,21 @@ function detectarGrupoProdutos(){
     if(ua&&ub&&ua!==ub)return false;
     return grupoMesmoFamilia_(principal.nome||'',p.nome||'');
   });
-  if(!candidatos.length){mostrarToast('Não encontrei variantes da mesma família com custo e venda iguais.','info');return;}
-  var produtosGrupo=[principal].concat(candidatos);
-  var descricaoGrupo=grupoDescricaoComum_(produtosGrupo);
-  var nomes=produtosGrupo.map(function(p){return p.nome;});
-  if(!window.confirm('Grupo identificado ('+nomes.length+' produtos), todos com custo e venda iguais:\n\n'+nomes.map(function(n){return '• '+n;}).join('\n')+'\n\nAdicionar as variantes à placa?'))return;
-  if(!document.getElementById('pUnirOn').checked){document.getElementById('pUnirOn').checked=true;toggleUnir();atualizarEstadoToggleChips();}
-  unirPrincipalCod=normalizarCodigo(principal.cod||prodAtualCod);
-  candidatos.forEach(function(p){unirAdicionarProdutoObj({cod:p.cod,nome:p.nome});});
-  if(candidatos.length>=3)unirLayoutPref='grid';
-  unirAtualizarBotoesLayout();
-  if(input){input.value='';esconderSugestoes();}
-  var descFinalGrupo=document.getElementById('pDescFinal');
-  if(descFinalGrupo){descFinalGrupo.value=descricaoGrupo||principal.nome||'';unirDescManual=true;}
-  drawPlaca();
-  mostrarToast('Grupo criado com '+nomes.length+' produtos. Descrição resumida e editável.','ok');
+  if(!candidatos.length){if(!automatico)mostrarToast('Não encontrei variantes da mesma família com custo e venda iguais.','info');return;}
+  grupoAbrirSelecao_(principal,candidatos,function(selecionados){
+    if(!selecionados.length){mostrarToast('Marque ao menos uma variante para adicionar à placa.','warn');return;}
+    if(!document.getElementById('pUnirOn').checked){document.getElementById('pUnirOn').checked=true;toggleUnir();atualizarEstadoToggleChips();}
+    unirPrincipalCod=normalizarCodigo(principal.cod||prodAtualCod);
+    selecionados.forEach(function(p){unirAdicionarProdutoObj({cod:p.cod,nome:p.nome});});
+    // O grupo começa sempre no modo lado a lado; a pessoa pode mudar o layout depois.
+    unirLayoutPref='juntinho';unirAtualizarBotoesLayout();
+    if(input){input.value='';esconderSugestoes();}
+    var produtosGrupo=[principal].concat(selecionados);
+    var descFinalGrupo=document.getElementById('pDescFinal');
+    if(descFinalGrupo){descFinalGrupo.value=grupoDescricaoComum_(produtosGrupo)||principal.nome||'';unirDescManual=true;}
+    drawPlaca();
+    mostrarToast('Adicionados '+selecionados.length+' itens ao grupo. Descrição resumida e editável.','ok');
+  });
 }
 
 // Chamado pelo botão "+" ao lado da caixa principal de busca: pega o
@@ -5378,7 +5420,9 @@ function selecionarProduto(prod){
   if(!prod)return;
   document.getElementById('pCod').value=prod.cod||prod.nome||'';
   esconderSugestoes();
+  var sugerirGrupo=!(document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked);
   preencherProduto(prod);
+  if(sugerirGrupo)setTimeout(function(){detectarGrupoProdutos(prod,true);},120);
 }
 
 document.getElementById('pCod').addEventListener('input',function(e){
@@ -5413,7 +5457,9 @@ document.getElementById('pCod').addEventListener('keydown',function(e){
     }else{
       var p=buscarProduto(e.target.value);
       esconderSugestoes();
+      var sugerirGrupo=!(document.getElementById('pUnirOn')&&document.getElementById('pUnirOn').checked);
       preencherProduto(p);
+      if(p&&sugerirGrupo)setTimeout(function(){detectarGrupoProdutos(p,true);},120);
     }
   }
 });
