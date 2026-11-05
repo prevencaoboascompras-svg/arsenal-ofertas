@@ -480,11 +480,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <button type="button" class="btn btn-sm btn-green" id="pAddUnirBtn" onclick="adicionarProdutoUnificado()" title="Adicionar este produto à união (mesmo preço/pack)"><i class="ti ti-plus"></i></button>
           <button type="button" class="toggle-chip" id="pPackBtn" onclick="clicarTogglePack()" title="Ativar/desativar Modo Pack (leve X, pague Y)"><i class="ti ti-stack-2"></i><span>Pack</span></button>
           <button type="button" class="toggle-chip" id="pUnirBtn" onclick="clicarToggleUnir()" title="Ativar/desativar união manual de produtos"><i class="ti ti-git-merge"></i><span>Unir</span></button>
-          <button type="button" class="toggle-chip" id="pGrupoBtn" onclick="detectarGrupoProdutos()" title="Buscar novamente as variantes desta família com custo e preço iguais"><i class="ti ti-category-2"></i><span>Grupo</span></button>
+          <button type="button" class="toggle-chip" id="pGrupoBtn" onclick="detectarGrupoProdutos()" title="Buscar novamente as variantes desta família com o mesmo preço de venda"><i class="ti ti-category-2"></i><span>Grupo</span></button>
           <input type="checkbox" id="pPackOn" style="display:none" onchange="togglePack();drawPlaca()">
           <input type="checkbox" id="pUnirOn" style="display:none" onchange="toggleUnir();drawPlaca()">
         </div>
-        <span class="hint">Digite para ver sugestões. Ao selecionar um produto, o Arsenal sugere automaticamente as variantes da família com custo e venda iguais. Marque quais incluir; a placa abre lado a lado. Use "Grupo" para buscar novamente ou "+" para unir produtos manualmente.</span>
+        <span class="hint">Digite para ver sugestões. Ao selecionar um produto, o Arsenal sugere automaticamente as variantes da família com preço de venda igual. Marque quais incluir; a placa abre lado a lado. Use "Grupo" para buscar novamente ou "+" para unir produtos manualmente.</span>
       </div>
 
       <div class="prod-info" id="prodInfo">
@@ -760,7 +760,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-AUTO-SELECAO-20261105';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-FAMILIA-20261105';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -2763,8 +2763,7 @@ async function unirBuscarExtraFoto(id,cod,nome){
   drawPlaca();
 }
 
-// Localiza variantes/sabores da mesma linha no banco, mas só oferece produtos
-// cujo custo e preço oficial sejam ambos iguais aos do item principal.
+// Localiza variantes da mesma linha com o mesmo preço oficial de venda.
 function grupoTokenBase_(nome){
   var tokens=normalizarTexto(nome).split(/\s+/).filter(Boolean);
   var variantes={INTEGRAL:1,DESNATADO:1,SEMIDESNATADO:1,SEMI:1,ORIGINAL:1,TRADICIONAL:1,MELANCIA:1,TROPICAL:1,PERA:1,LIMONETO:1,MATE:1,ACAI:1,ACAÍ:1,FRUTAS:1,VERMELHAS:1,CITRUS:1,MACA:1,LARANJA:1,LIMAO:1,GUARANA:1,ZERO:1,DIET:1,LIGHT:1};
@@ -2794,9 +2793,13 @@ function grupoMesmoFamilia_(nomeA,nomeB){
   var packA=grupoApresentacao_(nomeA),packB=grupoApresentacao_(nomeB);
   if(packA!==packB)return false;
   var a=grupoTokenBase_(nomeA),b=grupoTokenBase_(nomeB);
-  if(a.length<2||b.length<2)return false;
   var comuns=a.filter(function(t){return b.indexOf(t)>=0;});
   var menor=Math.min(a.length,b.length);
+  // Algumas linhas, como BALY, usam somente a marca + sabor + apresentação.
+  // Com a apresentação já validada e o mesmo preço de venda, a marca identifica a família.
+  var primeiroA=normalizarTexto(nomeA).split(/\s+/)[0]||'',primeiroB=normalizarTexto(nomeB).split(/\s+/)[0]||'';
+  if(primeiroA==='BALY'&&primeiroB==='BALY'&&comuns.indexOf('BALY')>=0)return true;
+  if(a.length<2||b.length<2)return false;
   // Exige forte sobreposição de marca/linha após retirar sabores e apresentações.
   return comuns.length>=2 && comuns.length/menor>=0.72;
 }
@@ -2811,7 +2814,7 @@ function grupoAbrirSelecao_(principal,candidatos,aoConfirmar){
   titulo.textContent='Produtos encontrados para este grupo';box.appendChild(titulo);
   var intro=document.createElement('div');
   intro.style.cssText='padding:12px 18px 8px;font-size:13px;line-height:1.45;color:#eee';
-  intro.innerHTML='Encontrei variantes da mesma família com custo e preço de venda iguais. Selecione quais deseja colocar na placa. O produto principal <strong>'+escapeHtml(principal.nome||'')+'</strong> já está incluído.';box.appendChild(intro);
+  intro.innerHTML='Encontrei variantes da mesma família com preço de venda igual. Selecione quais deseja colocar na placa. O produto principal <strong>'+escapeHtml(principal.nome||'')+'</strong> já está incluído.';box.appendChild(intro);
   var controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;padding:0 18px 10px';
   var selectAll=document.createElement('button'),clearAll=document.createElement('button');
   [selectAll,clearAll].forEach(function(b){b.type='button';b.style.cssText='border:1px solid #666;border-radius:7px;background:#333;color:#fff;padding:6px 10px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600';});
@@ -2821,7 +2824,7 @@ function grupoAbrirSelecao_(principal,candidatos,aoConfirmar){
     var label=document.createElement('label');label.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 11px;margin:0 0 7px;border:1px solid #4b4b4b;border-radius:9px;background:#2b2b2b;cursor:pointer;font-size:13px;line-height:1.35';
     var cb=document.createElement('input');cb.type='checkbox';cb.checked=false;cb.value=String(i);cb.style.cssText='width:18px;height:18px;accent-color:#e60012;flex:0 0 auto';
     var name=document.createElement('span');name.textContent=p.nome||p.cod||'Produto sem descrição';name.style.cssText='flex:1';
-    var same=document.createElement('small');same.textContent='Mesmo custo e venda';same.style.cssText='color:#84ddb7;font-size:10px;white-space:nowrap';
+    var same=document.createElement('small');same.textContent='Mesmo preço de venda';same.style.cssText='color:#84ddb7;font-size:10px;white-space:nowrap';
     label.appendChild(cb);label.appendChild(name);label.appendChild(same);list.appendChild(label);
   });
   box.appendChild(list);
@@ -2852,19 +2855,24 @@ function detectarGrupoProdutos(produtoSelecionado, automatico){
   if(!prod){if(!automatico)mostrarToast('Busque e selecione um produto antes de procurar o grupo.','warn');return;}
   var principal=buscarPorCodigo(prod.cod)||prod;
   if(grupoEhZeroLactose_(principal.nome||'')){if(!automatico)mostrarToast('Produtos zero lactose ficam fora deste grupo.','warn');return;}
-  var preco=Number(principal.preco)||0,custo=Number(principal.custo)||Number(bancoCusto[normalizarCodigo(principal.cod)]||0);
-  if(!(preco>0&&custo>0)){if(!automatico)mostrarToast('O produto precisa ter custo e preço de venda cadastrados no BANCO DE DADOS para validar o grupo.','warn');return;}
+  var preco=Number(principal.preco)||0;
+  if(!(preco>0)){if(!automatico)mostrarToast('O produto precisa ter preço de venda cadastrado no BANCO DE DADOS para validar o grupo.','warn');return;}
+  var nomesGrupoVistos=Object.create(null);
+  var nomePrincipalGrupo=normalizarTexto(principal.nome||'');
   var candidatos=consolidarProdutos().filter(function(p){
     if(normalizarCodigo(p.cod)===normalizarCodigo(principal.cod))return false;
+    var nomeGrupo=normalizarTexto(p.nome||'');
+    if(!nomeGrupo||nomeGrupo===nomePrincipalGrupo||nomesGrupoVistos[nomeGrupo])return false;
     if(grupoEhZeroLactose_(p.nome||''))return false;
-    var pPreco=Number(p.preco)||0,pCusto=Number(p.custo)||Number(bancoCusto[normalizarCodigo(p.cod)]||0);
-    if(!(pPreco>0&&pCusto>0))return false;
-    if(Math.round(pPreco*100)!==Math.round(preco*100)||Math.round(pCusto*100)!==Math.round(custo*100))return false;
+    var pPreco=Number(p.preco)||0;
+    if(!(pPreco>0)||Math.round(pPreco*100)!==Math.round(preco*100))return false;
     var ua=normalizarUnidadeBanco(principal.unidade||''),ub=normalizarUnidadeBanco(p.unidade||'');
     if(ua&&ub&&ua!==ub)return false;
-    return grupoMesmoFamilia_(principal.nome||'',p.nome||'');
+    if(!grupoMesmoFamilia_(principal.nome||'',p.nome||''))return false;
+    nomesGrupoVistos[nomeGrupo]=true;
+    return true;
   });
-  if(!candidatos.length){if(!automatico)mostrarToast('Não encontrei variantes da mesma família com custo e venda iguais.','info');return;}
+  if(!candidatos.length){if(!automatico)mostrarToast('Não encontrei variantes da mesma família com preço de venda igual.','info');return;}
   grupoAbrirSelecao_(principal,candidatos,function(selecionados){
     if(!selecionados.length){mostrarToast('Marque ao menos uma variante para adicionar à placa.','warn');return;}
     if(!document.getElementById('pUnirOn').checked){document.getElementById('pUnirOn').checked=true;toggleUnir();atualizarEstadoToggleChips();}
