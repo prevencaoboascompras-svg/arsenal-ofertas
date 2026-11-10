@@ -16,8 +16,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#fff;--bg2:#f5f5f3;--bg3:#eeede8;--tx:#1a1a18;--tx2:#6b6b67;--bd:rgba(0,0,0,.12);--bds:rgba(0,0,0,.22);--r:8px;--rl:12px;--green:#1D9E75;--gd:#0F6E56;--blue:#378ADD;--amber:#BA7517;--red:#E24B4A;}
-@media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#282825;--bg3:#323230;--tx:#f0efe8;--tx2:#9b9b95;--bd:rgba(255,255,255,.1);--bds:rgba(255,255,255,.2);}}
+:root{color-scheme:light;--bg:#fff;--bg2:#f5f5f3;--bg3:#eeede8;--tx:#1a1a18;--tx2:#6b6b67;--bd:rgba(0,0,0,.12);--bds:rgba(0,0,0,.22);--r:8px;--rl:12px;--green:#1D9E75;--gd:#0F6E56;--blue:#378ADD;--amber:#BA7517;--red:#E24B4A;}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#1e1e1c;--bg2:#282825;--bg3:#323230;--tx:#f0efe8;--tx2:#9b9b95;--bd:rgba(255,255,255,.1);--bds:rgba(255,255,255,.2);}}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg3);color:var(--tx);min-height:100vh;padding:8px}
 .wrap{width:100%;max-width:none;margin:0}
 .hd{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
@@ -786,7 +786,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -798,6 +798,9 @@ var bancoPreco={};     // cod -> preço de venda OFICIAL da aba BANCO DE DADOS
 var bancoUnidade={};   // cod -> unidade/medida OFICIAL da aba BANCO DE DADOS
 var bancoCusto={};     // cod -> custo OFICIAL da aba BANCO DE DADOS
 var bancoAtualizadoEm={}; // cod -> data/hora da última atualização de custo ou venda
+var setoresConfirmadosCentral_={}; // EAN -> setor aprendido no banco compartilhado AURA
+var ARSENAL_SETORES_CENTRAIS_KEY='arsenal_setores_confirmados_central_v1';
+try{setoresConfirmadosCentral_=JSON.parse(localStorage.getItem(ARSENAL_SETORES_CENTRAIS_KEY)||'{}')||{};}catch(e){setoresConfirmadosCentral_={};}
 var products=[];       // catálogo AUXILIAR da aba de validades (não fornece preço/unidade oficial)
 var _catalogoProdutosCache=null; // catálogo consolidado/normalizado, reconstruído só após sincronização
 var fonteAtual='"Montserrat","Arial Black",Arial,sans-serif';
@@ -900,7 +903,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.37-pack-campos-em-linha-sem-textos-longos';
+var AURA_ARSENAL_BUILD='v7.87-setor-central-aplicado-em-produtos-e-tema';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -931,6 +934,7 @@ function recalcularTemaAutomatico_(produtoOuSetor){
 
 var temaSetorCentralCache_={};
 var temaSetorCentralSeq_=0;
+Object.keys(setoresConfirmadosCentral_).forEach(function(e){temaSetorCentralCache_[e]=setoresConfirmadosCentral_[e];});
 function auraTemaPorSetorCentral_(setor){
   var s=normalizarTexto(String(setor||''));
   if(s==='bebidas')return 'bebidas';
@@ -1379,6 +1383,7 @@ async function _arsenalSyncRun_(){
     ]);
     await loadBanco(cfg,tabelas[0]);
     await loadPrecos(cfg,tabelas[1]);
+    await arsenalSincronizarSetoresConfirmadosCentral_();
     _catalogoProdutosCache=null;
     var totalProd=Object.keys(banco).length;
     var totalPreco=Object.keys(bancoPreco).length;
@@ -1390,6 +1395,19 @@ async function _arsenalSyncRun_(){
   }finally{
     btn.disabled=false;btn.innerHTML='<i class="ti ti-refresh"></i> Sincronizar';
   }
+}
+
+function arsenalSincronizarSetoresConfirmadosCentral_(){
+  return _gasGetJsonp('buscarSetoresConfirmados','',20000).then(function(r){
+    if(!r||!r.ok||!r.setores)return false;
+    var mapa={};Object.keys(r.setores).forEach(function(k){var e=normalizarCodigo(k),s=String(r.setores[k]||'').trim();if(e&&s&&s!=='Outros')mapa[e]=s;});
+    setoresConfirmadosCentral_=mapa;
+    Object.keys(mapa).forEach(function(e){temaSetorCentralCache_[e]=mapa[e];});
+    try{localStorage.setItem(ARSENAL_SETORES_CENTRAIS_KEY,JSON.stringify(mapa));}catch(e){}
+    _catalogoProdutosCache=null;
+    console.info('[Arsenal Setores] Mapa central aplicado:',Object.keys(mapa).length,'EANs.');
+    return true;
+  }).catch(function(e){console.warn('[Arsenal Setores] Falha ao atualizar mapa central:',e&&e.message||e);return false;});
 }
 
 // ============================================================
@@ -1434,10 +1452,11 @@ function consolidarProdutos(){
     if(!key)return;
 
     if(!map[key]){
-      map[key]={cod:cod,nome:'',preco:0,custo:0,unidade:'',atualizadoEm:0,oficial:false};
+      map[key]={cod:cod,nome:'',preco:0,custo:0,unidade:'',atualizadoEm:0,setor:'',oficial:false};
     }
 
     if(cod&&!map[key].cod)map[key].cod=cod;
+    if(cod&&setoresConfirmadosCentral_[cod])map[key].setor=setoresConfirmadosCentral_[cod];
 
     if(oficial){
       // BANCO DE DADOS sempre vence qualquer fonte auxiliar.
@@ -1496,7 +1515,7 @@ function buscarPorCodigo(cod){
   }
 
   if(!nome&&!preco&&!unidade)return null;
-  return {cod:c,nome:nome,preco:preco,unidade:unidade,oficial:oficial};
+  return {cod:c,nome:nome,preco:preco,unidade:unidade,setor:setoresConfirmadosCentral_[c]||'',oficial:oficial};
 }
 
 function buscarProdutos(termo,limite){
@@ -4479,7 +4498,9 @@ async function editarEncarte(id){
   // salva na promoção não é usada como fonte de classificação.
   var temaSel=document.getElementById('pTemaPlaca');
   if(temaSel)temaSel.value='automatico';
-  recalcularTemaAutomatico_({setor:it.setor||infoSalva.setor||(prod&&prod.setor)||''});
+  var setorAprendidoCentral=setoresConfirmadosCentral_[cod]||'';
+  if(setorAprendidoCentral){it.setor=setorAprendidoCentral;if(infoSalva)infoSalva.setor=setorAprendidoCentral;}
+  recalcularTemaAutomatico_({setor:setorAprendidoCentral||it.setor||infoSalva.setor||(prod&&prod.setor)||''});
   prepararTemaAtualSemDesenhar_();
   // Não reaplica cores antigas/manualizadas aqui: o tema automático define
   // novamente a paleta coerente com o produto que está sendo editado.
@@ -5670,7 +5691,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     }
     return lista;
   }
-  function produtoObj(p){return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||'',atualizadoEm:Number(p.atualizadoEm)||0};}
+  function produtoObj(p){return {cod:p.ean,nome:p.descricao,preco:Number(p.preco)||0,custo:Number(p.custo)||0,unidade:p.unidade||'',setor:setoresConfirmadosCentral_[normalizarCodigo(p.ean)]||p.setor||'',atualizadoEm:Number(p.atualizadoEm)||0};}
   window.buscarPorCodigo=function(cod){ensure();var p=core.lookup(cod);return p?produtoObj(p):null;};
   window.buscarProdutos=function(termo,limite){
     ensure();limite=Math.max(1,Number(limite)||10);termo=String(termo||'').trim();
@@ -5982,5 +6003,26 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   window.setInterval(carregar,30*60*1000);
 })();
 </script>
+
+<style id="arsenal-system-color-scheme">
+/* Mantém componentes nativos e modais alinhados à preferência atual do sistema operacional. */
+@media(prefers-color-scheme:light){
+  .cestas-story-box{background:#fff;color:#202124;border-color:#d6d6d6}
+  .cestas-story-body{background:#f5f5f5}
+  .cestas-story-controls label{color:#4b5563}
+  .cestas-story-controls select,.cestas-story-controls input{background:#fff;color:#202124;border-color:#c7cbd1}
+  .cesta-pdf-upload{background:#fff8df;border-color:#e6c967}
+  .cesta-pdf-upload label{color:#795d00!important}
+  .cesta-pdf-upload small{color:#6b5b2a}
+  .cesta-formula-card{background:#fff;border-color:#d9dce1;color:#202124}
+  .cesta-formula-code,.cesta-foto-status{color:#656b73}
+  .cesta-subst-tools,.cesta-foto-tools{border-color:#d9dce1}
+  .cesta-subst-tools summary,.cesta-foto-tools summary{color:#8a6200}
+  .cesta-subst-results button,.cesta-foto-sugs button{background:#f2f3f5!important;border-color:#cbd0d7!important;color:#202124!important}
+  .cesta-foto-sugs img{border:1px solid #ddd}
+  .cestas-story-preview{background:#e7e8eb;border-color:#d1d4da}
+  .cestas-story-status{color:#555}
+}
+</style>
 </body>
 </html>
