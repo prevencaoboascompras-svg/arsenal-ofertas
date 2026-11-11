@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v7.90 — painéis encostados no cabeçalho -->
+<!-- Arsenal de Ofertas v7.91 — impressão nativa e carregamento sob demanda -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -907,7 +907,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.90-sem-espaco-entre-cabecalho-e-paineis';
+var AURA_ARSENAL_BUILD='v7.91-impressao-nativa-fotos-sob-demanda';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -4106,18 +4106,41 @@ function arsenalPrepararFolhasImpressao_(imagens,layout,copies,fit,corte){
     if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=img.onerror=resolve;});
   }));
 }
+function arsenalMontarDocumentoImpressao_(doc,folhas,layout,papel){
+  var cfg=ARSENAL_PRINT_LAYOUTS_[layout]||ARSENAL_PRINT_LAYOUTS_.full;
+  var tamanho=String(papel||'A4').toUpperCase();
+  var orientacao=cfg.landscape?'landscape':'portrait';
+  var css='*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;font-family:Arial,sans-serif}.print-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 14px;background:#242424;color:#fff;font-size:14px}.print-toolbar button{border:0;border-radius:6px;padding:9px 14px;background:#e60012;color:#fff;font-weight:700;cursor:pointer}.print-toolbar .close{background:#555}.print-page{width:100%;height:100vh;min-height:0;max-height:100vh;margin:0;display:grid;gap:4mm;padding:10mm;box-sizing:border-box;page-break-after:always;break-after:page;overflow:hidden}.print-page.layout-photo13{grid-template-columns:1fr 1fr!important;grid-template-rows:180mm!important;gap:4mm;padding:15mm}.print-page.layout-photo20{grid-template-columns:minmax(0,200mm)!important;grid-template-rows:250mm!important;gap:0;padding:23.5mm 5mm;justify-content:center}.print-page.layout-grid4{grid-template-columns:1fr 1fr!important;grid-template-rows:1fr 1fr!important;gap:5mm;padding:10mm}.print-page:last-child{page-break-after:auto!important;break-after:auto!important}.print-cell{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:hidden}.print-cell.bordered{border:1px dashed #999}.print-cell img{width:100%;height:100%;object-fit:contain}.print-page.crop-images .print-cell img{object-fit:cover}@page{size:'+tamanho+' '+orientacao+';margin:0}@media print{html,body{width:100%;height:auto;overflow:visible}.print-toolbar{display:none}.print-page{width:100%;height:100vh;max-height:100vh}}';
+  doc.open();
+  doc.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Imprimir placas — Arsenal</title><style>'+css+'</style></head><body><div class="print-toolbar"><strong>Placas prontas para impressão</strong><span>Se a janela de impressão não abrir automaticamente, use o botão.</span><button onclick="window.print()">Imprimir agora</button><button class="close" onclick="window.close()">Fechar</button></div>'+folhas+'</body></html>');
+  doc.close();
+}
 async function confirmarImpressaoArsenal_(){
   var cfg=ARSENAL_PRINT_LAYOUTS_[arsenalPrintLayout_]||ARSENAL_PRINT_LAYOUTS_.full;
   var copies=arsenalQuantidadeImpressao_(),fit=document.getElementById('classicPrintFit').checked;
   var line=document.getElementById('pPrintLinhaCorte'),corte=!!(line&&line.checked);
   var btn=document.querySelector('.classic-print-footer .primary');
+  // A janela em branco é criada no clique, antes de qualquer await, para o
+  // navegador reconhecer a ação do usuário e permitir abrir a impressão nativa.
+  var printWin=window.open('about:blank','arsenal-print-window','width=1100,height=850');
+  if(!printWin){mostrarToast('O navegador bloqueou a janela de impressão. Permita pop-ups para o Arsenal e tente novamente.','warn');return;}
   if(btn){btn.disabled=true;btn.textContent='Preparando...';}
   try{
     await arsenalPrepararFolhasImpressao_(arsenalPrintQueue_,arsenalPrintLayout_,copies,fit,corte);
+    var folhas=(document.getElementById('printArea')||{}).innerHTML||'';
+    var printDoc=printWin.document;
+    arsenalMontarDocumentoImpressao_(printDoc,folhas,arsenalPrintLayout_,document.getElementById('classicPrintPaper').value);
     fecharAssistenteImpressao_();
-    setTimeout(function(){try{window.print();}finally{if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-printer"></i> Imprimir';}}},120);
-  }catch(e){if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-printer"></i> Imprimir';}mostrarToast('Não consegui preparar a impressão: '+(e&&e.message||e),'err');}
+    printWin.onafterprint=function(){setTimeout(function(){try{printWin.close();}catch(e){}},500);};
+    var imgs=Array.prototype.slice.call(printDoc.images||[]);
+    await Promise.race([Promise.all(imgs.map(function(img){return img.decode?img.decode().catch(function(){}):new Promise(function(resolve){if(img.complete)resolve();else{img.onload=img.onerror=resolve;}});})),new Promise(function(resolve){setTimeout(resolve,8000);})]);
+    await new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve);});});
+    printWin.focus();
+    printWin.print();
+  }catch(e){try{printWin.close();}catch(e2){}if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-printer"></i> Imprimir';}mostrarToast('Não consegui preparar a impressão: '+(e&&e.message||e),'err');}
+  finally{if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-printer"></i> Imprimir';}}
 }
+
 document.addEventListener('keydown',function(e){if(e.key==='Escape')fecharAssistenteImpressao_();});
 
 async function imprimirPlacaA4(){
@@ -4385,33 +4408,50 @@ function renderEncartes(){
 // para não refazer a busca toda vez que a lista é re-renderizada.
 var encartesFotoCache={};
 
-async function carregarThumbsPendentes(){
-  var pendentes=[];
-  var vistos={};
-  encartesCache.forEach(function(it){
-    var cod=normalizarCodigo(it.codigo);
-    if(cod&&!(typeof encartesFotoCache[cod]==='string'&&encartesFotoCache[cod])&&!vistos[cod]){vistos[cod]=true;pendentes.push(it);}
-  });
-  if(!pendentes.length)return;
-  await mapComLimite(pendentes,4,async function(it){
-    var cod=normalizarCodigo(it.codigo);
-    if(encartesFotoCache[cod])return;
-    var src='';
-    try{
-      var foto=await buscarFotoItemEncarte(cod,it.produto,'');
-      src=foto.src||'';
-    }catch(e){}
-    if(src)encartesFotoCache[cod]=src;
-    else delete encartesFotoCache[cod];
-    if(src){
-      var thumbs=document.querySelectorAll('.enc-thumb[data-cod]');
-      for(var i=0;i<thumbs.length;i++){
-        if(thumbs[i].getAttribute('data-cod')===cod){
-          thumbs[i].innerHTML='<img src="'+escapeHtml(src)+'" loading="lazy" width="1054" height="1492" alt="">';
+var encartesThumbObserver_=null;
+var encartesThumbQueue_=[];
+var encartesThumbActive_=0;
+var encartesThumbQueued_=Object.create(null);
+var encartesThumbFailedAt_=Object.create(null);
+function encartesAgendarFotoThumb_(thumb){
+  var cod=normalizarCodigo(thumb&&thumb.getAttribute('data-cod'));
+  if(!cod)return;
+  var cached=encartesFotoCache[cod];
+  if(cached){thumb.innerHTML='<img src="'+escapeHtml(cached)+'" loading="lazy" width="1054" height="1492" alt="">';return;}
+  if(encartesThumbQueued_[cod]||Date.now()-(encartesThumbFailedAt_[cod]||0)<120000)return;
+  var item=encartesCache.find(function(it){return normalizarCodigo(it.codigo)===cod;});
+  if(!item)return;
+  encartesThumbQueued_[cod]=true;
+  encartesThumbQueue_.push({cod:cod,item:item});
+  encartesProcessarFilaThumbs_();
+}
+function encartesProcessarFilaThumbs_(){
+  while(encartesThumbActive_<4&&encartesThumbQueue_.length){
+    (function(job){
+      encartesThumbActive_++;
+      Promise.resolve().then(async function(){
+        var src='';
+        try{var foto=await buscarFotoItemEncarte(job.cod,job.item.produtoDigitado||job.item.produto||'', '');src=foto&&foto.src||'';}catch(e){}
+        if(src)encartesFotoCache[job.cod]=src;else encartesThumbFailedAt_[job.cod]=Date.now();
+        var thumbs=document.querySelectorAll('.enc-thumb[data-cod]');
+        for(var i=0;i<thumbs.length;i++)if(normalizarCodigo(thumbs[i].getAttribute('data-cod'))===job.cod){
+          thumbs[i].innerHTML=src?'<img src="'+escapeHtml(src)+'" loading="lazy" width="1054" height="1492" alt="">':'<i class="ti ti-photo" style="opacity:.3;font-size:22px"></i>';
         }
-      }
-    }
-  });
+      }).finally(function(){delete encartesThumbQueued_[job.cod];encartesThumbActive_--;encartesProcessarFilaThumbs_();});
+    })(encartesThumbQueue_.shift());
+  }
+}
+function carregarThumbsPendentes(){
+  var grid=document.getElementById('encartesList');if(!grid)return;
+  if(encartesThumbObserver_)encartesThumbObserver_.disconnect();
+  if('IntersectionObserver' in window){
+    encartesThumbObserver_=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(!entry.isIntersecting)return;encartesThumbObserver_.unobserve(entry.target);encartesAgendarFotoThumb_(entry.target);});},{root:grid,rootMargin:'120px 0px',threshold:0.01});
+    grid.querySelectorAll('.enc-thumb[data-cod]').forEach(function(thumb){encartesThumbObserver_.observe(thumb);});
+    return;
+  }
+  var box=grid.getBoundingClientRect();
+  grid.querySelectorAll('.enc-thumb[data-cod]').forEach(function(thumb){var r=thumb.getBoundingClientRect();if(r.bottom>=box.top-120&&r.top<=box.bottom+120)encartesAgendarFotoThumb_(thumb);});
+  if(!grid.dataset.thumbScrollBound){grid.dataset.thumbScrollBound='1';grid.addEventListener('scroll',function(){requestAnimationFrame(carregarThumbsPendentes);},{passive:true});}
 }
 
 var editingEncarteId=null;
@@ -5610,7 +5650,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   document.getElementById('pCod').focus();
 })();
 </script>
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+
 
 
 
