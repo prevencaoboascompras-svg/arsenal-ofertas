@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v7.80 — cabeçalhos maiores, fotos ampliadas e contagem no preço -->
+<!-- Arsenal de Ofertas v7.88 — grupos por marca/linha, cards de aniversários e dimensões de fotos -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -409,27 +409,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   .aura-header-actions .aura-btn span{display:none}
   .aura-status-pill{font-size:9px;padding:3px 9px}
 }
-/* Aniversariantes do mês integrados ao banner vermelho do cabeçalho */
+/* Aniversariantes do mês no banner: resumo em uma linha e cards legíveis */
 .aura-header{display:grid;grid-template-columns:minmax(265px,auto) minmax(0,1fr) auto;grid-template-areas:"brand birthdays actions";align-items:center;gap:18px 24px}
 .aura-header-brand{grid-area:brand;min-width:0}
 .aura-header-actions{grid-area:actions;min-width:0}
 .arsenal-bdays{grid-area:birthdays;min-width:0;padding:0 0 0 16px;border:0;border-left:1px solid rgba(255,255,255,.32);border-radius:0;background:transparent;color:#fff}
-.arsenal-bdays-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;flex-wrap:wrap}
-.arsenal-bdays-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:850;line-height:1.2;color:#fff}
+.arsenal-bdays-head{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;align-items:center;gap:10px;margin-bottom:7px}
+.arsenal-bdays-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:850;line-height:1.2;color:#fff;white-space:nowrap}
 .arsenal-bdays-title i{font-size:16px;color:#fde047}
-.arsenal-bdays-sub{margin-top:2px;color:rgba(255,255,255,.78);font-size:10px;line-height:1.3}
+.arsenal-bdays-sub{margin:0;color:rgba(255,255,255,.84);font-size:10px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .arsenal-bdays-note{color:rgba(255,255,255,.65);font-size:9px;white-space:nowrap}
-.arsenal-bdays-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr));gap:6px}
-.arsenal-bday-card{display:flex;align-items:center;gap:7px;min-width:0;padding:6px 7px;background:rgba(84,12,12,.32);border:1px solid rgba(255,255,255,.18);border-radius:8px}
-.arsenal-bday-date{display:flex;align-items:center;justify-content:center;flex:0 0 39px;height:32px;border-radius:7px;background:#fde047;color:#8c160f;font-size:10px;font-weight:950}
-.arsenal-bday-name{flex:1;min-width:0;font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
-.arsenal-bday-days{flex:0 0 auto;padding:3px 6px;border-radius:999px;background:rgba(255,255,255,.16);color:#ffe36b;font-size:8px;font-weight:900;white-space:nowrap}
+.arsenal-bdays-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:6px}
+.arsenal-bday-card{display:grid;grid-template-columns:39px minmax(0,1fr);grid-template-rows:auto;align-items:center;gap:0 8px;min-width:0;min-height:48px;padding:5px 7px;background:rgba(84,12,12,.32);border:1px solid rgba(255,255,255,.18);border-radius:8px}
+.arsenal-bday-date{grid-column:1;grid-row:1 / span 2;display:flex;align-items:center;justify-content:center;width:39px;height:34px;border-radius:7px;background:#fde047;color:#8c160f;font-size:10px;font-weight:950}
+.arsenal-bday-info{grid-column:2;grid-row:1 / span 2;display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:3px}
+.arsenal-bday-name{width:100%;min-width:0;font-size:11px;font-weight:850;line-height:1.2;white-space:normal;overflow-wrap:anywhere;color:#fff}
+.arsenal-bday-days{flex:0 0 auto;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,.16);color:#ffe36b;font-size:8px;font-weight:900;white-space:nowrap}
 .arsenal-bday-days.today{background:#fde047;color:#8c160f}
 .arsenal-bdays-state{display:flex;align-items:center;gap:7px;color:rgba(255,255,255,.85);font-size:10px}
-.arsenal-bdays-retry{margin-left:auto;border:1px solid rgba(255,255,255,.38);border-radius:6px;padding:5px 9px;background:rgba(255,255,255,.12);color:#fff;font-size:10px;font-weight:750;cursor:pointer}
+.arsenal-bdays-retry{justify-self:end;border:1px solid rgba(255,255,255,.38);border-radius:6px;padding:5px 9px;background:rgba(255,255,255,.12);color:#fff;font-size:10px;font-weight:750;cursor:pointer}
 .arsenal-bdays-retry:hover{border-color:#fde047;color:#fde047}
 @media(max-width:1180px){.aura-header{grid-template-columns:minmax(220px,1fr) auto;grid-template-areas:"brand actions" "birthdays birthdays"}.arsenal-bdays{border-left:0;border-top:1px solid rgba(255,255,255,.25);padding:10px 0 0}}
-@media(max-width:600px){.arsenal-bdays-list{grid-template-columns:repeat(2,minmax(0,1fr))}.arsenal-bdays-head{align-items:flex-start}.arsenal-bdays-note{white-space:normal}.arsenal-bday-card{gap:5px;padding:5px}.arsenal-bday-days{font-size:7px;padding:3px 4px}.arsenal-bday-name{font-size:9px}}
+@media(max-width:760px){.arsenal-bdays-head{grid-template-columns:1fr auto;gap:5px 8px}.arsenal-bdays-title{grid-column:1}.arsenal-bdays-sub{grid-column:1 / -1;grid-row:2;white-space:normal}.arsenal-bdays-note{grid-column:2;grid-row:1}.arsenal-bdays-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.arsenal-bdays-list{grid-template-columns:repeat(2,minmax(0,1fr))}.arsenal-bday-card{grid-template-columns:34px minmax(0,1fr);gap:0 6px;padding:5px}.arsenal-bday-date{width:34px;height:31px;font-size:9px}.arsenal-bday-name{font-size:10px}.arsenal-bday-days{font-size:8px;padding:2px 5px}}
 
 
 </style>
@@ -903,7 +905,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.87-setor-central-aplicado-em-produtos-e-tema';
+var AURA_ARSENAL_BUILD='v7.88-grupo-familia-aniversarios-carregamento';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -2831,12 +2833,14 @@ async function unirBuscarExtraFoto(id,cod,nome){
   drawPlaca();
 }
 
-// Localiza variantes da mesma linha com o mesmo preço oficial de venda.
+// Identifica a linha/ marca preservando o nome próprio; remove categoria,
+// tamanho e variações de sabor/fragrância para aceitar apenas variantes reais.
 function grupoTokenBase_(nome){
   var tokens=normalizarTexto(nome).split(/\s+/).filter(Boolean);
-  var variantes={INTEGRAL:1,DESNATADO:1,SEMIDESNATADO:1,SEMI:1,ORIGINAL:1,TRADICIONAL:1,MELANCIA:1,TROPICAL:1,PERA:1,LIMONETO:1,MATE:1,ACAI:1,ACAÍ:1,FRUTAS:1,VERMELHAS:1,CITRUS:1,MACA:1,LARANJA:1,LIMAO:1,GUARANA:1,ZERO:1,DIET:1,LIGHT:1};
+  var variaveis={INTEGRAL:1,DESNATADO:1,SEMIDESNATADO:1,SEMI:1,ORIGINAL:1,TRADICIONAL:1,CLASSICO:1,CLASSICA:1,MELANCIA:1,TROPICAL:1,PERA:1,LIMONETO:1,MATE:1,ACAI:1,FRUTAS:1,VERMELHAS:1,CITRUS:1,MACA:1,LARANJA:1,LIMAO:1,GUARANA:1,EXTREME:1,ENERGY:1,ENERGETIC:1,MORANGO:1,BAUNILHA:1,CHOCOLATE:1,COCO:1,MENTA:1,LAVANDA:1,NEUTRO:1,FRESH:1,DOCE:1,VERDE:1,AZUL:1,ROSA:1,FRUTAS:1,VERMELHAS:1};
+  var genericos={DE:1,DA:1,DO:1,DAS:1,DOS:1,E:1,COM:1,SEM:1,LEITE:1,ENERGETICO:1,OLEO:1,SOJA:1,REFRIGERANTE:1,REFRI:1,AGUA:1,BEBIDA:1,SUCO:1,ACHOCOLATADO:1,IOGURTE:1,SABAO:1,DETERGENTE:1,AMACIANTE:1,CAFE:1,ARROZ:1,FEIJAO:1,ACUCAR:1,FARINHA:1,MASSA:1,MACARRAO:1,QUEIJO:1};
   return tokens.filter(function(t){
-    if(variantes[t])return false;
+    if(variaveis[t]||genericos[t])return false;
     if(/^\d+(?:[.,]\d+)?(?:KG|G|GR|ML|L|LT|LTS|UN|UND|CX|PCT)$/.test(t))return false;
     if(/^\d+(?:[.,]\d+)?$/.test(t))return false;
     return true;
@@ -2859,17 +2863,14 @@ function grupoDescricaoComum_(produtos){
 }
 function grupoMesmoFamilia_(nomeA,nomeB){
   var packA=grupoApresentacao_(nomeA),packB=grupoApresentacao_(nomeB);
-  if(packA!==packB)return false;
+  if(!packA||packA!==packB)return false;
+  // Zero lactose é uma linha funcional diferente, não uma simples variação de sabor.
+  if(grupoEhZeroLactose_(nomeA)!==grupoEhZeroLactose_(nomeB))return false;
   var a=grupoTokenBase_(nomeA),b=grupoTokenBase_(nomeB);
-  var comuns=a.filter(function(t){return b.indexOf(t)>=0;});
-  var menor=Math.min(a.length,b.length);
-  // Algumas linhas, como BALY, usam somente a marca + sabor + apresentação.
-  // Com a apresentação já validada e o mesmo preço de venda, a marca identifica a família.
-  var primeiroA=normalizarTexto(nomeA).split(/\s+/)[0]||'',primeiroB=normalizarTexto(nomeB).split(/\s+/)[0]||'';
-  if(primeiroA==='BALY'&&primeiroB==='BALY'&&comuns.indexOf('BALY')>=0)return true;
-  if(a.length<2||b.length<2)return false;
-  // Exige forte sobreposição de marca/linha após retirar sabores e apresentações.
-  return comuns.length>=2 && comuns.length/menor>=0.72;
+  if(!a.length||!b.length||a.length!==b.length)return false;
+  // Igualdade do núcleo evita cruzar marcas: COAMO e SOYA não viram família
+  // só porque ambas descrições contêm "óleo de soja".
+  return a.every(function(t,i){return t===b[i];});
 }
 function grupoAbrirSelecao_(principal,candidatos,aoConfirmar){
   var overlay=document.createElement('div');
@@ -2882,7 +2883,7 @@ function grupoAbrirSelecao_(principal,candidatos,aoConfirmar){
   titulo.textContent='Produtos encontrados para este grupo';box.appendChild(titulo);
   var intro=document.createElement('div');
   intro.style.cssText='padding:12px 18px 8px;font-size:13px;line-height:1.45;color:#eee';
-  intro.innerHTML='Encontrei variantes da mesma família com preço de venda igual. Selecione quais deseja colocar na placa. O produto principal <strong>'+escapeHtml(principal.nome||'')+'</strong> já está incluído.';box.appendChild(intro);
+  intro.innerHTML='Encontrei variantes da mesma marca e linha, com embalagem, custo e preço de venda iguais. Selecione quais deseja colocar na placa. O produto principal <strong>'+escapeHtml(principal.nome||'')+'</strong> já está incluído.';box.appendChild(intro);
   var controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;padding:0 18px 10px';
   var selectAll=document.createElement('button'),clearAll=document.createElement('button');
   [selectAll,clearAll].forEach(function(b){b.type='button';b.style.cssText='border:1px solid #666;border-radius:7px;background:#333;color:#fff;padding:6px 10px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600';});
@@ -2892,7 +2893,7 @@ function grupoAbrirSelecao_(principal,candidatos,aoConfirmar){
     var label=document.createElement('label');label.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 11px;margin:0 0 7px;border:1px solid #4b4b4b;border-radius:9px;background:#2b2b2b;cursor:pointer;font-size:13px;line-height:1.35';
     var cb=document.createElement('input');cb.type='checkbox';cb.checked=false;cb.value=String(i);cb.style.cssText='width:18px;height:18px;accent-color:#e60012;flex:0 0 auto';
     var name=document.createElement('span');name.textContent=p.nome||p.cod||'Produto sem descrição';name.style.cssText='flex:1';
-    var same=document.createElement('small');same.textContent='Mesmo preço de venda';same.style.cssText='color:#84ddb7;font-size:10px;white-space:nowrap';
+    var same=document.createElement('small');same.textContent='Mesmo custo e preço';same.style.cssText='color:#84ddb7;font-size:10px;white-space:nowrap';
     label.appendChild(cb);label.appendChild(name);label.appendChild(same);list.appendChild(label);
   });
   box.appendChild(list);
@@ -2934,13 +2935,15 @@ function detectarGrupoProdutos(produtoSelecionado, automatico){
     if(grupoEhZeroLactose_(p.nome||''))return false;
     var pPreco=Number(p.preco)||0;
     if(!(pPreco>0)||Math.round(pPreco*100)!==Math.round(preco*100))return false;
+    var custoPrincipal=Number(principal.custo)||0,custoProduto=Number(p.custo)||0;
+    if(!(custoPrincipal>0&&custoProduto>0)||Math.round(custoPrincipal*100)!==Math.round(custoProduto*100))return false;
     var ua=normalizarUnidadeBanco(principal.unidade||''),ub=normalizarUnidadeBanco(p.unidade||'');
     if(ua&&ub&&ua!==ub)return false;
     if(!grupoMesmoFamilia_(principal.nome||'',p.nome||''))return false;
     nomesGrupoVistos[nomeGrupo]=true;
     return true;
   });
-  if(!candidatos.length){if(!automatico)mostrarToast('Não encontrei variantes da mesma família com preço de venda igual.','info');return;}
+  if(!candidatos.length){if(!automatico)mostrarToast('Não encontrei variantes da mesma marca e linha com embalagem, custo e preço iguais.','info');return;}
   grupoAbrirSelecao_(principal,candidatos,function(selecionados){
     if(!selecionados.length){mostrarToast('Marque ao menos uma variante para adicionar à placa.','warn');return;}
     if(!document.getElementById('pUnirOn').checked){document.getElementById('pUnirOn').checked=true;toggleUnir();atualizarEstadoToggleChips();}
@@ -4354,7 +4357,7 @@ function renderEncartes(){
     var cod=normalizarCodigo(it.codigo);
     var fotoCache=Object.prototype.hasOwnProperty.call(encartesFotoCache,cod)?encartesFotoCache[cod]:null;
     var thumbHtml=(typeof fotoCache==='string'&&fotoCache)
-      ?'<img src="'+escapeHtml(fotoCache)+'" loading="lazy" alt="">'
+      ?'<img src="'+escapeHtml(fotoCache)+'" loading="lazy" width="1054" height="1492" alt="">'
       :'<i class="ti ti-photo" style="opacity:.3;font-size:22px"></i>';
     var badgeHtml=marcado?'<div class="enc-ordem-badge" title="Posição '+ordem+' no encarte">'+ordem+'</div>':'';
     return ''+
@@ -4402,7 +4405,7 @@ async function carregarThumbsPendentes(){
       var thumbs=document.querySelectorAll('.enc-thumb[data-cod]');
       for(var i=0;i<thumbs.length;i++){
         if(thumbs[i].getAttribute('data-cod')===cod){
-          thumbs[i].innerHTML='<img src="'+escapeHtml(src)+'" loading="lazy" alt="">';
+          thumbs[i].innerHTML='<img src="'+escapeHtml(src)+'" loading="lazy" width="1054" height="1492" alt="">';
         }
       }
     }
@@ -5979,8 +5982,8 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     var nomeMes=meses[mesAtual-1],titulo='Aniversariantes do mês — '+nomeMes.charAt(0).toUpperCase()+nomeMes.slice(1),sub='';
     if(erro){box.innerHTML='<div class="arsenal-bdays-head"><div><div class="arsenal-bdays-title"><i class="ti ti-cake"></i>'+titulo+'</div><div class="arsenal-bdays-sub">Não foi possível carregar os aniversários agora.</div></div><button class="arsenal-bdays-retry" type="button" onclick="window.carregarAniversariosArsenal_()">Tentar novamente</button></div>';return;}
     sub=lista.length?(proximos?'Nenhum aniversário restante em '+nomeMes+'. Veja os próximos da equipe.':lista.length+' aniversário'+(lista.length===1?'':'s')+' restante'+(lista.length===1?'':'s')+' em '+nomeMes+'.'):'Nenhum aniversário cadastrado para colaboradores ativos.';
-    var cards=lista.map(function(x){var d=x.dias===0?'Hoje!':(x.dias===1?'Amanhã':'Faltam '+x.dias+' dias'),dt=(x.p.dia<10?'0':'')+x.p.dia+'/'+(x.p.mes<10?'0':'')+x.p.mes;return '<article class="arsenal-bday-card"><div class="arsenal-bday-date">'+dt+'</div><div class="arsenal-bday-name" title="'+escapar(x.c.nome)+'">'+escapar(x.c.nome)+'</div><div class="arsenal-bday-days '+(x.dias===0?'today':'')+'">'+d+'</div></article>';}).join('');
-    box.innerHTML='<div class="arsenal-bdays-head"><div><div class="arsenal-bdays-title"><i class="ti ti-cake"></i>'+titulo+'</div><div class="arsenal-bdays-sub">'+sub+'</div></div><div class="arsenal-bdays-note">Somente colaboradores ativos</div></div>'+(cards?'<div class="arsenal-bdays-list">'+cards+'</div>':'');
+    var cards=lista.map(function(x){var d=x.dias===0?'Hoje!':(x.dias===1?'Amanhã':'Faltam '+x.dias+' dias'),dt=(x.p.dia<10?'0':'')+x.p.dia+'/'+(x.p.mes<10?'0':'')+x.p.mes;return '<article class="arsenal-bday-card"><div class="arsenal-bday-date">'+dt+'</div><div class="arsenal-bday-info"><div class="arsenal-bday-name" title="'+escapar(x.c.nome)+'">'+escapar(x.c.nome)+'</div><div class="arsenal-bday-days '+(x.dias===0?'today':'')+'">'+d+'</div></div></article>';}).join('');
+    box.innerHTML='<div class="arsenal-bdays-head"><div class="arsenal-bdays-title"><i class="ti ti-cake"></i>'+titulo+'</div><div class="arsenal-bdays-sub">'+sub+'</div><div class="arsenal-bdays-note">Somente colaboradores ativos</div></div>'+(cards?'<div class="arsenal-bdays-list">'+cards+'</div>':'');
   }
   async function carregar(){
     var box=document.getElementById('arsenalBirthdays');if(!box)return;if(emCurso)return emCurso;
