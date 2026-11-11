@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v7.91 — impressão nativa e carregamento sob demanda -->
+<!-- Arsenal de Ofertas v7.92 — medidas padronizadas e guias de corte -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -322,12 +322,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   body>.wrap>*:not(#printArea){display:none!important}
   body>.wrap>#printArea{display:block!important;position:static!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important}
   .print-page{width:100%;height:100vh;min-height:0;max-height:100vh;margin:0;display:grid;gap:4mm;padding:10mm;box-sizing:border-box;page-break-after:always;break-after:page;overflow:hidden}
-  .print-page.layout-photo13{grid-template-columns:1fr 1fr!important;grid-template-rows:180mm!important;gap:4mm;padding:15mm}
+  .print-page.layout-photo13{grid-template-columns:130mm 130mm!important;grid-template-rows:180mm!important;gap:4mm;padding:15mm;place-content:center}
   .print-page.layout-photo20{grid-template-columns:minmax(0,200mm)!important;grid-template-rows:250mm!important;gap:0;padding:23.5mm 5mm;justify-content:center}
-  .print-page.layout-grid4{grid-template-columns:1fr 1fr!important;grid-template-rows:1fr 1fr!important;gap:5mm;padding:10mm}
+  .print-page.layout-grid4{grid-template-columns:92.5mm 92.5mm!important;grid-template-rows:136mm 136mm!important;gap:5mm;padding:10mm;place-content:center}
   .print-page:last-child{page-break-after:auto!important;break-after:auto!important}
   .print-cell{display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .print-cell.bordered{border:1px dashed #999}
+  .print-cell.bordered{border:1px dotted #777}
   .print-cell img{width:100%;height:100%;object-fit:contain}
   .print-page.crop-images .print-cell img{object-fit:cover}
   @page{size:A4 portrait;margin:0}
@@ -349,7 +349,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .classic-preview-page.layout-photo20{grid-template-columns:1fr!important;grid-template-rows:1fr!important;padding:16px 12px}
 .classic-preview-page.layout-grid4{grid-template-columns:1fr 1fr!important;grid-template-rows:1fr 1fr!important;gap:4px;padding:8px}
 .classic-preview-cell{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #e1e1e1}
-.classic-preview-cell img{width:100%;height:100%;object-fit:contain}.classic-preview-page.crop-images .classic-preview-cell img{object-fit:cover}
+.classic-preview-cell img{width:100%;height:100%;object-fit:contain}.classic-preview-page.layout-photo13 .classic-preview-cell,.classic-preview-page.layout-grid4 .classic-preview-cell{border:1px dotted #777}.classic-preview-page.crop-images .classic-preview-cell img{object-fit:cover}
 .classic-print-options{padding:14px;background:#fff;border-left:1px solid #d4d7dc}
 .classic-print-options h3{font-size:12px;font-weight:600;margin-bottom:10px;color:#444}
 .classic-layout-option{width:100%;min-height:78px;display:grid;grid-template-columns:76px 1fr;align-items:center;gap:10px;text-align:left;margin-bottom:8px;padding:7px;border:1px solid #c7cbd0;border-radius:3px;background:#fff;color:#222;cursor:pointer}
@@ -778,9 +778,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <aside class="classic-print-options">
         <h3>Layout de impressão</h3>
         <button class="classic-layout-option active" data-layout="full" onclick="selecionarLayoutImpressao_('full')"><span class="classic-layout-icon"><i class="ti ti-photo"></i></span><span><b>Foto de página inteira</b><small>Uma placa por página A4</small></span></button>
-        <button class="classic-layout-option" data-layout="photo13" onclick="selecionarLayoutImpressao_('photo13')"><span class="classic-layout-icon two"><i class="ti ti-photo"></i><i class="ti ti-photo"></i></span><span><b>13 × 18 cm (2)</b><small>Duas placas por folha A4 paisagem</small></span></button>
+        <button class="classic-layout-option" data-layout="photo13" onclick="selecionarLayoutImpressao_('photo13')"><span class="classic-layout-icon two"><i class="ti ti-photo"></i><i class="ti ti-photo"></i></span><span><b>13 × 18 cm (2)</b><small>Duas placas por folha A4 paisagem · corte pontilhado</small></span></button>
         <button class="classic-layout-option" data-layout="photo20" onclick="selecionarLayoutImpressao_('photo20')"><span class="classic-layout-icon"><i class="ti ti-photo"></i></span><span><b>20 × 25 cm (1)</b><small>Uma placa centralizada por folha</small></span></button>
-        <button class="classic-layout-option" data-layout="grid4" onclick="selecionarLayoutImpressao_('grid4')"><span class="classic-layout-icon four"><i class="ti ti-photo"></i><i class="ti ti-photo"></i><i class="ti ti-photo"></i><i class="ti ti-photo"></i></span><span><b>4 por folha</b><small>Quatro placas em grade A4</small></span></button>
+        <button class="classic-layout-option" data-layout="grid4" onclick="selecionarLayoutImpressao_('grid4')"><span class="classic-layout-icon four"><i class="ti ti-photo"></i><i class="ti ti-photo"></i><i class="ti ti-photo"></i><i class="ti ti-photo"></i></span><span><b>9,25 × 13,6 cm (4)</b><small>Quatro placas por folha A4 · corte pontilhado</small></span></button>
       </aside>
     </div>
     <div class="classic-print-footer"><span id="classicPrintStatus">Pronto para imprimir</span><span class="spacer"></span><button onclick="fecharAssistenteImpressao_()">Cancelar</button><button class="primary" onclick="confirmarImpressaoArsenal_()"><i class="ti ti-printer"></i> Imprimir</button></div>
@@ -907,7 +907,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.91-impressao-nativa-fotos-sob-demanda';
+var AURA_ARSENAL_BUILD='v7.92-medidas-impressao-guias-corte';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -4094,7 +4094,7 @@ function arsenalPrepararFolhasImpressao_(imagens,layout,copies,fit,corte){
   for(var p=0;p<lista.length;p+=cfg.perPage){
     var classe='print-page layout-'+layout+(cfg.landscape?' landscape':'')+(!fit?' crop-images':'');
     html+='<div class="'+classe+'" style="grid-template-columns:repeat('+cols+',minmax(0,1fr));grid-template-rows:repeat('+rows+',minmax(0,1fr))">';
-    lista.slice(p,p+cfg.perPage).forEach(function(src){html+='<div class="print-cell'+(corte&&cfg.perPage>1?' bordered':'')+'"><img src="'+escapeHtml(src)+'" alt="placa de oferta"></div>';});
+    lista.slice(p,p+cfg.perPage).forEach(function(src){html+='<div class="print-cell'+(cfg.perPage>1?' bordered':'')+'"><img src="'+escapeHtml(src)+'" alt="placa de oferta"></div>';});
     html+='</div>';
   }
   area.innerHTML=html;
@@ -4110,7 +4110,7 @@ function arsenalMontarDocumentoImpressao_(doc,folhas,layout,papel){
   var cfg=ARSENAL_PRINT_LAYOUTS_[layout]||ARSENAL_PRINT_LAYOUTS_.full;
   var tamanho=String(papel||'A4').toUpperCase();
   var orientacao=cfg.landscape?'landscape':'portrait';
-  var css='*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;font-family:Arial,sans-serif}.print-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 14px;background:#242424;color:#fff;font-size:14px}.print-toolbar button{border:0;border-radius:6px;padding:9px 14px;background:#e60012;color:#fff;font-weight:700;cursor:pointer}.print-toolbar .close{background:#555}.print-page{width:100%;height:100vh;min-height:0;max-height:100vh;margin:0;display:grid;gap:4mm;padding:10mm;box-sizing:border-box;page-break-after:always;break-after:page;overflow:hidden}.print-page.layout-photo13{grid-template-columns:1fr 1fr!important;grid-template-rows:180mm!important;gap:4mm;padding:15mm}.print-page.layout-photo20{grid-template-columns:minmax(0,200mm)!important;grid-template-rows:250mm!important;gap:0;padding:23.5mm 5mm;justify-content:center}.print-page.layout-grid4{grid-template-columns:1fr 1fr!important;grid-template-rows:1fr 1fr!important;gap:5mm;padding:10mm}.print-page:last-child{page-break-after:auto!important;break-after:auto!important}.print-cell{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:hidden}.print-cell.bordered{border:1px dashed #999}.print-cell img{width:100%;height:100%;object-fit:contain}.print-page.crop-images .print-cell img{object-fit:cover}@page{size:'+tamanho+' '+orientacao+';margin:0}@media print{html,body{width:100%;height:auto;overflow:visible}.print-toolbar{display:none}.print-page{width:100%;height:100vh;max-height:100vh}}';
+  var css='*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;font-family:Arial,sans-serif}.print-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 14px;background:#242424;color:#fff;font-size:14px}.print-toolbar button{border:0;border-radius:6px;padding:9px 14px;background:#e60012;color:#fff;font-weight:700;cursor:pointer}.print-toolbar .close{background:#555}.print-page{width:100%;height:100vh;min-height:0;max-height:100vh;margin:0;display:grid;gap:4mm;padding:10mm;box-sizing:border-box;page-break-after:always;break-after:page;overflow:hidden}.print-page.layout-photo13{grid-template-columns:130mm 130mm!important;grid-template-rows:180mm!important;gap:4mm;padding:15mm;place-content:center}.print-page.layout-photo20{grid-template-columns:minmax(0,200mm)!important;grid-template-rows:250mm!important;gap:0;padding:23.5mm 5mm;justify-content:center}.print-page.layout-grid4{grid-template-columns:92.5mm 92.5mm!important;grid-template-rows:136mm 136mm!important;gap:5mm;padding:10mm;place-content:center}.print-page:last-child{page-break-after:auto!important;break-after:auto!important}.print-cell{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:hidden}.print-cell.bordered{border:1px dotted #777}.print-cell img{width:100%;height:100%;object-fit:contain}.print-page.crop-images .print-cell img{object-fit:cover}@page{size:'+tamanho+' '+orientacao+';margin:0}@media print{html,body{width:100%;height:auto;overflow:visible}.print-toolbar{display:none}.print-page{width:100%;height:100vh;max-height:100vh}}';
   doc.open();
   doc.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Imprimir placas — Arsenal</title><style>'+css+'</style></head><body><div class="print-toolbar"><strong>Placas prontas para impressão</strong><span>Se a janela de impressão não abrir automaticamente, use o botão.</span><button onclick="window.print()">Imprimir agora</button><button class="close" onclick="window.close()">Fechar</button></div>'+folhas+'</body></html>');
   doc.close();
