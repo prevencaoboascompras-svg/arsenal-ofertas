@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v7.89 — painéis ajustados à altura da tela -->
+<!-- Arsenal de Ofertas v7.90 — painéis encostados no cabeçalho -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -410,6 +410,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   .aura-status-pill{font-size:9px;padding:3px 9px}
 }
 /* Aniversariantes do mês no banner: resumo em uma linha e cards legíveis */
+.aura-header{margin-bottom:0!important}
+.arsenal-workspace{margin-top:0!important}
 .aura-header{display:grid;grid-template-columns:minmax(265px,auto) minmax(0,1fr) auto;grid-template-areas:"brand birthdays actions";align-items:center;gap:18px 24px}
 .aura-header-brand{grid-area:brand;min-width:0}
 .aura-header-actions{grid-area:actions;min-width:0}
@@ -905,7 +907,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.89-paineis-encaixados-sem-rolagem';
+var AURA_ARSENAL_BUILD='v7.90-sem-espaco-entre-cabecalho-e-paineis';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
