@@ -434,6 +434,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 @media(max-width:1180px){.aura-header{grid-template-columns:minmax(220px,1fr) auto;grid-template-areas:"brand actions" "birthdays birthdays"}.arsenal-bdays{border-left:0;border-top:1px solid rgba(255,255,255,.25);padding:10px 0 0}}
 @media(max-width:760px){.arsenal-bdays-head{grid-template-columns:1fr auto;gap:5px 8px}.arsenal-bdays-title{grid-column:1}.arsenal-bdays-sub{grid-column:1 / -1;grid-row:2;white-space:normal}.arsenal-bdays-note{grid-column:2;grid-row:1}.arsenal-bdays-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.arsenal-bdays-list{grid-template-columns:repeat(2,minmax(0,1fr))}.arsenal-bday-card{grid-template-columns:34px minmax(0,1fr);gap:0 6px;padding:5px}.arsenal-bday-date{width:34px;height:31px;font-size:9px}.arsenal-bday-name{font-size:10px}.arsenal-bday-days{font-size:8px;padding:2px 5px}}
+/* Mais contraste e hierarquia visual no cabeçalho e nos aniversariantes */
+.aura-header-actions .aura-btn{min-height:34px;padding:7px 13px;font-size:13px;font-weight:750;border:1px solid rgba(255,255,255,.3);box-shadow:0 1px 3px rgba(54,0,0,.18)}
+.aura-header-actions .aura-btn:hover{border-color:rgba(255,255,255,.58);box-shadow:0 2px 7px rgba(54,0,0,.24)}
+.aura-header-actions .aura-btn-accent{border-color:#ffe466;color:#351010}
+.aura-status-pill{font-size:11px;font-weight:650;border-color:rgba(255,255,255,.32);background:rgba(75,8,8,.25)}
+.arsenal-bdays{padding:8px 10px 9px 12px;border:1px solid rgba(255,224,94,.48);border-left:4px solid #ffda42;border-radius:10px;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(73,7,7,.22));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 2px 7px rgba(65,0,0,.16)}
+.arsenal-bdays-head{gap:8px;margin-bottom:8px}
+.arsenal-bdays-title{font-size:14px;font-weight:900;text-shadow:0 1px 2px rgba(55,0,0,.3)}
+.arsenal-bdays-title i{font-size:18px;filter:drop-shadow(0 1px 1px rgba(50,0,0,.25))}
+.arsenal-bdays-sub{font-size:10.5px;font-weight:650;color:#fff4d2}
+.arsenal-bdays-note{font-size:9.5px;font-weight:700;color:#ffe890}
+.arsenal-bdays-list{gap:7px}
+.arsenal-bday-card{min-height:50px;padding:5px 8px;background:linear-gradient(110deg,rgba(109,13,13,.58),rgba(122,17,17,.38));border:1px solid rgba(255,225,95,.5);box-shadow:0 2px 4px rgba(60,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);transition:background .15s,border-color .15s,transform .15s}
+.arsenal-bday-card:hover{background:rgba(130,18,18,.68);border-color:#ffe36b;transform:translateY(-1px)}
+.arsenal-bday-date{width:40px;height:36px;font-size:10.5px;box-shadow:0 1px 3px rgba(57,0,0,.22)}
+.arsenal-bday-name{font-size:12px;line-height:1.25;text-shadow:0 1px 1px rgba(55,0,0,.24)}
+.arsenal-bday-days{padding:3px 7px;background:#ffe36b;color:#70100d;font-size:9px;box-shadow:0 1px 2px rgba(45,0,0,.2)}
+.arsenal-bday-days.today{background:#fff;color:#a20f11}
+@media(max-width:640px){.aura-header-actions .aura-btn{font-size:11px;padding:5px 8px;min-height:30px}.arsenal-bdays{padding:8px;border-radius:9px}.arsenal-bdays-title{font-size:13px}.arsenal-bday-name{font-size:10.5px}}
+
 
 
 </style>
@@ -895,6 +915,20 @@ var TEMAS_PLACA={
     templatePack:'pack arrastão.png',
     corTexto:'#000000',corValor:'#fede00',corUnidade:'#fede00',
     corBadgePreco:'#000000',usaBadgeFundo:false
+  },
+  natal:{
+    label:'Natal',
+    templatePlaca:'template-natal-arsenal.jpg',
+    templatePack:'template-pack-natal-arsenal.jpg',
+    corTexto:'#8b1018',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#D80016',usaBadgeFundo:false
+  },
+  ano_novo:{
+    label:'Ano Novo',
+    templatePlaca:'template-ano-novo-arsenal.jpg',
+    templatePack:'template-pack-ano-novo-arsenal.jpg',
+    corTexto:'#10264B',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#09214A',usaBadgeFundo:false
   }
 };
 
@@ -907,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.92-medidas-impressao-guias-corte';
+var AURA_ARSENAL_BUILD='v7.95-templates-natal-ano-novo';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -3144,6 +3178,17 @@ async function drawPlaca(){
 
   // Modo Pack: substitui o "Por" pelo total do pack; % é calculado sobre o valor "cada"
   var packOn=document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked;
+  var temaEstacional=/^(natal|ano_novo)$/.test(temaPlacaIdEfetivo_());
+  var packMap=temaEstacional?{
+    leve:{y:77.0,fontSize:2.3},
+    quantidade:{y:79.2,fontSize:6.5},
+    por:{y:81.2,fontSize:2.3},
+    rs:{fontSize:3.5},preco:{y:86.0,fontSize:8.5},centavos:{fontSize:4.0},
+    cadaUnidade:{y:88.0,fontSize:1.8},unidadeBadge:{x:72.0,y:84.0,fontSize:3.2},
+    titulo:{x:10.0,y:50.0,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
+    imagem:{x:18.0,y:56.0,width:64.0,height:17.0,fit:'contain'},
+    oferta:{x:15.0,y:74.5,width:70.0,height:1.8,fontSize:1.25,weight:800,align:'center'}
+  }:PACK_MAP;
   var packQtd=0,packTotal=0,packCada=0;
   if(packOn){
     packQtd=parseInt(document.getElementById('pPackQtd').value)||0;
@@ -3230,19 +3275,19 @@ async function drawPlaca(){
   ctx.font='900 '+fs+'px '+fonte;
   var nLines=splitLines(nomeClean,960/titleScale);
   var lh=fs*1.10;
-  var nomeCY=525+titleDy; // centro vertical padrão, ajustável pelas setas
+  var nomeCY=(temaEstacional?635:525)+titleDy; // centro vertical padrão, ajustável pelas setas
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2+titleDx,nomeStartY+ni*lh);
   }else{
-    // No modo Pack — coordenadas do template atual (PACK_MAP.titulo), até 2 linhas.
-    // O bloco não pode ultrapassar o topo do card de imagem (PACK_MAP.imagem).
+    // No modo Pack — coordenadas do template atual (packMap.titulo), até 2 linhas.
+    // O bloco não pode ultrapassar o topo do card de imagem (packMap.imagem).
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=corTexto;
-    var tCfg=PACK_MAP.titulo;
+    var tCfg=packMap.titulo;
     var pTop=my(tCfg.y)+titleDy, pCX=mx(tCfg.x)+mx(tCfg.width)/2+titleDx;
     var pMaxW=mx(tCfg.width)/titleScale;
     var pfs=my(tCfg.fontSize)*titleScale, plhRatio=tCfg.lineHeight/tCfg.fontSize;
     var plh=my(tCfg.lineHeight)*titleScale;
-    var pLimite=my(PACK_MAP.imagem.y)-8;
+    var pLimite=my(packMap.imagem.y)-8;
     ctx.font='900 '+pfs+'px '+fonte;
     var pLines=splitLines(nomeClean,pMaxW);
     while((pLines.length>tCfg.maxLines || (pTop+plh*pLines.length)>pLimite) && pfs>16){
@@ -3435,12 +3480,12 @@ async function drawPlaca(){
     var transformsUnirN=(fotoImg?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoN.map(function(x){return x.transform||novoTransform();}));
     if(unirOn && unirDeveEmpilhar(imgsUnirN.length)){
       // Empilhado vertical sobreposto: pilha central compacta, de cima para baixo.
-      var areaTopYV=605, areaHV=460, padXV=45;
+      var areaTopYV=temaEstacional?750:605, areaHV=temaEstacional?300:460, padXV=45;
       desenharFotosEmpilhadas(imgsUnirN,padXV,areaTopYV,W-padXV*2,areaHV,transformsUnirN);
     }else if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
-      var areaTopYG=635, areaHG=400, padXG=30;
+      var areaTopYG=temaEstacional?750:635, areaHG=temaEstacional?300:400, padXG=30;
       desenharGradeFotos(imgsUnirN,padXG,areaTopYG,W-padXG*2,areaHG,null,transformsUnirN);
     }else if(unirOn && imgsUnirN.length>1){
       // Modo "unir": nenhum produto tem cartão branco próprio. Todos os
@@ -3448,9 +3493,9 @@ async function drawPlaca(){
       // sobrepostos, direto sobre o fundo da placa. Funciona pra 2, 3, 4+
       // produtos — o tamanho e a sobreposição se ajustam à quantidade.
       var nUnirN=imgsUnirN.length;
-      var areaTopY=605, areaH=460;
+      var areaTopY=temaEstacional?750:605, areaH=temaEstacional?300:460;
       var maxWItemN=Math.max(190,400-(nUnirN-2)*50);
-      var maxHItemN=440;
+      var maxHItemN=temaEstacional?280:440;
 
       var dimsUnirN=imgsUnirN.map(croparTransparente).map(function(img){
         var asp=img.width/img.height;
@@ -3495,7 +3540,7 @@ async function drawPlaca(){
       // encarte do dia, o fundo branco da foto é removido e o objeto
       // fica solto direto sobre o fundo da placa, com sombra.
       var imgSolo=imgsUnirN[0];
-      var areaTopYS=605, areaHS=460, maxWS=760, maxHS=460;
+      var areaTopYS=temaEstacional?750:605, areaHS=temaEstacional?300:460, maxWS=760, maxHS=temaEstacional?280:460;
       var aspSolo=imgSolo.width/imgSolo.height;
       var fWSolo,fHSolo;
       if(aspSolo>maxWS/maxHS){fWSolo=maxWS;fHSolo=maxWS/aspSolo;}
@@ -3513,7 +3558,7 @@ async function drawPlaca(){
     }
   }
 
-  // No modo Pack — coordenadas do template atual (PACK_MAP.imagem), "object-fit: contain".
+  // No modo Pack — coordenadas do template atual (packMap.imagem), "object-fit: contain".
   // Sem cartão branco: mesma lógica do modo solo/unir — o fundo branco da
   // foto é removido e o objeto fica solto direto sobre o fundo da placa.
   if(packOn){
@@ -3522,7 +3567,7 @@ async function drawPlaca(){
       fotoImgARecortadaFonte=fotoImg;
     }
     var imgPack=fotoImg?(fotoImgARecortada||fotoImg):null;
-    var iCfg=PACK_MAP.imagem;
+    var iCfg=packMap.imagem;
     var fX2=mx(iCfg.x), fY2=my(iCfg.y), fW2=mx(iCfg.width), fH2=my(iCfg.height), pad3=16;
     var innerW2=fW2-pad3*2, innerH2=fH2-pad3*2;
     var extrasComFotoP=unirOn?unirExtras.filter(function(x){return x.img;}):[];
@@ -3639,7 +3684,7 @@ async function drawPlaca(){
       ctx.fillStyle='#1a1a18'; // Coroa texto preto
 
       // Largura útil da bandeira amarela (fixa na arte de fundo) com margem interna de segurança
-      var bandeiraW = mx(24) - 28;
+      var bandeiraW = mx(temaEstacional?70:24) - 28;
 
       function fitFont(txt,fs,maxW,fsMin){
         fsMin=fsMin||14;
@@ -3656,26 +3701,26 @@ async function drawPlaca(){
 
       // "LEVE"/"A PARTIR DE" e "POR"/"UN PAGUE" sempre no mesmo tamanho —
       // se um dos dois precisar encolher para caber, os dois encolhem juntos
-      var fsLeveBase=my(PACK_MAP.leve.fontSize), fsPorBase=my(PACK_MAP.por.fontSize);
+      var fsLeveBase=my(packMap.leve.fontSize), fsPorBase=my(packMap.por.fontSize);
       var fsLeveFit=fitFont(txtLeve,fsLeveBase,bandeiraW);
       var fsPorFit=fitFont(txtPor,fsPorBase,bandeiraW);
       var fsLevePor=Math.min(fsLeveFit,fsPorFit);
 
       ctx.font='900 '+fsLevePor+'px '+fonte;
-      ctx.fillText(txtLeve, W/2, my(PACK_MAP.leve.y));
+      ctx.fillText(txtLeve, W/2, my(packMap.leve.y));
 
       // Quantidade (o número) — encolhe de forma independente, se precisar
-      var fsQtd=fitFont(qtdTxt,my(PACK_MAP.quantidade.fontSize),bandeiraW,24);
+      var fsQtd=fitFont(qtdTxt,my(packMap.quantidade.fontSize),bandeiraW,24);
       ctx.font='900 '+fsQtd+'px '+fonte;
-      ctx.fillText(qtdTxt, W/2, my(PACK_MAP.quantidade.y));
+      ctx.fillText(qtdTxt, W/2, my(packMap.quantidade.y));
 
       ctx.font='900 '+fsLevePor+'px '+fonte;
-      ctx.fillText(txtPor, W/2, my(PACK_MAP.por.y));
+      ctx.fillText(txtPor, W/2, my(packMap.por.y));
 
       // 2. PREÇO (Cálculo dinâmico para ficar SEMPRE centralizado no escudo vermelho)
-      var fsRs = my(PACK_MAP.rs.fontSize);
-      var fsPreco = my(PACK_MAP.preco.fontSize);
-      var fsCents = my(PACK_MAP.centavos.fontSize);
+      var fsRs = my(packMap.rs.fontSize);
+      var fsPreco = my(packMap.preco.fontSize);
+      var fsCents = my(packMap.centavos.fontSize);
 
       // Mede a largura de cada pedaço do preço
       ctx.font='900 '+fsRs+'px '+fonte;
@@ -3691,7 +3736,7 @@ async function drawPlaca(){
       // O preço fica SEMPRE centralizado no escudo — a unidade (abaixo) não entra nessa conta.
       var totalW = wRs + wPreco + wCents;
       var startX = (W - totalW) / 2;
-      var priceY = my(PACK_MAP.preco.y); // Linha de base do preço (rebaixado)
+      var priceY = my(packMap.preco.y); // Linha de base do preço (rebaixado)
       var topAlignY = priceY - (fsPreco * 0.38); // Altura padronizada para o R$ e Centavos
 
       ctx.fillStyle=corValor;
@@ -3714,12 +3759,12 @@ async function drawPlaca(){
       // canto do preço (não interfere na centralização do preço).
       if(apartir){
         var unidadeTxt=unidadeSel;
-        var fsUnidade=my(PACK_MAP.unidadeBadge.fontSize);
+        var fsUnidade=my(packMap.unidadeBadge.fontSize);
         ctx.save();
         ctx.font='900 italic '+fsUnidade+'px '+fonte;
         ctx.textAlign='left';
         ctx.textBaseline='alphabetic';
-        ctx.translate(mx(PACK_MAP.unidadeBadge.x),my(PACK_MAP.unidadeBadge.y));
+        ctx.translate(mx(packMap.unidadeBadge.x),my(packMap.unidadeBadge.y));
         ctx.rotate(-8*Math.PI/180);
         // Cápsula temática atrás da unidade: melhora o contraste sem mover
         // o preço nem alterar o alinhamento da palavra CADA no template.
@@ -3863,7 +3908,7 @@ async function drawPlaca(){
       // No template Pack a barra vermelha já existe na arte (y≈1266–1410, x≈50–999).
       // Aqui só escrevemos o texto por cima, podendo quebrar em até 2 linhas.
       (function drawBandPack(){
-        var oCfg=PACK_MAP.oferta;
+        var oCfg=packMap.oferta;
         var barCX=mx(oCfg.x)+mx(oCfg.width)/2, barCY=my(oCfg.y)+my(oCfg.height)/2;
         var maxW=mx(oCfg.width), defFs=my(oCfg.fontSize);
         // separa o texto em partes: números/valores em amarelo, resto em branco
