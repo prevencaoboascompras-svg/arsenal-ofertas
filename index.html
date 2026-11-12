@@ -732,6 +732,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <span style="font-size:11px;font-weight:700">Tema</span>
             <select id="pTemaPlaca" onchange="aplicarTemaPlaca()" style="height:32px;padding:0 8px;border:1px solid var(--bds);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:12px;font-weight:600"></select>
           </label>
+          <button class="btn btn-sm" id="arsenalSelloutBtn" onclick="arsenalSelloutAbrirModal_()" title="Abrir os grupos enviados pela Cobertura Fornecedor"><i class="ti ti-currency-real"></i> R$ Sellout</button>
           <button class="btn btn-green btn-sm" onclick="downloadPlaca()"><i class="ti ti-download"></i> Baixar PNG</button>
           <button class="btn btn-green btn-sm" onclick="imprimirPlacaA4()"><i class="ti ti-printer"></i> Imprimir</button>
           <button class="btn btn-sm btn-clear-placa" onclick="limparCampos()" title="Limpar os dados do formulário e da prévia atual"><i class="ti ti-eraser"></i> Limpar dados</button>
@@ -941,7 +942,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.96-templates-natal-ano-novo-layout';
+var AURA_ARSENAL_BUILD='v7.97-r-sellout-cobertura-fornecedor';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -4062,6 +4063,98 @@ async function salvarFotoAtualNoDrive(mostrarMsg){
   }
 }
 
+// R$ Sellout — lote recebido da Cobertura Fornecedor da AURA.
+var ARSENAL_SELLOUT_TRANSFER_PREFIX_='aura_sellout_transfer_';
+var ARSENAL_SELLOUT_ACTIVE_KEY_='arsenal_r_sellout_active_v1';
+var arsenalSelloutBatch_=null;
+function arsenalSelloutPersistir_(){
+  try{if(arsenalSelloutBatch_)localStorage.setItem(ARSENAL_SELLOUT_ACTIVE_KEY_,JSON.stringify(arsenalSelloutBatch_));}catch(e){console.warn('[Arsenal R$ Sellout] Não foi possível persistir o lote:',e);}
+  arsenalSelloutAtualizarBotao_();
+}
+function arsenalSelloutAtualizarBotao_(){
+  var b=document.getElementById('arsenalSelloutBtn');if(!b)return;
+  var n=arsenalSelloutBatch_&&Array.isArray(arsenalSelloutBatch_.grupos)?arsenalSelloutBatch_.grupos.length:0;
+  b.innerHTML='<i class="ti ti-currency-real"></i> R$ Sellout'+(n?' ('+n+')':'');
+  b.title=n?((arsenalSelloutBatch_.campanha||'Lote recebido')+' · '+n+' grupo(s) de preço'): 'Abra a Cobertura Fornecedor e envie um lote R$ Sellout';
+}
+function arsenalSelloutAbrirModal_(){
+  var b=arsenalSelloutBatch_;
+  if(!b||!Array.isArray(b.grupos)||!b.grupos.length){mostrarToast('Envie primeiro um lote pela função R$ Sellout na Cobertura Fornecedor da AURA.','info');return;}
+  var anterior=document.getElementById('arsenalSelloutModal');if(anterior)anterior.remove();
+  var overlay=document.createElement('div');overlay.id='arsenalSelloutModal';
+  overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;padding:16px';
+  var box=document.createElement('div');box.style.cssText='width:min(640px,96vw);max-height:88vh;display:flex;flex-direction:column;background:var(--panel,#222);color:var(--tx,#fff);border:1px solid var(--bd,#555);border-radius:14px;box-shadow:0 20px 70px #0009;overflow:hidden';
+  var title=document.createElement('div');title.style.cssText='padding:15px 18px;background:#a90f17;color:#fff;font-weight:900;font-size:17px';title.textContent='R$ Sellout · '+(b.campanha||'Cobertura Fornecedor');box.appendChild(title);
+  var sub=document.createElement('div');sub.style.cssText='padding:12px 18px 8px;font-size:12px;color:var(--tx2,#bbb)';sub.textContent='Os itens foram separados pelo preço da ação. Escolha um grupo para montar uma placa com Unir e carregar as fotos de todos os produtos.';box.appendChild(sub);
+  var list=document.createElement('div');list.style.cssText='overflow:auto;padding:6px 18px 14px';
+  b.grupos.forEach(function(g,i){
+    var row=document.createElement('button');row.type='button';row.style.cssText='width:100%;display:flex;align-items:center;gap:12px;padding:12px;margin:0 0 8px;text-align:left;border:1px solid var(--bd,#555);border-radius:10px;background:var(--bg,#292929);color:var(--tx,#fff);cursor:pointer;font:inherit';
+    var price=document.createElement('strong');price.style.cssText='font-size:19px;color:#facc15;min-width:104px';price.textContent='R$ '+Number(g.preco||g.precoCentavos/100||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    var desc=document.createElement('span');desc.style.cssText='flex:1;font-size:13px;font-weight:750';desc.textContent=(g.itens||[]).length+' produto(s) · '+(g.preparado?'placa aberta anteriormente':'pronto para preparar');
+    var arrow=document.createElement('span');arrow.textContent='Preparar placa ›';arrow.style.cssText='font-size:11px;color:#55d6a1;font-weight:800;white-space:nowrap';
+    row.appendChild(price);row.appendChild(desc);row.appendChild(arrow);row.onclick=function(){overlay.remove();arsenalSelloutPrepararGrupo_(i);};list.appendChild(row);
+  });
+  box.appendChild(list);
+  var foot=document.createElement('div');foot.style.cssText='display:flex;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid var(--bd,#555)';
+  var clear=document.createElement('button'),close=document.createElement('button');clear.type=close.type='button';clear.className=close.className='btn btn-sm';clear.textContent='Limpar lote';close.textContent='Fechar';
+  clear.onclick=function(){try{localStorage.removeItem(ARSENAL_SELLOUT_ACTIVE_KEY_);}catch(e){}arsenalSelloutBatch_=null;arsenalSelloutAtualizarBotao_();overlay.remove();mostrarToast('Lote R$ Sellout removido do Arsenal.','ok');};
+  close.onclick=function(){overlay.remove();};foot.appendChild(clear);foot.appendChild(close);box.appendChild(foot);overlay.appendChild(box);overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};document.body.appendChild(overlay);
+}
+async function arsenalSelloutPrepararGrupo_(idx){
+  var lote=arsenalSelloutBatch_,g=lote&&lote.grupos&&lote.grupos[idx];
+  if(!g||!Array.isArray(g.itens)||!g.itens.length){mostrarToast('Este grupo não contém produtos válidos.','warn');return;}
+  if(window._arsenalSyncInFlight_){try{await window._arsenalSyncInFlight_;}catch(e){}}
+  if(!temBaseProdutos()){try{await syncAll();}catch(e){}}
+  var itens=g.itens.map(function(p){
+    var cod=normalizarCodigo(p.cod||p.codigo||'');
+    var db=cod?buscarPorCodigo(cod):null;
+    return {cod:cod,nome:String((db&&db.nome)||p.nome||cod).trim(),unidade:(db&&db.unidade)||p.unidade||'UN',preco:(db&&db.preco)||Number(p.precoNormal)||0};
+  }).filter(function(p){return p.cod||p.nome;});
+  if(!itens.length){mostrarToast('Não há produtos utilizáveis neste grupo.','warn');return;}
+  var first=itens[0],codigo=normalizarCodigo(first.cod||'');
+  var principal=codigo?(buscarPorCodigo(codigo)||{cod:codigo,nome:first.nome,preco:first.preco,unidade:first.unidade}):{cod:'',nome:first.nome,preco:first.preco,unidade:first.unidade};
+  var unirCb=document.getElementById('pUnirOn');
+  if(unirCb&&unirCb.checked){unirCb.checked=false;toggleUnir();}
+  if(unirCb){unirCb.checked=false;}
+  unirLimparTudo();unirPrincipalCod='';unirDescManual=false;
+  var packCb=document.getElementById('pPackOn');if(packCb&&packCb.checked){packCb.checked=false;togglePack();}else if(typeof togglePack==='function')togglePack();
+  document.getElementById('pCod').value=codigo||first.nome;
+  preencherProduto(principal);
+  var por=Number(g.preco||g.precoCentavos/100||0);
+  document.getElementById('pPor').value=fmtDec(por);
+  document.getElementById('pDe').value='';
+  var pct=document.getElementById('pShowPct');if(pct)pct.checked=false;
+  var codCheck=document.getElementById('pShowCod');if(codCheck)codCheck.checked=false;
+  var msg=document.getElementById('pMsg');if(msg)msg.value='';
+  var msgCheck=document.getElementById('pShowMsg');if(msgCheck)msgCheck.checked=false;
+  if(unirCb){unirCb.checked=true;toggleUnir();}
+  unirPrincipalCod=codigo;
+  var descGrupo=String(lote.campanha||'').trim();
+  if(!descGrupo)descGrupo=first.nome;
+  descGrupo=descGrupo.toLocaleUpperCase('pt-BR');
+  var descEl=document.getElementById('pDescFinal');if(descEl)descEl.value=descGrupo;
+  unirDescManual=true;
+  unirLayoutPref='auto';unirAtualizarBotoesLayout();
+  for(var i=1;i<itens.length;i++)unirAdicionarProdutoObj({cod:itens[i].cod,nome:itens[i].nome});
+  if(itens[0].unidade){var un=document.getElementById('pUnidade');if(un){var opt=Array.prototype.find.call(un.options,function(o){return o.value===normalizarUnidadeBanco(itens[0].unidade);});if(opt)un.value=opt.value;}}
+  var showUn=document.getElementById('pShowUnidade');if(showUn)showUn.checked=true;
+  g.preparado=true;g.preparadoEm=new Date().toISOString();lote.grupoAtual=idx;arsenalSelloutPersistir_();
+  drawPlaca();
+  mostrarToast('Grupo de '+itens.length+' produto(s) preparado por R$ '+por.toFixed(2).replace('.',',')+'. As fotos estão sendo carregadas.','ok');
+  document.getElementById('placaCanvas').scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function arsenalSelloutImportarDaAura_(){
+  var params=new URLSearchParams(window.location.search),token=params.get('rsSellout');
+  if(token){
+    var raw=null;try{raw=localStorage.getItem(ARSENAL_SELLOUT_TRANSFER_PREFIX_+token);}catch(e){}
+    if(raw){try{var lote=JSON.parse(raw);if(lote&&lote.versao===1&&Array.isArray(lote.grupos)&&lote.grupos.length){arsenalSelloutBatch_=lote;arsenalSelloutPersistir_();try{localStorage.removeItem(ARSENAL_SELLOUT_TRANSFER_PREFIX_+token);}catch(e){}history.replaceState({},'',window.location.pathname+window.location.hash);if(window._arsenalSyncInFlight_)await window._arsenalSyncInFlight_;arsenalSelloutAbrirModal_();}}catch(e){console.error('[Arsenal R$ Sellout] Lote inválido:',e);mostrarToast('Não consegui ler o lote R$ Sellout enviado pela AURA.','err');}}
+    else mostrarToast('O lote R$ Sellout não foi encontrado. Mantenha AURA e Arsenal no mesmo domínio e navegador.','err');
+  }else{
+    try{var salvo=JSON.parse(localStorage.getItem(ARSENAL_SELLOUT_ACTIVE_KEY_)||'null');if(salvo&&Array.isArray(salvo.grupos))arsenalSelloutBatch_=salvo;}catch(e){}
+  }
+  arsenalSelloutAtualizarBotao_();
+}
+
 async function downloadPlaca(){
   await drawPlaca();
   var cv=document.getElementById('placaCanvas');
@@ -5705,6 +5798,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
     setTimeout(function(){if(!_encartesCarregadosUmaVez)carregarEncartes();},2500);
   }
   document.getElementById('pCod').focus();
+  setTimeout(function(){arsenalSelloutImportarDaAura_().catch(function(e){console.warn('[Arsenal R$ Sellout] Falha ao abrir o lote:',e);});},350);
 })();
 </script>
 
