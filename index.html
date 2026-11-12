@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.99-r-sellout-foto-individual';
+var AURA_ARSENAL_BUILD='v8.00-r-sellout-fotos-individuais-completas';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -2756,14 +2756,31 @@ function onDescFinalChange(){
 function unirRowTemplate(id,nome,cod){
   return ''+
     '<div class="f-row unir-row" data-id="'+id+'" style="margin-bottom:8px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px">'+
-      '<div style="display:flex;gap:6px;align-items:center;justify-content:space-between">'+
-        '<div style="font-weight:600;font-size:13px;color:var(--tx)">'+escapeHtml(nome||'(sem descrição)')+(cod?' <span style="font-weight:400;color:var(--tx2);font-size:12px">— '+escapeHtml(cod)+'</span>':'')+'</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between">'+
+        '<div style="display:flex;gap:8px;align-items:center;min-width:0;flex:1">'+
+          '<div id="unirFotoThumb_'+id+'" style="width:44px;height:44px;flex:0 0 44px;border:1px solid var(--bd);border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#888"><i class="ti ti-photo"></i></div>'+
+          '<div style="font-weight:600;font-size:13px;color:var(--tx);min-width:0">'+escapeHtml(nome||'(sem descrição)')+(cod?' <span style="font-weight:400;color:var(--tx2);font-size:12px">— '+escapeHtml(cod)+'</span>':'')+'</div>'+
+        '</div>'+
         '<div style="display:flex;gap:5px;align-items:center;flex:0 0 auto">'+
-          '<button type="button" class="btn btn-sm btn-green" onclick="unirBuscarFotoPorId(\''+id+'\')" title="Buscar ou atualizar a foto deste produto"><i class="ti ti-camera-search"></i> Buscar foto</button>'+
+          '<button type="button" class="btn btn-sm btn-green" onclick="unirBuscarFotoPorId(\''+id+'\')" title="Buscar a foto no banco AURA"><i class="ti ti-camera-search"></i> Buscar foto</button>'+
           '<button type="button" class="btn btn-sm" onclick="unirRemoverProduto(\''+id+'\')" title="Remover produto"><i class="ti ti-trash"></i></button>'+
         '</div>'+
       '</div>'+
       '<div class="foto-status unir-status" data-id="'+id+'" style="display:block;min-height:14px;margin:5px 0 7px;font-size:10px">Buscando foto...</div>'+
+      '<details style="margin:3px 0 7px"><summary style="cursor:pointer;font-size:10px;color:var(--tx2);font-weight:700">Pesquisar no Google, colar link ou enviar foto</summary>'+
+        '<div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">'+
+          '<input id="unirFotoTermo_'+id+'" value="'+escapeHtml(nome||'')+'" placeholder="Nome do produto para pesquisar" style="height:30px;min-width:150px;flex:1;padding:4px 7px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:11px inherit">'+
+          '<button type="button" class="btn btn-sm btn-green" onclick="unirBuscarFotoManualPorId(\''+id+'\')" title="Pesquisar fotos por descrição"><i class="ti ti-search"></i> Pesquisar termo</button>'+
+          '<button type="button" class="btn btn-sm" onclick="unirAbrirGoogleFotoPorId(\''+id+'\')" title="Abrir pesquisa de imagens do Google"><i class="ti ti-brand-google"></i> Abrir Google</button>'+
+        '</div>'+
+        '<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">'+
+          '<input id="unirFotoUrl_'+id+'" type="url" placeholder="Cole a URL direta da imagem" style="height:30px;min-width:150px;flex:1;padding:4px 7px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:11px inherit">'+
+          '<button type="button" class="btn btn-sm" onclick="unirUsarUrlFotoPorId(\''+id+'\')"><i class="ti ti-link"></i> Usar URL</button>'+
+          '<button type="button" class="btn btn-sm" onclick="document.getElementById(\'unirFotoArquivo_'+id+'\').click()"><i class="ti ti-upload"></i> Enviar foto</button>'+
+          '<input id="unirFotoArquivo_'+id+'" type="file" accept="image/*" style="display:none" onchange="unirUploadFotoPorId(this,\''+id+'\')">'+
+        '</div>'+
+        '<div id="unirFotoSugs_'+id+'" style="display:flex;gap:5px;overflow:auto;margin-top:5px"></div>'+
+      '</details>'+
       '<div class="foto-ajuste" title="Ajustar a foto na placa">'+
         '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'zoom-out\')" title="Diminuir"><i class="ti ti-zoom-out"></i></button>'+
         '<button type="button" class="btn-ico" onclick="ajustarFoto(\''+id+'\',\'zoom-in\')" title="Aumentar"><i class="ti ti-zoom-in"></i></button>'+
@@ -2851,6 +2868,55 @@ function unirBuscarFotoPorId(id){
   unirBuscarExtraFoto(id,ex.cod,ex.nome);
 }
 
+var unirFotoSugestoesPorId_={};
+function unirStatusFotoExtra_(id,msg,tipo){
+  var row=document.querySelector('.unir-row[data-id="'+id+'"]'),el=row&&row.querySelector('.unir-status');
+  if(!el)return;
+  el.textContent=msg||'';
+  el.style.color=tipo==='ok'?'var(--green)':tipo==='err'?'var(--red)':tipo==='warn'?'var(--amber)':'var(--tx2)';
+}
+function unirAtualizarThumbFotoExtra_(id,img){
+  var box=document.getElementById('unirFotoThumb_'+id);if(!box)return;
+  box.innerHTML='';
+  if(!img){box.innerHTML='<i class="ti ti-photo"></i>';return;}
+  var im=document.createElement('img');im.src=img.src||'';im.alt='Foto do produto';im.style.cssText='width:100%;height:100%;object-fit:contain';box.appendChild(im);
+}
+async function unirAplicarFotoExtra_(id,imagem,origem){
+  var ex=unirGetExtra(id);if(!ex)return false;
+  var src=typeof imagem==='string'?imagem:(imagem&&(imagem.src||''));
+  if(!src){unirStatusFotoExtra_(id,'Não consegui carregar a imagem escolhida.','err');return false;}
+  var img=await carregarImagemUrl(src);
+  if(!img){unirStatusFotoExtra_(id,'Não consegui carregar essa imagem. Tente outra URL ou envie o arquivo.','err');return false;}
+  ex.img=img;ex.imgRecortada=removerFundoBranco(img);ex.transform=novoTransform();
+  unirAtualizarThumbFotoExtra_(id,img);
+  unirStatusFotoExtra_(id,'Foto aplicada'+(origem?' · '+origem:'')+'.','ok');drawPlaca();return true;
+}
+function unirBuscarFotoPorId(id){
+  var ex=unirGetExtra(id);if(!ex)return;
+  unirBuscarExtraFoto(id,ex.cod,ex.nome);
+}
+async function unirBuscarFotoManualPorId(id){
+  var ex=unirGetExtra(id),termEl=document.getElementById('unirFotoTermo_'+id);if(!ex)return;
+  var termo=String(termEl&&termEl.value||ex.nome||'').trim();
+  if(!termo){unirStatusFotoExtra_(id,'Digite o nome do produto para pesquisar.','warn');return;}
+  var token=++ex.token,box=document.getElementById('unirFotoSugs_'+id);if(box)box.innerHTML='';
+  unirStatusFotoExtra_(id,'Pesquisando imagens para '+termo+'…');
+  try{
+    var cod=gtinGlobalSeguro(ex.cod)?ex.cod:'',res=await buscarFotoWeb(termo,cod,function(msg){if(token===ex.token)unirStatusFotoExtra_(id,msg);},{manual:true});
+    if(token!==ex.token)return;
+    if(res&&res.alta&&res.alta.img){await unirAplicarFotoExtra_(id,res.alta.img,'resultado validado de '+res.alta.fonte);return;}
+    var opts=(res&&res.sugestoes)||[];
+    if(res&&res.todos)res.todos.forEach(function(c){if(c&&c.img&&c.url&&c.confianca>=38&&!opts.includes(c))opts.push(c);});
+    opts=opts.slice(0,3);unirFotoSugestoesPorId_[id]=opts;
+    if(box&&opts.length){opts.forEach(function(c,i){var b=document.createElement('button');b.type='button';b.className='btn btn-sm';b.style.cssText='padding:3px 5px;display:flex;align-items:center;gap:4px';var im=document.createElement('img');im.src=c.img.src;im.alt='';im.style.cssText='width:42px;height:38px;object-fit:contain;background:#fff;border-radius:4px';var tx=document.createElement('span');tx.textContent=(c.fonte||'Opção '+(i+1))+' · '+Math.round(c.confianca||0);b.appendChild(im);b.appendChild(tx);b.onclick=function(){unirAplicarSugestaoFotoExtra_(id,i);};box.appendChild(b);});}
+    unirStatusFotoExtra_(id,opts.length?'Escolha a imagem correta entre as opções.':'Nenhuma imagem encontrada. Abra o Google, cole um link ou envie o arquivo.','warn');
+  }catch(e){if(token===ex.token)unirStatusFotoExtra_(id,'Falha na pesquisa: '+(e&&e.message||e),'err');}
+}
+function unirAplicarSugestaoFotoExtra_(id,i){var a=unirFotoSugestoesPorId_[id]||[],c=a[i];if(c)unirAplicarFotoExtra_(id,c.img,'selecionada de '+(c.fonte||'pesquisa manual'));}
+function unirAbrirGoogleFotoPorId(id){var ex=unirGetExtra(id),termEl=document.getElementById('unirFotoTermo_'+id),q=String(termEl&&termEl.value||ex&&ex.nome||'').trim();if(q)window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q),'_blank','noopener');else unirStatusFotoExtra_(id,'Informe a descrição do produto para abrir o Google.','warn');}
+async function unirUsarUrlFotoPorId(id){var el=document.getElementById('unirFotoUrl_'+id),url=String(el&&el.value||'').trim();if(!/^https?:\/\//i.test(url)&&!/^data:image\//i.test(url)){unirStatusFotoExtra_(id,'Cole uma URL de imagem iniciada por http ou https.','warn');return;}unirStatusFotoExtra_(id,'Carregando a imagem pelo link…');await unirAplicarFotoExtra_(id,url,'link informado');}
+function unirUploadFotoPorId(input,id){var file=input&&input.files&&input.files[0];if(!file)return;unirStatusFotoExtra_(id,'Carregando arquivo enviado…');var reader=new FileReader();reader.onload=function(e){unirAplicarFotoExtra_(id,e.target.result,'arquivo enviado manualmente');};reader.onerror=function(){unirStatusFotoExtra_(id,'Não consegui ler o arquivo enviado.','err');};reader.readAsDataURL(file);input.value='';}
+
 async function unirBuscarExtraFoto(id,cod,nome){
   var ex=unirGetExtra(id);
   if(!ex)return;
@@ -2858,7 +2924,6 @@ async function unirBuscarExtraFoto(id,cod,nome){
   var row=document.querySelector('.unir-row[data-id="'+id+'"]');
   var statusEl=row&&row.querySelector('.unir-status');
   if(statusEl)statusEl.textContent='Buscando foto ('+nome+')...';
-  ex.img=null;ex.imgRecortada=null;ex.transform=novoTransform();
   drawPlaca();
   try{
     var foto=await buscarFotoItemEncarte(cod,nome,'');
@@ -2867,6 +2932,7 @@ async function unirBuscarExtraFoto(id,cod,nome){
       ex.img=await carregarImagemUrl(foto.src);
       if(token!==ex.token)return;
       ex.imgRecortada=ex.img?removerFundoBranco(ex.img):null;
+      unirAtualizarThumbFotoExtra_(id,ex.img);
       if(statusEl)statusEl.textContent='Encontrado: "'+nome+'" — foto via '+foto.origem+'.';
     }else{
       if(statusEl)statusEl.textContent='Nome "'+nome+'" carregado, mas não encontrei foto automaticamente.';
