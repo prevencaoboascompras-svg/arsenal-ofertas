@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.00-r-sellout-fotos-individuais-completas';
+var AURA_ARSENAL_BUILD='v8.01-r-sellout-grupos-classificados';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -4159,12 +4159,12 @@ function arsenalSelloutAbrirModal_(){
   overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;padding:16px';
   var box=document.createElement('div');box.style.cssText='width:min(640px,96vw);max-height:88vh;display:flex;flex-direction:column;background:var(--panel,#222);color:var(--tx,#fff);border:1px solid var(--bd,#555);border-radius:14px;box-shadow:0 20px 70px #0009;overflow:hidden';
   var title=document.createElement('div');title.style.cssText='padding:15px 18px;background:#a90f17;color:#fff;font-weight:900;font-size:17px';title.textContent='R$ Sellout · '+(b.campanha||'Cobertura Fornecedor');box.appendChild(title);
-  var sub=document.createElement('div');sub.style.cssText='padding:12px 18px 8px;font-size:12px;color:var(--tx2,#bbb)';sub.textContent='Os itens foram separados pelo preço da ação. Escolha um grupo para montar uma placa com Unir e carregar as fotos de todos os produtos.';box.appendChild(sub);
+  var sub=document.createElement('div');sub.style.cssText='padding:12px 18px 8px;font-size:12px;color:var(--tx2,#bbb)';sub.textContent='Os itens foram separados pelo preço e pela classificação do produto. Sorvetes são separados por tamanho e linha 0%. Escolha um grupo para montar uma placa com Unir e carregar as fotos de todos os produtos.';box.appendChild(sub);
   var list=document.createElement('div');list.style.cssText='overflow:auto;padding:6px 18px 14px';
   b.grupos.forEach(function(g,i){
     var row=document.createElement('button');row.type='button';row.style.cssText='width:100%;display:flex;align-items:center;gap:12px;padding:12px;margin:0 0 8px;text-align:left;border:1px solid var(--bd,#555);border-radius:10px;background:var(--bg,#292929);color:var(--tx,#fff);cursor:pointer;font:inherit';
     var price=document.createElement('strong');price.style.cssText='font-size:19px;color:#facc15;min-width:104px';price.textContent='R$ '+Number(g.preco||g.precoCentavos/100||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-    var desc=document.createElement('span');desc.style.cssText='flex:1;font-size:13px;font-weight:750';desc.textContent=(g.itens||[]).length+' produto(s) · '+(g.preparado?'placa aberta anteriormente':'pronto para preparar');
+    var desc=document.createElement('span');desc.style.cssText='flex:1;font-size:13px;font-weight:750';desc.textContent=(g.classificacao?g.classificacao+' · ':'')+(g.itens||[]).length+' produto(s) · '+(g.preparado?'placa aberta anteriormente':'pronto para preparar');
     var arrow=document.createElement('span');arrow.textContent='Preparar placa ›';arrow.style.cssText='font-size:11px;color:#55d6a1;font-weight:800;white-space:nowrap';
     row.appendChild(price);row.appendChild(desc);row.appendChild(arrow);row.onclick=function(){overlay.remove();arsenalSelloutPrepararGrupo_(i);};list.appendChild(row);
   });
