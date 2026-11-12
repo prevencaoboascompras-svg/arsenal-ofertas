@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v7.95-templates-natal-ano-novo';
+var AURA_ARSENAL_BUILD='v7.96-templates-natal-ano-novo-layout';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -3180,14 +3180,14 @@ async function drawPlaca(){
   var packOn=document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked;
   var temaEstacional=/^(natal|ano_novo)$/.test(temaPlacaIdEfetivo_());
   var packMap=temaEstacional?{
-    leve:{y:77.0,fontSize:2.3},
-    quantidade:{y:79.2,fontSize:6.5},
-    por:{y:81.2,fontSize:2.3},
-    rs:{fontSize:3.5},preco:{y:86.0,fontSize:8.5},centavos:{fontSize:4.0},
-    cadaUnidade:{y:88.0,fontSize:1.8},unidadeBadge:{x:72.0,y:84.0,fontSize:3.2},
+    leve:{y:78.0,fontSize:2.2},
+    quantidade:{y:78.0,fontSize:2.2},
+    por:{y:78.0,fontSize:2.2},
+    rs:{fontSize:3.0},preco:{y:88.4,fontSize:6.2},centavos:{fontSize:3.4},
+    cadaUnidade:{y:88.8,fontSize:1.8},unidadeBadge:{x:72.0,y:85.0,fontSize:3.0},
     titulo:{x:10.0,y:50.0,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
     imagem:{x:18.0,y:56.0,width:64.0,height:17.0,fit:'contain'},
-    oferta:{x:15.0,y:74.5,width:70.0,height:1.8,fontSize:1.25,weight:800,align:'center'}
+    oferta:{x:15.0,y:74.5,width:70.0,height:1.8,fontSize:1.15,weight:800,align:'center'}
   }:PACK_MAP;
   var packQtd=0,packTotal=0,packCada=0;
   if(packOn){
@@ -3706,16 +3706,28 @@ async function drawPlaca(){
       var fsPorFit=fitFont(txtPor,fsPorBase,bandeiraW);
       var fsLevePor=Math.min(fsLeveFit,fsPorFit);
 
-      ctx.font='900 '+fsLevePor+'px '+fonte;
-      ctx.fillText(txtLeve, W/2, my(packMap.leve.y));
+      if(temaEstacional){
+        // Os temas de festas já trazem o cabeçalho Pack do Líder na arte.
+        // A condição fica em uma linha própria; evita sobreposição com o preço
+        // e preserva a cápsula vazia criada no rodapé para o valor.
+        var condicaoPack=txtLeve+' '+qtdTxt+' '+txtPor;
+        var fsCond=fitFont(condicaoPack,my(packMap.leve.fontSize),bandeiraW,20);
+        ctx.fillStyle=temaPlacaIdEfetivo_()==='natal'?'#8b1018':'#10264B';
+        ctx.font='900 '+fsCond+'px '+fonte;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(condicaoPack,W/2,my(packMap.leve.y));
+      }else{
+        ctx.font='900 '+fsLevePor+'px '+fonte;
+        ctx.fillText(txtLeve, W/2, my(packMap.leve.y));
 
-      // Quantidade (o número) — encolhe de forma independente, se precisar
-      var fsQtd=fitFont(qtdTxt,my(packMap.quantidade.fontSize),bandeiraW,24);
-      ctx.font='900 '+fsQtd+'px '+fonte;
-      ctx.fillText(qtdTxt, W/2, my(packMap.quantidade.y));
+        // Quantidade (o número) — encolhe de forma independente, se precisar
+        var fsQtd=fitFont(qtdTxt,my(packMap.quantidade.fontSize),bandeiraW,24);
+        ctx.font='900 '+fsQtd+'px '+fonte;
+        ctx.fillText(qtdTxt, W/2, my(packMap.quantidade.y));
 
-      ctx.font='900 '+fsLevePor+'px '+fonte;
-      ctx.fillText(txtPor, W/2, my(packMap.por.y));
+        ctx.font='900 '+fsLevePor+'px '+fonte;
+        ctx.fillText(txtPor, W/2, my(packMap.por.y));
+      }
 
       // 2. PREÇO (Cálculo dinâmico para ficar SEMPRE centralizado no escudo vermelho)
       var fsRs = my(packMap.rs.fontSize);
