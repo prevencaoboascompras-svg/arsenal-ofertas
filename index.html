@@ -810,7 +810,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -919,7 +919,7 @@ var TEMAS_PLACA={
   natal:{
     label:'Natal',
     templatePlaca:'template-natal.jpg',
-    templatePack:'template pack-natal.jpg',
+    templatePack:'template pack-natal-v2.jpg',
     corTexto:'#8b1018',corValor:'#ffffff',corUnidade:'#FFD600',
     corBadgePreco:'#D80016',usaBadgeFundo:false
   },
@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.07-pack-destaque-superior-natal-ano-novo';
+var AURA_ARSENAL_BUILD='v8.09-natal-pack-legivel-template-v2';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -3258,7 +3258,18 @@ async function drawPlaca(){
   // Modo Pack: substitui o "Por" pelo total do pack; % é calculado sobre o valor "cada"
   var packOn=document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked;
   var temaEstacional=/^(natal|ano_novo)$/.test(temaPlacaIdEfetivo_());
-  var packMap=temaEstacional?{
+  var packMap=temaPlacaIdEfetivo_()==='natal'?{
+    // Nova arte de Natal: condição e preço no pendão dourado estreito;
+    // título e fotos começam abaixo do escudo vermelho.
+    leve:{y:18.8,fontSize:1.7},
+    quantidade:{y:22.9,fontSize:4.4},
+    por:{y:26.5,fontSize:1.7},
+    rs:{fontSize:1.55},preco:{y:30.6,fontSize:3.4},centavos:{fontSize:2.0},
+    cadaUnidade:{y:31.2,fontSize:1.4},unidadeBadge:{x:65.0,y:30.0,fontSize:1.6},
+    titulo:{x:10.0,y:49.5,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
+    imagem:{x:18.0,y:54.5,width:64.0,height:18.5,fit:'contain'},
+    oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
+  }:temaEstacional?{
     // Nos temas sazonais, condição e preço ocupam o pendão dourado superior,
     // como no template padrão. A faixa dourada inferior fica livre para as fotos.
     leve:{y:18.8,fontSize:2.0},
@@ -3884,7 +3895,7 @@ async function drawPlaca(){
         ctx.save();
         ctx.shadowColor='rgba(0,0,0,.30)';ctx.shadowBlur=fsUnidade*.16;
         ctx.shadowOffsetX=0;ctx.shadowOffsetY=fsUnidade*.06;
-        ctx.fillStyle=corBadgePreco;
+        ctx.fillStyle=temaPlacaIdEfetivo_()==='natal'?'#FFD600':corBadgePreco;
         ctx.beginPath();
         ctx.moveTo(unidadeX+unidadeBadgeR,unidadeY);
         ctx.lineTo(unidadeX+unidadeBadgeW-unidadeBadgeR,unidadeY);
@@ -3897,9 +3908,9 @@ async function drawPlaca(){
         ctx.quadraticCurveTo(unidadeX,unidadeY,unidadeX+unidadeBadgeR,unidadeY);
         ctx.closePath();ctx.fill();
         ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
-        ctx.strokeStyle=corUnidade;ctx.lineWidth=Math.max(2,fsUnidade*.045);ctx.stroke();
+        ctx.strokeStyle=temaPlacaIdEfetivo_()==='natal'?corTexto:corUnidade;ctx.lineWidth=Math.max(2,fsUnidade*.045);ctx.stroke();
         ctx.restore();
-        ctx.fillStyle=corUnidade;
+        ctx.fillStyle=temaPlacaIdEfetivo_()==='natal'?corTexto:corUnidade;
         ctx.fillText(unidadeTxt,0,0);
         ctx.restore();
       }
