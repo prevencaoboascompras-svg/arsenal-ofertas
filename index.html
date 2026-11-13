@@ -810,7 +810,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.09-natal-pack-legivel-template-v2';
+var AURA_ARSENAL_BUILD='v8.10-pack-natal-ano-novo-preco-padrao';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -3264,8 +3264,8 @@ async function drawPlaca(){
     leve:{y:18.8,fontSize:1.7},
     quantidade:{y:22.9,fontSize:4.4},
     por:{y:26.5,fontSize:1.7},
-    rs:{fontSize:1.55},preco:{y:30.6,fontSize:3.4},centavos:{fontSize:2.0},
-    cadaUnidade:{y:31.2,fontSize:1.4},unidadeBadge:{x:65.0,y:30.0,fontSize:1.6},
+    rs:{fontSize:4.5},preco:{y:43.0,fontSize:12.0},centavos:{fontSize:5.0},
+    cadaUnidade:{y:46.0,fontSize:2.1},unidadeBadge:{x:65.0,y:40.0,fontSize:4.5},
     titulo:{x:10.0,y:49.5,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
     imagem:{x:18.0,y:54.5,width:64.0,height:18.5,fit:'contain'},
     oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
@@ -3275,8 +3275,8 @@ async function drawPlaca(){
     leve:{y:18.8,fontSize:2.0},
     quantidade:{y:24.3,fontSize:5.2},
     por:{y:29.5,fontSize:2.0},
-    rs:{fontSize:1.9},preco:{y:34.0,fontSize:4.0},centavos:{fontSize:2.5},
-    cadaUnidade:{y:35.2,fontSize:1.6},unidadeBadge:{x:66.0,y:33.5,fontSize:1.9},
+    rs:{fontSize:4.5},preco:{y:43.0,fontSize:12.0},centavos:{fontSize:5.0},
+    cadaUnidade:{y:46.0,fontSize:2.1},unidadeBadge:{x:65.0,y:40.0,fontSize:4.5},
     titulo:{x:10.0,y:46.5,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
     imagem:{x:18.0,y:54.0,width:64.0,height:19.0,fit:'contain'},
     oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
@@ -3838,18 +3838,6 @@ async function drawPlaca(){
       ctx.font='900 '+fsCents+'px '+fonte;
       var wCents = ctx.measureText(centavosFinal).width;
 
-      // O pendão dourado é estreito; reduz só a tipografia do preço quando
-      // necessário para manter R$, valor e centavos dentro da área útil.
-      if(temaEstacional){
-        var larguraPrecoMax=mx(21.5);
-        while(wRs+wPreco+wCents>larguraPrecoMax && fsPreco>my(2.8)){
-          fsPreco-=2;fsRs=Math.max(my(1.35),fsRs-1);fsCents=Math.max(my(1.7),fsCents-1);
-          ctx.font='900 '+fsRs+'px '+fonte;wRs=ctx.measureText('R$ ').width;
-          ctx.font='900 '+fsPreco+'px '+fonte;wPreco=ctx.measureText(inteiroFinal).width;
-          ctx.font='900 '+fsCents+'px '+fonte;wCents=ctx.measureText(centavosFinal).width;
-        }
-      }
-
       // Descobre onde começar a desenhar para que o bloco todo fique no centro (W/2)
       // O preço fica SEMPRE centralizado no escudo — a unidade (abaixo) não entra nessa conta.
       var totalW = wRs + wPreco + wCents;
@@ -3857,9 +3845,9 @@ async function drawPlaca(){
       var priceY = my(packMap.preco.y); // Linha de base do preço (rebaixado)
       var topAlignY = priceY - (fsPreco * 0.38); // Altura padronizada para o R$ e Centavos
 
-      // O campo de preço dos temas sazonais fica sobre dourado claro; usa
-      // a cor de leitura do tema (vermelho no Natal / azul no Ano Novo).
-      ctx.fillStyle=temaEstacional?corTexto:corValor;
+      // Mesmo contraste e escala do tema padrão: valor branco sobre o fundo
+      // escuro abaixo do pendão; a cor do selo CADA acompanha cada tema.
+      ctx.fillStyle=corValor;
       ctx.textAlign='left';
 
       // "R$" alinhado na mesma altura superior do ",00"
@@ -3895,7 +3883,7 @@ async function drawPlaca(){
         ctx.save();
         ctx.shadowColor='rgba(0,0,0,.30)';ctx.shadowBlur=fsUnidade*.16;
         ctx.shadowOffsetX=0;ctx.shadowOffsetY=fsUnidade*.06;
-        ctx.fillStyle=temaPlacaIdEfetivo_()==='natal'?'#FFD600':corBadgePreco;
+        ctx.fillStyle=corBadgePreco;
         ctx.beginPath();
         ctx.moveTo(unidadeX+unidadeBadgeR,unidadeY);
         ctx.lineTo(unidadeX+unidadeBadgeW-unidadeBadgeR,unidadeY);
@@ -3908,9 +3896,9 @@ async function drawPlaca(){
         ctx.quadraticCurveTo(unidadeX,unidadeY,unidadeX+unidadeBadgeR,unidadeY);
         ctx.closePath();ctx.fill();
         ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
-        ctx.strokeStyle=temaPlacaIdEfetivo_()==='natal'?corTexto:corUnidade;ctx.lineWidth=Math.max(2,fsUnidade*.045);ctx.stroke();
+        ctx.strokeStyle=corUnidade;ctx.lineWidth=Math.max(2,fsUnidade*.045);ctx.stroke();
         ctx.restore();
-        ctx.fillStyle=temaPlacaIdEfetivo_()==='natal'?corTexto:corUnidade;
+        ctx.fillStyle=corUnidade;
         ctx.fillText(unidadeTxt,0,0);
         ctx.restore();
       }
