@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.05-pack-posicao-sazonal-corrigida';
+var AURA_ARSENAL_BUILD='v8.06-pack-temas-sazonais-alinhados';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -3269,7 +3269,7 @@ async function drawPlaca(){
     cadaUnidade:{y:85.6,fontSize:1.8},unidadeBadge:{x:72.0,y:82.3,fontSize:3.0},
     titulo:{x:10.0,y:50.0,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
     imagem:{x:18.0,y:56.0,width:64.0,height:17.0,fit:'contain'},
-    oferta:{x:20.0,y:89.6,width:60.0,height:1.8,fontSize:1.05,weight:800,align:'center'}
+    oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
   }:PACK_MAP;
   var packQtd=0,packTotal=0,packCada=0;
   if(packOn){
@@ -3833,7 +3833,9 @@ async function drawPlaca(){
       var priceY = my(packMap.preco.y); // Linha de base do preço (rebaixado)
       var topAlignY = priceY - (fsPreco * 0.38); // Altura padronizada para o R$ e Centavos
 
-      ctx.fillStyle=corValor;
+      // O campo de preço dos temas sazonais fica sobre dourado claro; usa
+      // a cor de leitura do tema (vermelho no Natal / azul no Ano Novo).
+      ctx.fillStyle=temaEstacional?corTexto:corValor;
       ctx.textAlign='left';
 
       // "R$" alinhado na mesma altura superior do ",00"
