@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.06-pack-temas-sazonais-alinhados';
+var AURA_ARSENAL_BUILD='v8.07-pack-destaque-superior-natal-ano-novo';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -3259,16 +3259,15 @@ async function drawPlaca(){
   var packOn=document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked;
   var temaEstacional=/^(natal|ano_novo)$/.test(temaPlacaIdEfetivo_());
   var packMap=temaEstacional?{
-    // Nos templates sazonais, o bloco Pack ocupa a área dourada abaixo da
-    // foto. A cápsula vermelha perto do rodapé é reservada à mensagem da oferta.
-    // Mantemos condição, preço e mensagem em faixas distintas para não colidirem.
-    leve:{y:77.0,fontSize:2.2},
-    quantidade:{y:77.0,fontSize:2.2},
-    por:{y:77.0,fontSize:2.2},
-    rs:{fontSize:3.0},preco:{y:85.2,fontSize:6.2},centavos:{fontSize:3.4},
-    cadaUnidade:{y:85.6,fontSize:1.8},unidadeBadge:{x:72.0,y:82.3,fontSize:3.0},
-    titulo:{x:10.0,y:50.0,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
-    imagem:{x:18.0,y:56.0,width:64.0,height:17.0,fit:'contain'},
+    // Nos temas sazonais, condição e preço ocupam o pendão dourado superior,
+    // como no template padrão. A faixa dourada inferior fica livre para as fotos.
+    leve:{y:18.8,fontSize:2.0},
+    quantidade:{y:24.3,fontSize:5.2},
+    por:{y:29.5,fontSize:2.0},
+    rs:{fontSize:1.9},preco:{y:34.0,fontSize:4.0},centavos:{fontSize:2.5},
+    cadaUnidade:{y:35.2,fontSize:1.6},unidadeBadge:{x:66.0,y:33.5,fontSize:1.9},
+    titulo:{x:10.0,y:46.5,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
+    imagem:{x:18.0,y:54.0,width:64.0,height:19.0,fit:'contain'},
     oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
   }:PACK_MAP;
   var packQtd=0,packTotal=0,packCada=0;
@@ -3766,7 +3765,7 @@ async function drawPlaca(){
       ctx.fillStyle='#1a1a18'; // Coroa texto preto
 
       // Largura útil da bandeira amarela (fixa na arte de fundo) com margem interna de segurança
-      var bandeiraW = mx(temaEstacional?70:24) - 28;
+      var bandeiraW = mx(temaEstacional?22:24) - 28;
 
       function fitFont(txt,fs,maxW,fsMin){
         fsMin=fsMin||14;
@@ -3789,15 +3788,17 @@ async function drawPlaca(){
       var fsLevePor=Math.min(fsLeveFit,fsPorFit);
 
       if(temaEstacional){
-        // Os temas de festas já trazem o cabeçalho Pack do Líder na arte.
-        // A condição fica em uma linha própria; evita sobreposição com o preço
-        // e preserva a cápsula vazia criada no rodapé para o valor.
-        var condicaoPack=txtLeve+' '+qtdTxt+' '+txtPor;
-        var fsCond=fitFont(condicaoPack,my(packMap.leve.fontSize),bandeiraW,20);
+        // Replica a hierarquia do Pack padrão dentro do pendão dourado:
+        // condição, quantidade, PAGUE e preço, todos acima do título/fotos.
         ctx.fillStyle=temaPlacaIdEfetivo_()==='natal'?'#8b1018':'#10264B';
-        ctx.font='900 '+fsCond+'px '+fonte;
+        ctx.font='900 '+fsLevePor+'px '+fonte;
         ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillText(condicaoPack,W/2,my(packMap.leve.y));
+        ctx.fillText(txtLeve,W/2,my(packMap.leve.y));
+        var fsQtd=fitFont(qtdTxt,my(packMap.quantidade.fontSize),bandeiraW,24);
+        ctx.font='900 '+fsQtd+'px '+fonte;
+        ctx.fillText(qtdTxt,W/2,my(packMap.quantidade.y));
+        ctx.font='900 '+fsLevePor+'px '+fonte;
+        ctx.fillText(txtPor,W/2,my(packMap.por.y));
       }else{
         ctx.font='900 '+fsLevePor+'px '+fonte;
         ctx.fillText(txtLeve, W/2, my(packMap.leve.y));
@@ -3825,6 +3826,18 @@ async function drawPlaca(){
 
       ctx.font='900 '+fsCents+'px '+fonte;
       var wCents = ctx.measureText(centavosFinal).width;
+
+      // O pendão dourado é estreito; reduz só a tipografia do preço quando
+      // necessário para manter R$, valor e centavos dentro da área útil.
+      if(temaEstacional){
+        var larguraPrecoMax=mx(21.5);
+        while(wRs+wPreco+wCents>larguraPrecoMax && fsPreco>my(2.8)){
+          fsPreco-=2;fsRs=Math.max(my(1.35),fsRs-1);fsCents=Math.max(my(1.7),fsCents-1);
+          ctx.font='900 '+fsRs+'px '+fonte;wRs=ctx.measureText('R$ ').width;
+          ctx.font='900 '+fsPreco+'px '+fonte;wPreco=ctx.measureText(inteiroFinal).width;
+          ctx.font='900 '+fsCents+'px '+fonte;wCents=ctx.measureText(centavosFinal).width;
+        }
+      }
 
       // Descobre onde começar a desenhar para que o bloco todo fique no centro (W/2)
       // O preço fica SEMPRE centralizado no escudo — a unidade (abaixo) não entra nessa conta.
