@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.01-r-sellout-grupos-classificados';
+var AURA_ARSENAL_BUILD='v8.04-fotos-produto-salvas-em-todas-funcoes';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -1697,8 +1697,7 @@ function usarSugestaoFoto(i){
   setFotoStatus('Foto escolhida manualmente entre os resultados de '+c.fonte+'. Salvando no banco próprio...','ok');
   drawPlaca();
   limparSugestoesFoto();
-  var cod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
-  if(cod)Promise.resolve().then(function(){return salvarFotoAtualNoDrive(false);}).catch(function(){});
+  salvarFotoPrincipalPersonalizada_('seleção de imagem');
 }
 function limparFoto(msg){
   fotoImg=null;
@@ -2457,8 +2456,9 @@ async function buscarFotoPorTermoManual(){
 
   if(web&&web.alta&&web.alta.img){
     fotoImg=web.alta.img;fotoOrigemDrive=false;setFotoPreview(fotoImg);
-    setFotoStatus('Foto de alta confiança encontrada em '+web.alta.fonte+'.','ok');
+    setFotoStatus('Foto encontrada em '+web.alta.fonte+'. Salvando no banco de imagens…');
     drawPlaca();
+    await salvarFotoPrincipalPersonalizada_('pesquisa por termo');
     return true;
   }
   var opcoes=[];
@@ -2500,8 +2500,9 @@ async function usarFotoUrlManual(){
     fotoImg=img;
     fotoOrigemDrive=false;
     setFotoPreview(img);
-    setFotoStatus('Foto carregada pela URL manual.','ok');
+    setFotoStatus('Foto carregada pela URL. Salvando no banco de imagens…');
     drawPlaca();
+    await salvarFotoPrincipalPersonalizada_('link informado');
     return true;
   }
   setFotoStatus('Não consegui carregar essa URL. Tente copiar o endereço direto da imagem ou envie o arquivo manualmente.','err');
@@ -2529,8 +2530,9 @@ function loadFoto(input){
         fotoImg=img;
         fotoOrigemDrive=false;
         setFotoPreview(img);
-        setFotoStatus('Foto carregada manualmente.','ok');
+        setFotoStatus('Foto carregada. Salvando no banco de imagens…');
         drawPlaca();
+        salvarFotoPrincipalPersonalizada_('arquivo enviado');
       }
     });
   };
@@ -2887,9 +2889,11 @@ async function unirAplicarFotoExtra_(id,imagem,origem){
   if(!src){unirStatusFotoExtra_(id,'Não consegui carregar a imagem escolhida.','err');return false;}
   var img=await carregarImagemUrl(src);
   if(!img){unirStatusFotoExtra_(id,'Não consegui carregar essa imagem. Tente outra URL ou envie o arquivo.','err');return false;}
-  ex.img=img;ex.imgRecortada=removerFundoBranco(img);ex.transform=novoTransform();
-  unirAtualizarThumbFotoExtra_(id,img);
-  unirStatusFotoExtra_(id,'Foto aplicada'+(origem?' · '+origem:'')+'.','ok');drawPlaca();return true;
+  ex.img=img;ex.imgRecortada=removerFundoBranco(img);ex.transform=novoTransform();ex.fotoSalvaBanco=false;
+  unirAtualizarThumbFotoExtra_(id,img);drawPlaca();
+  unirStatusFotoExtra_(id,'Foto aplicada'+(origem?' · '+origem:'')+'.','ok');
+  await salvarFotoExtraNoDrive_(id);
+  return true;
 }
 function unirBuscarFotoPorId(id){
   var ex=unirGetExtra(id);if(!ex)return;
@@ -4137,12 +4141,48 @@ async function salvarFotoAtualNoDrive(mostrarMsg){
   }
 }
 
+async function salvarImagemProdutoPorCodigoNoDrive_(codigo,img){
+  codigo=normalizarCodigo(codigo||'');
+  if(!codigo)return {ok:false,erro:'Código do produto não informado.'};
+  if(!img)return {ok:false,erro:'Imagem não carregada.'};
+  try{
+    var base64=imgParaBase64Jpeg(img);
+    var res=await _gasPost('salvarImagemProduto',{codigoBarras:codigo,imagemBase64:base64,mimeType:'image/jpeg',tipo:'produto'});
+    if(!res||!res.ok)return {ok:false,erro:String(res&&res.erro||'o Apps Script não confirmou a gravação')};
+    var canon=String(res.codigoCanonico||codigo);
+    _invalidarCacheAuraFoto(codigo);_invalidarCacheAuraFoto(canon);_notificarFotoCentralAtualizada(canon);
+    try{if(typeof encartesFotoCache!=='undefined'){delete encartesFotoCache[codigo];delete encartesFotoCache[canon];}}catch(e2){}
+    return {ok:true,codigoCanonico:canon,fileId:res.fileId||''};
+  }catch(e){return {ok:false,erro:String(e&&e.message||e)};}
+}
+async function salvarFotoPrincipalPersonalizada_(origem){
+  setFotoStatus('Foto aplicada ('+(origem||'origem manual')+'). Salvando no banco de imagens…');
+  var ok=await salvarFotoAtualNoDrive(false);
+  if(ok)setFotoStatus('Foto salva no banco de imagens do produto.','ok');
+  else setFotoStatus('A foto está aplicada nesta placa, mas o banco não confirmou a gravação. Confira a conexão do Apps Script e tente novamente.','warn');
+  return ok;
+}
+async function salvarFotoExtraNoDrive_(id){
+  var ex=unirGetExtra(id);if(!ex||!ex.img)return false;
+  var codigo=normalizarCodigo(ex.cod||'');
+  if(!codigo){unirStatusFotoExtra_(id,'Foto aplicada, mas não há código de barras para vinculá-la ao banco.','warn');return false;}
+  unirStatusFotoExtra_(id,'Foto aplicada. Enviando ao banco de imagens do produto…');
+  var resultado=await salvarImagemProdutoPorCodigoNoDrive_(codigo,ex.img);
+  if(resultado.ok){
+    ex.fotoSalvaBanco=true;ex.fotoCodigoCanonico=resultado.codigoCanonico;
+    unirStatusFotoExtra_(id,'Foto salva no banco de imagens · código '+resultado.codigoCanonico+'.','ok');
+    return true;
+  }
+  unirStatusFotoExtra_(id,'A foto está aplicada nesta placa, mas não foi salva no banco: '+resultado.erro+'.','warn');
+  return false;
+}
+
 // R$ Sellout — lote recebido da Cobertura Fornecedor da AURA.
 var ARSENAL_SELLOUT_TRANSFER_PREFIX_='aura_sellout_transfer_';
 var ARSENAL_SELLOUT_ACTIVE_KEY_='arsenal_r_sellout_active_v1';
 var arsenalSelloutBatch_=null;
 function arsenalSelloutPersistir_(){
-  try{if(arsenalSelloutBatch_)localStorage.setItem(ARSENAL_SELLOUT_ACTIVE_KEY_,JSON.stringify(arsenalSelloutBatch_));}catch(e){console.warn('[Arsenal R$ Sellout] Não foi possível persistir o lote:',e);}
+  try{if(arsenalSelloutBatch_)localStorage.setItem(ARSENAL_SELLOUT_ACTIVE_KEY_,JSON.stringify(arsenalSelloutBatch_));}catch(e){try{if(arsenalSelloutBatch_)sessionStorage.setItem(ARSENAL_SELLOUT_ACTIVE_KEY_,JSON.stringify(arsenalSelloutBatch_));}catch(errSessao){console.warn('[Arsenal R$ Sellout] Lote ativo apenas em memória; os dois armazenamentos recusaram a gravação.',e,errSessao);}}
   arsenalSelloutAtualizarBotao_();
 }
 function arsenalSelloutAtualizarBotao_(){
@@ -4171,7 +4211,7 @@ function arsenalSelloutAbrirModal_(){
   box.appendChild(list);
   var foot=document.createElement('div');foot.style.cssText='display:flex;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid var(--bd,#555)';
   var clear=document.createElement('button'),close=document.createElement('button');clear.type=close.type='button';clear.className=close.className='btn btn-sm';clear.textContent='Limpar lote';close.textContent='Fechar';
-  clear.onclick=function(){try{localStorage.removeItem(ARSENAL_SELLOUT_ACTIVE_KEY_);}catch(e){}arsenalSelloutBatch_=null;arsenalSelloutAtualizarBotao_();overlay.remove();mostrarToast('Lote R$ Sellout removido do Arsenal.','ok');};
+  clear.onclick=function(){try{localStorage.removeItem(ARSENAL_SELLOUT_ACTIVE_KEY_);}catch(e){}try{sessionStorage.removeItem(ARSENAL_SELLOUT_ACTIVE_KEY_);}catch(e){}arsenalSelloutBatch_=null;arsenalSelloutAtualizarBotao_();overlay.remove();mostrarToast('Lote R$ Sellout removido do Arsenal.','ok');};
   close.onclick=function(){overlay.remove();};foot.appendChild(clear);foot.appendChild(close);box.appendChild(foot);overlay.appendChild(box);overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};document.body.appendChild(overlay);
 }
 async function arsenalSelloutPrepararGrupo_(idx){
@@ -4220,11 +4260,11 @@ async function arsenalSelloutPrepararGrupo_(idx){
 async function arsenalSelloutImportarDaAura_(){
   var params=new URLSearchParams(window.location.search),token=params.get('rsSellout');
   if(token){
-    var raw=null;try{raw=localStorage.getItem(ARSENAL_SELLOUT_TRANSFER_PREFIX_+token);}catch(e){}
-    if(raw){try{var lote=JSON.parse(raw);if(lote&&lote.versao===1&&Array.isArray(lote.grupos)&&lote.grupos.length){arsenalSelloutBatch_=lote;arsenalSelloutPersistir_();try{localStorage.removeItem(ARSENAL_SELLOUT_TRANSFER_PREFIX_+token);}catch(e){}history.replaceState({},'',window.location.pathname+window.location.hash);if(window._arsenalSyncInFlight_)await window._arsenalSyncInFlight_;arsenalSelloutAbrirModal_();}}catch(e){console.error('[Arsenal R$ Sellout] Lote inválido:',e);mostrarToast('Não consegui ler o lote R$ Sellout enviado pela AURA.','err');}}
+    var chave=ARSENAL_SELLOUT_TRANSFER_PREFIX_+token,raw=null;try{raw=localStorage.getItem(chave);}catch(e){}if(!raw){try{raw=sessionStorage.getItem(chave);}catch(e){}}
+    if(raw){try{var lote=JSON.parse(raw);if(lote&&lote.versao===1&&Array.isArray(lote.grupos)&&lote.grupos.length){arsenalSelloutBatch_=lote;arsenalSelloutPersistir_();try{localStorage.removeItem(chave);}catch(e){}try{sessionStorage.removeItem(chave);}catch(e){}history.replaceState({},'',window.location.pathname+window.location.hash);if(window._arsenalSyncInFlight_)await window._arsenalSyncInFlight_;arsenalSelloutAbrirModal_();}}catch(e){console.error('[Arsenal R$ Sellout] Lote inválido:',e);mostrarToast('Não consegui ler o lote R$ Sellout enviado pela AURA.','err');}}
     else mostrarToast('O lote R$ Sellout não foi encontrado. Mantenha AURA e Arsenal no mesmo domínio e navegador.','err');
   }else{
-    try{var salvo=JSON.parse(localStorage.getItem(ARSENAL_SELLOUT_ACTIVE_KEY_)||'null');if(salvo&&Array.isArray(salvo.grupos))arsenalSelloutBatch_=salvo;}catch(e){}
+    var salvoRaw=null;try{salvoRaw=localStorage.getItem(ARSENAL_SELLOUT_ACTIVE_KEY_);}catch(e){}if(!salvoRaw){try{salvoRaw=sessionStorage.getItem(ARSENAL_SELLOUT_ACTIVE_KEY_);}catch(e){}}try{var salvo=JSON.parse(salvoRaw||'null');if(salvo&&Array.isArray(salvo.grupos))arsenalSelloutBatch_=salvo;}catch(e){}
   }
   arsenalSelloutAtualizarBotao_();
 }
@@ -6185,7 +6225,25 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
  window.selecionarSubstitutoCesta=function(ean,i){var it=itemFormula_(ean),p=window.__cestaSubstResultados&&window.__cestaSubstResultados[ean]&&window.__cestaSubstResultados[ean][i];if(!it||!p)return;it.substituto={cod:normalizarCodigo(p.cod),nome:p.nome,preco:Number(p.preco)||0,unidade:p.unidade||''};delete fotos[ean];delete fotoImages[ean];atualizarCards();status('Item substituído na cesta: '+p.nome+'. A quantidade da fórmula foi mantida.');atualizarStoryCesta();carregarFotosCesta();};
  window.removerSubstitutoCesta=function(ean){var it=itemFormula_(ean);if(!it)return;delete it.substituto;delete fotos[ean];delete fotoImages[ean];atualizarCards();status('Item original restaurado na fórmula.');atualizarStoryCesta();carregarFotosCesta();};
  function mostrarFotoCestaNoCard_(ean){var box=document.getElementById('fotoFormula_'+ean),src=fotos[ean];if(!box||!src)return;var im=fotoImages[ean];if(!im){im=new Image();fotoImages[ean]=im;im.onload=function(){atualizarStoryCesta();};im.src=src;}if(im.complete&&im.naturalWidth){box.textContent='';var cardImg=new Image();cardImg.alt='Foto de '+(itemFormula_(ean)||{}).descricao;cardImg.src=src;box.appendChild(cardImg);}else{box.textContent='Carregando foto…';}}
- async function aplicarFotoCesta_(ean,img,url){var it=itemFormula_(ean);if(!it)return false;var im=img;if(!im&&url)im=await carregarImagemUrl(proxyImagemUrl(url));if(!im){var st=document.getElementById('statusFotoCesta_'+ean);if(st)st.textContent='Não consegui carregar essa imagem. Tente outra URL ou envie o arquivo.';return false;}var src=im.src||url||'';try{var cv=document.createElement('canvas');cv.width=im.naturalWidth||im.width;cv.height=im.naturalHeight||im.height;cv.getContext('2d').drawImage(im,0,0);src=cv.toDataURL('image/png');}catch(e){}if(!src)return false;fotos[ean]=src;fotoImages[ean]=im;mostrarFotoCestaNoCard_(ean);var st=document.getElementById('statusFotoCesta_'+ean);if(st)st.textContent='Foto aplicada à cesta e à prévia do Story.';atualizarStoryCesta();return true;}
+ async function aplicarFotoCesta_(ean,img,url){
+  var it=itemFormula_(ean);if(!it)return false;
+  var im=img;
+  if(url)im=await carregarImagemUrl(proxyImagemUrl(url),true);
+  else if(img&&img.src)im=await carregarImagemUrl(img.src);
+  if(!im){var erroEl=document.getElementById('statusFotoCesta_'+ean);if(erroEl)erroEl.textContent='Não consegui carregar essa imagem. Tente outra URL ou envie o arquivo.';return false;}
+  var src=im.src||url||'';
+  try{var cv=document.createElement('canvas');cv.width=im.naturalWidth||im.width;cv.height=im.naturalHeight||im.height;cv.getContext('2d').drawImage(im,0,0);src=cv.toDataURL('image/png');}catch(e){}
+  if(!src)return false;
+  fotos[ean]=src;fotoImages[ean]=im;mostrarFotoCestaNoCard_(ean);atualizarStoryCesta();
+  var statusEl=document.getElementById('statusFotoCesta_'+ean),codFoto=normalizarCodigo(codigoFotoItem_(it));
+  if(statusEl)statusEl.textContent='Foto aplicada à cesta. Salvando no banco de imagens…';
+  var salvamento=await salvarImagemProdutoPorCodigoNoDrive_(codFoto,im);
+  if(statusEl)statusEl.textContent=salvamento.ok
+    ?'Foto aplicada e salva no banco de imagens · código '+salvamento.codigoCanonico+'.'
+    :'Foto aplicada nesta cesta, mas não foi salva no banco: '+salvamento.erro+'.';
+  atualizarStoryCesta();
+  return salvamento.ok;
+ }
  window.buscarFotoCestaManual=async function(ean){var campo=document.getElementById('termoFotoCesta_'+ean),termo=(campo&&campo.value||'').trim(),st=document.getElementById('statusFotoCesta_'+ean),sugs=document.getElementById('sugsFotoCesta_'+ean);if(!termo){if(st)st.textContent='Digite o nome do produto para pesquisar.';return;}if(st)st.textContent='Pesquisando em fontes de imagem…';if(sugs)sugs.innerHTML='';var item=itemFormula_(ean),fotoCod=item?codigoFotoItem_(item):ean,cod=gtinGlobalSeguro(fotoCod)?fotoCod:'',r=await buscarFotoWeb(termo,cod,function(msg){if(st)st.textContent=msg;},{manual:true});if(r&&r.alta&&r.alta.img){await aplicarFotoCesta_(ean,r.alta.img,r.alta.url);return;}var opts=(r&&r.sugestoes)||[];if(sugs&&opts.length){sugs.innerHTML=opts.map(function(x,i){return '<button type="button" onclick="selecionarSugestaoFotoCesta(\''+ean+'\','+i+')"><img src="'+esc(x.url||'')+'"><span>Usar opção '+(i+1)+'</span></button>';}).join('');window.__cestaFotoSugestoes=window.__cestaFotoSugestoes||{};window.__cestaFotoSugestoes[ean]=opts;if(st)st.textContent='Confira as opções e selecione a foto correta.';}else if(st)st.textContent='Nenhuma foto segura encontrada. Tente outra descrição, URL ou envio manual.';};
  window.selecionarSugestaoFotoCesta=function(ean,i){var x=window.__cestaFotoSugestoes&&window.__cestaFotoSugestoes[ean]&&window.__cestaFotoSugestoes[ean][i];if(x)aplicarFotoCesta_(ean,x.img,x.url);};
  window.abrirGoogleFotoCesta=function(ean){var it=itemFormula_(ean),campo=document.getElementById('termoFotoCesta_'+ean),q=(campo&&campo.value||it&&nomeItem_(it)||'').trim();if(q)window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q),'_blank','noopener');};
