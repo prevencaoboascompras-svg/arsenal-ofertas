@@ -810,7 +810,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO-TEXTO-FOTOS-PADRAO-20261117-GEOMETRIA-UNIFORME-TODOS-TEMAS';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO-TEXTO-FOTOS-PADRAO-20261117-GEOMETRIA-UNIFORME-TODOS-TEMAS-20261117-TEMAS-SAZONAIS-POR-DATA';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -934,30 +934,43 @@ var TEMAS_PLACA={
 
 // ============================================================
 // TEMA AUTOMÁTICO
-// Prioridade:
-// 1) De 10/09 a 20/09, todos os anos -> Semana Farroupilha.
-// 2) Fora desse período -> usa o setor confirmado para o código na AURA.
-// 3) Sem setor confirmado -> tema Padrão.
-//
+// Prioridade por data: Natal (15/11–25/12), Ano Novo (26/12–01/01),
+// Semana Farroupilha (10/09–20/09); fora desses períodos, usa o setor
+// confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.11-pack-sazonal-texto-fotos-padrao';
+var AURA_ARSENAL_BUILD='v8.13-temas-sazonais-automaticos-por-data';
 var temaAutomaticoAtual='padrao';
 
+function temaSazonalPorData_(data){
+  var d=data instanceof Date?data:new Date();
+  var mes=d.getMonth(),dia=d.getDate();
+  if((mes===10&&dia>=15)||(mes===11&&dia<=25))return 'natal';
+  if((mes===11&&dia>=26)||(mes===0&&dia<=1))return 'ano_novo';
+  return '';
+}
 function estaNoPeriodoFarroupilha_(data){
   var d=data instanceof Date?data:new Date();
   return d.getMonth()===8 && d.getDate()>=10 && d.getDate()<=20;
 }
-
+function periodoTemaPorData_(data){
+  var sazonal=temaSazonalPorData_(data);
+  if(sazonal)return sazonal;
+  if(estaNoPeriodoFarroupilha_(data))return 'farroupilha';
+  return 'normal';
+}
 function textoTemaAuto_(){
-  return estaNoPeriodoFarroupilha_(new Date())
-    ?'Automático — Semana Farroupilha (10–20/09)'
-    :'Automático — setor confirmado no AURA';
+  var sazonal=temaSazonalPorData_(new Date());
+  if(sazonal==='natal')return 'Automático — Natal (15/11–25/12)';
+  if(sazonal==='ano_novo')return 'Automático — Ano Novo (26/12–01/01)';
+  if(estaNoPeriodoFarroupilha_(new Date()))return 'Automático — Semana Farroupilha (10–20/09)';
+  return 'Automático — setor confirmado no AURA';
 }
 
-// Tema automático depende de setor cadastrado/confirmado para o código do item.
-// Descrição e palavras-chave não determinam o setor; sem dado confiável, usa Padrão.
+// Tema automático respeita os períodos sazonais antes de consultar o setor.
 function detectarTemaProduto_(produtoOuSetor){
+  var sazonal=temaSazonalPorData_(new Date());
+  if(sazonal)return sazonal;
   if(estaNoPeriodoFarroupilha_(new Date()))return 'farroupilha';
   var setor='';
   if(produtoOuSetor&&typeof produtoOuSetor==='object')setor=String(produtoOuSetor.setor||produtoOuSetor.setorConfirmado||'');
@@ -990,7 +1003,10 @@ function auraAtualizarTemaPeloSetorCentral_(cod,nome,sequencia){
     var sel=document.getElementById('pTemaPlaca');
     if(!sel||sel.value!=='automatico'||normalizarCodigo(prodAtualCod)!==cod)return false;
     var tema=auraTemaPorSetorCentral_(setor);if(!tema)return false;
-    temaAutomaticoAtual=tema;prepararTemaAtualSemDesenhar_();drawPlaca();return true;
+    // Revalida as prioridades de calendário: resposta tardia do setor não pode
+    // substituir Natal, Ano Novo ou Semana Farroupilha.
+    temaAutomaticoAtual=detectarTemaProduto_({setor:setor});
+    prepararTemaAtualSemDesenhar_();drawPlaca();return true;
   };
   if(temaSetorCentralCache_[cod])return Promise.resolve(aplicar(temaSetorCentralCache_[cod]));
   return _gasGetJsonp('buscarEANCompleto','&ean='+encodeURIComponent(cod),12000).then(function(r){
@@ -1053,13 +1069,13 @@ function aplicarTemaPlaca(){
   drawPlaca();
 }
 
-// Se a página ficar aberta durante a virada para 10/09 ou 21/09,
-// o modo automático se atualiza sem precisar recarregar.
-var _farroupilhaAutoEstado=estaNoPeriodoFarroupilha_(new Date());
+// Se a página ficar aberta durante uma virada de período sazonal,
+// o tema automático se atualiza sem precisar recarregar.
+var _periodoTemaAutoEstado=periodoTemaPorData_(new Date());
 setInterval(function(){
-  var agora=estaNoPeriodoFarroupilha_(new Date());
-  if(agora===_farroupilhaAutoEstado)return;
-  _farroupilhaAutoEstado=agora;
+  var agora=periodoTemaPorData_(new Date());
+  if(agora===_periodoTemaAutoEstado)return;
+  _periodoTemaAutoEstado=agora;
 
   var sel=document.getElementById('pTemaPlaca');
   if(sel&&sel.options.length)sel.options[0].textContent=textoTemaAuto_();
