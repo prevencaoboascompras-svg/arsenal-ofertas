@@ -810,7 +810,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO-TEXTO-FOTOS-PADRAO-20261117-GEOMETRIA-UNIFORME-TODOS-TEMAS';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -941,7 +941,7 @@ var TEMAS_PLACA={
 //
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.10-pack-natal-ano-novo-preco-padrao';
+var AURA_ARSENAL_BUILD='v8.11-pack-sazonal-texto-fotos-padrao';
 var temaAutomaticoAtual='padrao';
 
 function estaNoPeriodoFarroupilha_(data){
@@ -3266,8 +3266,8 @@ async function drawPlaca(){
     por:{y:26.5,fontSize:1.7},
     rs:{fontSize:4.5},preco:{y:43.0,fontSize:12.0},centavos:{fontSize:5.0},
     cadaUnidade:{y:46.0,fontSize:2.1},unidadeBadge:{x:65.0,y:40.0,fontSize:4.5},
-    titulo:{x:10.0,y:49.5,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
-    imagem:{x:18.0,y:54.5,width:64.0,height:18.5,fit:'contain'},
+    titulo:PACK_MAP.titulo,
+    imagem:PACK_MAP.imagem,
     oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
   }:temaEstacional?{
     // Nos temas sazonais, condição e preço ocupam o pendão dourado superior,
@@ -3277,8 +3277,8 @@ async function drawPlaca(){
     por:{y:29.5,fontSize:2.0},
     rs:{fontSize:4.5},preco:{y:43.0,fontSize:12.0},centavos:{fontSize:5.0},
     cadaUnidade:{y:46.0,fontSize:2.1},unidadeBadge:{x:65.0,y:40.0,fontSize:4.5},
-    titulo:{x:10.0,y:46.5,width:80.0,height:5.0,fontSize:2.3,lineHeight:2.6,letterSpacing:-0.02,weight:900,align:'center',maxLines:2},
-    imagem:{x:18.0,y:54.0,width:64.0,height:19.0,fit:'contain'},
+    titulo:PACK_MAP.titulo,
+    imagem:PACK_MAP.imagem,
     oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
   }:PACK_MAP;
   var packQtd=0,packTotal=0,packCada=0;
@@ -3367,7 +3367,7 @@ async function drawPlaca(){
   ctx.font='900 '+fs+'px '+fonte;
   var nLines=splitLines(nomeClean,960/titleScale);
   var lh=fs*1.10;
-  var nomeCY=(temaEstacional?635:525)+titleDy; // centro vertical padrão, ajustável pelas setas
+  var nomeCY=525+titleDy; // mesma posição vertical do tema padrão em todos os temas
   var nomeStartY=nomeCY-((nLines.length-1)*lh)/2;
   for(var ni=0;ni<nLines.length;ni++)ctx.fillText(nLines[ni],W/2+titleDx,nomeStartY+ni*lh);
   }else{
@@ -3572,12 +3572,12 @@ async function drawPlaca(){
     var transformsUnirN=(fotoImg?[fotoTransform||novoTransform()]:[]).concat(extrasComFotoN.map(function(x){return x.transform||novoTransform();}));
     if(unirOn && unirDeveEmpilhar(imgsUnirN.length)){
       // Empilhado vertical sobreposto: pilha central compacta, de cima para baixo.
-      var areaTopYV=temaEstacional?750:605, areaHV=temaEstacional?300:460, padXV=45;
+      var areaTopYV=605, areaHV=460, padXV=45;
       desenharFotosEmpilhadas(imgsUnirN,padXV,areaTopYV,W-padXV*2,areaHV,transformsUnirN);
     }else if(unirOn && unirDeveUsarGrade(imgsUnirN.length)){
       // 4 ou mais produtos: organiza em grade (ex.: 9 produtos vira 3x3)
       // dentro da mesma área onde as fotos apareceriam.
-      var areaTopYG=temaEstacional?750:635, areaHG=temaEstacional?300:400, padXG=30;
+      var areaTopYG=635, areaHG=400, padXG=30;
       desenharGradeFotos(imgsUnirN,padXG,areaTopYG,W-padXG*2,areaHG,null,transformsUnirN);
     }else if(unirOn && imgsUnirN.length>1){
       // Modo "unir": nenhum produto tem cartão branco próprio. Todos os
@@ -3585,9 +3585,9 @@ async function drawPlaca(){
       // sobrepostos, direto sobre o fundo da placa. Funciona pra 2, 3, 4+
       // produtos — o tamanho e a sobreposição se ajustam à quantidade.
       var nUnirN=imgsUnirN.length;
-      var areaTopY=temaEstacional?750:605, areaH=temaEstacional?300:460;
+      var areaTopY=605, areaH=460;
       var maxWItemN=Math.max(190,400-(nUnirN-2)*50);
-      var maxHItemN=temaEstacional?280:440;
+      var maxHItemN=440;
 
       var dimsUnirN=imgsUnirN.map(croparTransparente).map(function(img){
         var asp=img.width/img.height;
@@ -3632,7 +3632,7 @@ async function drawPlaca(){
       // encarte do dia, o fundo branco da foto é removido e o objeto
       // fica solto direto sobre o fundo da placa, com sombra.
       var imgSolo=imgsUnirN[0];
-      var areaTopYS=temaEstacional?750:605, areaHS=temaEstacional?300:460, maxWS=760, maxHS=temaEstacional?280:460;
+      var areaTopYS=605, areaHS=460, maxWS=760, maxHS=460;
       var aspSolo=imgSolo.width/imgSolo.height;
       var fWSolo,fHSolo;
       if(aspSolo>maxWS/maxHS){fWSolo=maxWS;fHSolo=maxWS/aspSolo;}
