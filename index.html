@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v7.92 — medidas padronizadas e guias de corte -->
+<!-- Arsenal de Ofertas v8.14 — Pack sazonal com posições e tipografia do tema padrão -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -939,7 +939,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.13-temas-sazonais-automaticos-por-data';
+var AURA_ARSENAL_BUILD='v8.14-pack-fontes-e-posicoes-padrao-em-todos-os-temas';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -3274,29 +3274,9 @@ async function drawPlaca(){
   // Modo Pack: substitui o "Por" pelo total do pack; % é calculado sobre o valor "cada"
   var packOn=document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked;
   var temaEstacional=/^(natal|ano_novo)$/.test(temaPlacaIdEfetivo_());
-  var packMap=temaPlacaIdEfetivo_()==='natal'?{
-    // Nova arte de Natal: condição e preço no pendão dourado estreito;
-    // título e fotos começam abaixo do escudo vermelho.
-    leve:{y:18.8,fontSize:1.7},
-    quantidade:{y:22.9,fontSize:4.4},
-    por:{y:26.5,fontSize:1.7},
-    rs:{fontSize:4.5},preco:{y:43.0,fontSize:12.0},centavos:{fontSize:5.0},
-    cadaUnidade:{y:46.0,fontSize:2.1},unidadeBadge:{x:65.0,y:40.0,fontSize:4.5},
-    titulo:PACK_MAP.titulo,
-    imagem:PACK_MAP.imagem,
-    oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
-  }:temaEstacional?{
-    // Nos temas sazonais, condição e preço ocupam o pendão dourado superior,
-    // como no template padrão. A faixa dourada inferior fica livre para as fotos.
-    leve:{y:18.8,fontSize:2.0},
-    quantidade:{y:24.3,fontSize:5.2},
-    por:{y:29.5,fontSize:2.0},
-    rs:{fontSize:4.5},preco:{y:43.0,fontSize:12.0},centavos:{fontSize:5.0},
-    cadaUnidade:{y:46.0,fontSize:2.1},unidadeBadge:{x:65.0,y:40.0,fontSize:4.5},
-    titulo:PACK_MAP.titulo,
-    imagem:PACK_MAP.imagem,
-    oferta:{x:20.0,y:88.7,width:60.0,height:1.8,fontSize:1.55,weight:800,align:'center'}
-  }:PACK_MAP;
+  // Todos os temas usam o mesmo mapa de posições e tamanhos do Pack padrão.
+  // Só cores e artes de fundo variam entre os temas.
+  var packMap=PACK_MAP;
   var packQtd=0,packTotal=0,packCada=0;
   if(packOn){
     packQtd=parseInt(document.getElementById('pPackQtd').value)||0;
@@ -3792,7 +3772,7 @@ async function drawPlaca(){
       ctx.fillStyle='#1a1a18'; // Coroa texto preto
 
       // Largura útil da bandeira amarela (fixa na arte de fundo) com margem interna de segurança
-      var bandeiraW = mx(temaEstacional?22:24) - 28;
+      var bandeiraW = mx(24) - 28;
 
       function fitFont(txt,fs,maxW,fsMin){
         fsMin=fsMin||14;
@@ -3814,30 +3794,17 @@ async function drawPlaca(){
       var fsPorFit=fitFont(txtPor,fsPorBase,bandeiraW);
       var fsLevePor=Math.min(fsLeveFit,fsPorFit);
 
-      if(temaEstacional){
-        // Replica a hierarquia do Pack padrão dentro do pendão dourado:
-        // condição, quantidade, PAGUE e preço, todos acima do título/fotos.
-        ctx.fillStyle=temaPlacaIdEfetivo_()==='natal'?'#8b1018':'#10264B';
-        ctx.font='900 '+fsLevePor+'px '+fonte;
-        ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillText(txtLeve,W/2,my(packMap.leve.y));
-        var fsQtd=fitFont(qtdTxt,my(packMap.quantidade.fontSize),bandeiraW,24);
-        ctx.font='900 '+fsQtd+'px '+fonte;
-        ctx.fillText(qtdTxt,W/2,my(packMap.quantidade.y));
-        ctx.font='900 '+fsLevePor+'px '+fonte;
-        ctx.fillText(txtPor,W/2,my(packMap.por.y));
-      }else{
-        ctx.font='900 '+fsLevePor+'px '+fonte;
-        ctx.fillText(txtLeve, W/2, my(packMap.leve.y));
+      if(temaEstacional)ctx.fillStyle=temaPlacaIdEfetivo_()==='natal'?'#8b1018':'#10264B';
+      ctx.font='900 '+fsLevePor+'px '+fonte;
+      ctx.fillText(txtLeve,W/2,my(packMap.leve.y));
 
-        // Quantidade (o número) — encolhe de forma independente, se precisar
-        var fsQtd=fitFont(qtdTxt,my(packMap.quantidade.fontSize),bandeiraW,24);
-        ctx.font='900 '+fsQtd+'px '+fonte;
-        ctx.fillText(qtdTxt, W/2, my(packMap.quantidade.y));
+      // A quantidade usa exatamente a mesma escala do Pack padrão em qualquer tema.
+      var fsQtd=fitFont(qtdTxt,my(packMap.quantidade.fontSize),bandeiraW,24);
+      ctx.font='900 '+fsQtd+'px '+fonte;
+      ctx.fillText(qtdTxt,W/2,my(packMap.quantidade.y));
 
-        ctx.font='900 '+fsLevePor+'px '+fonte;
-        ctx.fillText(txtPor, W/2, my(packMap.por.y));
-      }
+      ctx.font='900 '+fsLevePor+'px '+fonte;
+      ctx.fillText(txtPor,W/2,my(packMap.por.y));
 
       // 2. PREÇO (Cálculo dinâmico para ficar SEMPRE centralizado no escudo vermelho)
       var fsRs = my(packMap.rs.fontSize);
