@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.14 — Pack sazonal com posições e tipografia do tema padrão -->
+<!-- Arsenal de Ofertas v8.15 — pack com preço unitário e total calculado -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -655,7 +655,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <div class="f-row pack-type-row">
           <label>Tipo de oferta do Pack</label>
           <div class="pack-type-options">
-            <button type="button" class="toggle-chip active" id="packTipoBtnLeve" onclick="packSetTipo('leve')" title="LEVE X POR R$ Y (total do pack)"><i class="ti ti-tag"></i><span>Leve X por</span></button>
+            <button type="button" class="toggle-chip active" id="packTipoBtnLeve" onclick="packSetTipo('leve')" title="Informe o preço de cada unidade; o total do pack será calculado"><i class="ti ti-tag"></i><span>Leve X por</span></button>
             <button type="button" class="toggle-chip" id="packTipoBtnApartir" onclick="packSetTipo('apartir')" title="A PARTIR DE X UN PAGUE R$ Y (CADA)"><i class="ti ti-stack-2"></i><span>A partir de</span></button>
           </div>
         </div>
@@ -665,12 +665,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <input type="number" id="pPackQtd" min="1" step="1" value="3" oninput="onPackChange();drawPlaca()">
           </div>
           <div class="f-row" style="margin-bottom:4px">
-            <label for="pPackTotal" id="pPackTotalLabel">Preço do pack (por R$)</label>
-            <input type="text" id="pPackTotal" placeholder="9,99" inputmode="decimal" autocomplete="off" oninput="onPackChange();drawPlaca()">
+            <label for="pPackTotal" id="pPackTotalLabel">Preço por unidade no pack (R$)</label>
+            <input type="text" id="pPackTotal" placeholder="6,99" inputmode="decimal" autocomplete="off" oninput="onPackChange();drawPlaca()">
           </div>
           <div class="f-row" style="margin-bottom:4px">
-            <label>Cada unidade</label>
-            <div style="padding-top:6px;font-size:12px;color:var(--tx2)"><strong id="pPackCada" style="color:var(--green)">--</strong></div>
+            <label id="pPackResumoLabel">Total do pack</label>
+            <div style="padding-top:6px;font-size:12px;color:var(--tx2)"><strong id="pPackCada" style="color:var(--green)">--</strong><small id="pPackDetalhe" style="display:block;font-size:10px;margin-top:2px">--</small></div>
           </div>
           <div class="f-row" id="pPackUnidadeRow" style="margin-bottom:4px;display:none">
             <label for="pPackUnidade">Unidade no preço</label>
@@ -939,7 +939,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.14-pack-fontes-e-posicoes-padrao-em-todos-os-temas';
+var AURA_ARSENAL_BUILD='v8.15-pack-preco-unitario-total-automatico';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -2655,7 +2655,10 @@ function onPrecoChange(){
   var badge=document.getElementById('pPctBadge');
   var packOn=document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked;
   if(packOn){
-    // no modo pack, o % é calculado em onPackChange
+    // No Pack, o preço promocional digitado passa a ser o valor por unidade.
+    // O total fixo da quantidade é calculado automaticamente em onPackChange.
+    var campoPrecoPack=document.getElementById('pPackTotal'),campoPromo=document.getElementById('pPor');
+    if(campoPrecoPack&&campoPromo&&por>0)campoPrecoPack.value=campoPromo.value;
     onPackChange();
     return;
   }
@@ -2677,7 +2680,8 @@ function packSetTipo(tipo){
   if(gridPack)gridPack.classList.toggle('is-apartir',apartir);
   document.getElementById('pPackUnidadeRow').style.display=apartir?'block':'none';
   document.getElementById('pPackQtdLabel').textContent=apartir?'A partir de (qtd)':'Quantidade (leve)';
-  document.getElementById('pPackTotalLabel').textContent=apartir?'Preço por unidade (R$)':'Preço do pack (por R$)';
+  document.getElementById('pPackTotalLabel').textContent=apartir?'Preço por unidade (R$)':'Preço por unidade no pack (R$)';
+  var resumoLabel=document.getElementById('pPackResumoLabel');if(resumoLabel)resumoLabel.textContent=apartir?'Preço por unidade':'Total do pack';
   onPackChange();
   drawPlaca();
 }
@@ -2685,6 +2689,8 @@ function togglePack(){
   var on=document.getElementById('pPackOn').checked;
   document.getElementById('packFields').style.display=on?'block':'none';
   if(on){
+    var campoPrecoPack=document.getElementById('pPackTotal'),precoUnitarioNormal=document.getElementById('pPor');
+    if(campoPrecoPack&&!(parseDec(campoPrecoPack.value)>0)&&precoUnitarioNormal&&parseDec(precoUnitarioNormal.value)>0)campoPrecoPack.value=precoUnitarioNormal.value;
     onPackChange();
   }else{
     // limpa a mensagem auto-preenchida
@@ -2696,20 +2702,23 @@ function togglePack(){
 
 function onPackChange(){
   var qtd=parseInt(document.getElementById('pPackQtd').value)||0;
-  var total=parseDec(document.getElementById('pPackTotal').value);
+  var valorInformado=parseDec(document.getElementById('pPackTotal').value);
+  var total=packTipo==='apartir'?valorInformado:Math.round(valorInformado*qtd*100)/100;
   var de=parseDec(document.getElementById('pDe').value);
   var cadaEl=document.getElementById('pPackCada');
+  var detalheEl=document.getElementById('pPackDetalhe');
   var badge=document.getElementById('pPctBadge');
   var msg=document.getElementById('pMsg');
   var unidadeEl=document.getElementById('pPackUnidade');
   var unidade=(packTipo==='apartir'&&unidadeEl)?unidadeEl.value:'';
   var apartir=packTipo==='apartir';
   if(qtd>0 && total>0){
-    // No modo "Leve X por", o campo é o TOTAL do pack, dividido pela
-    // quantidade pra achar o "cada". No modo "A partir de", o campo já
-    // é o preço POR UNIDADE — não se divide por nada.
-    var cada=apartir?total:(total/qtd);
-    cadaEl.textContent='R$ '+cada.toFixed(2).replace('.',',')+(unidade?' / '+unidade:'');
+    // Nos dois modos, o campo representa o preço de cada unidade.
+    // Em "Leve X por", calcula-se o total fixo da quantidade; em "A partir de",
+    // o preço unitário é aplicado a partir da quantidade mínima informada.
+    var cada=valorInformado;
+    cadaEl.textContent='R$ '+(apartir?cada:total).toFixed(2).replace('.',',')+(apartir&&unidade?' / '+unidade:'');
+    if(detalheEl)detalheEl.textContent=apartir?'a partir de '+qtd+' unidades':'R$ '+cada.toFixed(2).replace('.',',')+' cada';
     // preenche mensagem automaticamente (padrão do template Pack do Líder)
     if(apartir){
       // Evita repetir a palavra quando a unidade escolhida já é "CADA" (ex: "(CADA CADA)")
@@ -2727,6 +2736,7 @@ function onPackChange(){
     }
   }else{
     cadaEl.textContent='--';
+    if(detalheEl)detalheEl.textContent='Informe quantidade e preço por unidade';
     badge.textContent='--';
   }
 }
@@ -3280,11 +3290,10 @@ async function drawPlaca(){
   var packQtd=0,packTotal=0,packCada=0;
   if(packOn){
     packQtd=parseInt(document.getElementById('pPackQtd').value)||0;
-    packTotal=parseDec(document.getElementById('pPackTotal').value);
-    if(packQtd>0 && packTotal>0){
-      // "Leve X por": packTotal é o total, divide pela quantidade.
-      // "A partir de": packTotal já é o preço por unidade, sem dividir.
-      packCada=(packTipo==='apartir')?packTotal:(packTotal/packQtd);
+    var packPrecoUnidade=parseDec(document.getElementById('pPackTotal').value);
+    if(packQtd>0 && packPrecoUnidade>0){
+      packCada=packPrecoUnidade;
+      packTotal=packTipo==='apartir'?packPrecoUnidade:Math.round(packPrecoUnidade*packQtd*100)/100;
       por=packTotal.toFixed(2).replace('.',',');
       porN=packTotal;
     }
@@ -4460,7 +4469,10 @@ async function adicionarNaListaAuto(){
 
   var cod=normalizarCodigo(prodAtualCod||document.getElementById('pCod').value);
   var packOn=!!(document.getElementById('pPackOn')&&document.getElementById('pPackOn').checked);
+  var packQtdAtual=parseInt(document.getElementById('pPackQtd').value,10)||0;
+  var packPrecoUnidade=packOn?parseDec(document.getElementById('pPackTotal').value):0;
   var precoPromo=(packOn?document.getElementById('pPackTotal').value:document.getElementById('pPor').value||'').trim();
+  if(packOn&&packTipo==='leve'&&packQtdAtual>0&&packPrecoUnidade>0)precoPromo=(Math.round(packPrecoUnidade*packQtdAtual*100)/100).toFixed(2).replace('.',',');
   if(!cod){
     mostrarToast('Baixado. Para entrar na lista, informe ao menos o código/EAN.','warn');
     return;
@@ -4507,7 +4519,7 @@ async function adicionarNaListaAuto(){
     // no backend: não lê/regrava a lista inteira e não perde alterações de outro PC.
     var registro={
       id:editingEncarteId||gerarIdEncarte(),
-      versaoRegistro:7,
+      versaoRegistro:8,
       codigo:cod,
       produto:produtoBanco,
       produtoDigitado:produtoDigitado,
@@ -4525,7 +4537,8 @@ async function adicionarNaListaAuto(){
       coresPlaca:coresPlaca,
       opcoesPlaca:opcoesPlaca,
       tipoPromocao:packOn?'PACK':'UNITARIA',
-      packQtd:packOn?(parseInt(document.getElementById('pPackQtd').value,10)||0):0,
+      packQtd:packOn?packQtdAtual:0,
+      packPrecoUnidade:packOn?packPrecoUnidade:'',
       packTipo:packOn?(packTipo||'leve'):'',
       packUnidade:packOn&&packTipo==='apartir'?((document.getElementById('pPackUnidade')||{}).value||'UN'):'',
       unirOn:unirOn,
@@ -4767,13 +4780,19 @@ async function editarEncarte(id){
   document.getElementById('pPackOn').checked=packOn;
   togglePack();
   if(packOn){
-    document.getElementById('pPackQtd').value=it.packQtd||3;
-    document.getElementById('pPackTotal').value=precoPromo;
+    var qtdPackSalva=Number(it.packQtd)||3;
+    var tipoPackSalvo=it.packTipo||'leve';
+    var precoCadaSalvo=it.packPrecoUnidade;
+    if(!(Number(precoCadaSalvo)>0))precoCadaSalvo=(tipoPackSalvo==='leve'&&qtdPackSalva>0)?(parseDec(precoPromo)/qtdPackSalva):parseDec(precoPromo);
+    document.getElementById('pPackQtd').value=qtdPackSalva;
+    document.getElementById('pPackTotal').value=Number(precoCadaSalvo)>0?Number(precoCadaSalvo).toFixed(2).replace('.',','):'';
     document.getElementById('pPor').value='';
     var packUnidadeSalva=it.packUnidade||'UN';
     var packUnidadeEl=document.getElementById('pPackUnidade');
     if(packUnidadeEl)packUnidadeEl.value=packUnidadeSalva;
-    packSetTipo(it.packTipo||'leve');
+    packSetTipo(tipoPackSalvo);
+    onPackChange();
+    drawPlaca();
   }else{
     document.getElementById('pPor').value=precoPromo;
     onPrecoChange();
