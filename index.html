@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.16 — total do pack preservado, preço unitário em destaque -->
+<!-- Arsenal de Ofertas v8.17 — rodapé do pack comunica somente o total -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -939,7 +939,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.16-pack-total-preservado-preco-unitario-destaque';
+var AURA_ARSENAL_BUILD='v8.17-pack-rodape-total-claro';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -2716,7 +2716,7 @@ function onPackChange(){
       var unidadeMsg=(unidade&&unidade!=='CADA')?(' '+unidade):'';
       msg.value='A PARTIR DE '+qtd+'UN PAGUE R$ '+cada.toFixed(2).replace('.',',')+' (CADA'+unidadeMsg+')';
     }else{
-      msg.value='LEVE '+qtd+'UN POR R$ '+total.toFixed(2).replace('.',',')+' (R$ '+cada.toFixed(2).replace('.',',')+' CADA)';
+      msg.value='LEVANDO '+qtd+' UNIDADES, TOTAL R$ '+total.toFixed(2).replace('.',',');
     }
     // % de desconto baseado no preço original vs "cada"
     if(de>0 && cada<de){
