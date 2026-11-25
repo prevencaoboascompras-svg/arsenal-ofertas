@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.24 — locução expressiva por frases e pausas de preço -->
+<!-- Arsenal de Ofertas v8.25 — correção OCR/campanha e locução mais natural -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -519,6 +519,17 @@ html.ls-standalone #liderStation{display:block;width:100%;margin:0}
     .ls-promo-list{display:grid;gap:7px;max-height:380px;overflow:auto;margin-top:10px}
     .ls-promo{display:grid;grid-template-columns:24px minmax(120px,2fr) minmax(70px,.7fr) minmax(70px,.7fr) minmax(115px,1fr) minmax(100px,.8fr);gap:6px;align-items:center;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px}
     .ls-promo small{font-size:10px;color:var(--tx2)}.ls-note{font-size:11px;color:var(--tx2);line-height:1.45;margin-top:8px}
+    #lsOcrRows{overflow-x:hidden}
+    #lsOcrRows .ls-promo{grid-template-columns:26px minmax(0,1.35fr) repeat(3,minmax(0,1fr));gap:7px;padding:10px;min-width:0}
+    #lsOcrRows .ls-promo>.ls-ok{grid-column:1;grid-row:1;justify-self:center;width:16px}
+    #lsOcrRows .ls-promo>.ls-prod{grid-column:2/6;grid-row:1}
+    #lsOcrRows .ls-promo>.ls-code{grid-column:2;grid-row:2}
+    #lsOcrRows .ls-promo>.ls-por{grid-column:3;grid-row:2}
+    #lsOcrRows .ls-promo>.ls-type{grid-column:4;grid-row:2}
+    #lsOcrRows .ls-promo>.ls-de{grid-column:5;grid-row:2}
+    #lsOcrRows .ls-promo>.ls-extra:not(.ls-de){grid-column:2/6!important;grid-row:3;display:grid!important;grid-template-columns:70px minmax(0,1.4fr) minmax(76px,.8fr) minmax(95px,1fr);gap:7px;width:100%;min-width:0}
+    #lsOcrRows .ls-promo>.ls-extra:not(.ls-de)>*{min-width:0;width:100%;padding:7px 6px;font-size:11px}
+    @media(max-width:560px){#lsOcrRows .ls-promo{grid-template-columns:24px repeat(2,minmax(0,1fr))}#lsOcrRows .ls-promo>.ls-prod{grid-column:2/4}#lsOcrRows .ls-promo>.ls-code{grid-column:2;grid-row:2}#lsOcrRows .ls-promo>.ls-por{grid-column:3;grid-row:2}#lsOcrRows .ls-promo>.ls-type{grid-column:2;grid-row:3}#lsOcrRows .ls-promo>.ls-de{grid-column:3;grid-row:3}#lsOcrRows .ls-promo>.ls-extra:not(.ls-de){grid-column:2/4!important;grid-row:4;grid-template-columns:repeat(2,minmax(0,1fr))}}
     .ls-player{min-height:165px;border-radius:9px;overflow:hidden;background:#171717;display:flex;align-items:center;justify-content:center;color:#fff}
     .ls-player iframe{width:100%;height:220px;border:0}.ls-now{font-size:12px;color:var(--tx2);min-height:18px;margin:6px 0}
     .ls-script{min-height:76px;resize:vertical}.ls-status{font-size:11px;color:var(--tx2);margin-top:7px;min-height:16px}
@@ -998,7 +1009,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.24-lider-station-locucao-expressiva';
+var AURA_ARSENAL_BUILD='v8.25-lider-station-campanha-fala-ajustada';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -5978,21 +5989,20 @@ function lsGetOcrWorker_(){
 function lsExtractCampaign_(text){
   var lines=String(text||'').split(/\r?\n/).map(function(x){return x.replace(/\s+/g,' ').trim();}).filter(Boolean).slice(0,35);
   var head=normalizarTexto(lines.join(' '));
-  if(/ESQUENT[A]?/.test(head)&&/(BLACK|BLACH)/.test(head)&&/FRID/.test(head))return 'Esquenta Black Friday';
+  var hasEsquenta=/ESQUENT[A]?/.test(head),hasBlack=/BLACK|BLACH|BLACE|BLAC/.test(head),hasFriday=/FRIDAY|FRID/.test(head);
+  if(hasEsquenta&&hasBlack&&hasFriday)return 'Esquenta Black Friday';
+  if(hasBlack&&hasFriday)return 'Black Friday';
   var rules=[
-    {re:/ESQUENTA.{0,24}BLACK FRIDAY|BLACK FRIDAY.{0,24}ESQUENTA/,value:'Esquenta Black Friday'},
-    {re:/BLACK FRIDAY/,value:'Black Friday'},
     {re:/ARRASTAO.{0,16}PRECO BAIXO/,value:'Arrastão de Preço Baixo'},
     {re:/SEGUNDA.{0,12}ECONOMIA/,value:'Segunda da Economia'},
     {re:/OPORTUNIDADE DO DIA/,value:'Oportunidade do Dia'},
     {re:/ARRASTAO/,value:'Arrastão de Preço Baixo'},
+    {re:/LIQUIDA|LIQUIDACAO/,value:'Liquida de Ofertas'},
     {re:/NATAL/,value:'Natal'},
     {re:/ANIVERSARIO/,value:'Aniversário'},
     {re:/FESTIVAL/,value:'Festival de Ofertas'}
   ];
   for(var i=0;i<rules.length;i++)if(rules[i].re.test(head))return rules[i].value;
-  var cues=['ESQUENTA','ARRASTAO','FESTIVAL','SEMANA DE OFERTAS','OFERTAS DA SEMANA','OFERTAO','ECONOMIA','BLACK FRIDAY','NATAL','ANIVERSARIO'];
-  for(var c=0;c<cues.length;c++){var idx=head.indexOf(cues[c]);if(idx>=0){var phrase=head.slice(Math.max(0,idx-12),Math.min(head.length,idx+42)).replace(/SUPERMERCADO BOAS COMPRAS/g,'').replace(/\b(OFERTAS VALIDAS|VALIDAS|DE \d{1,2} A \d{1,2}|CLUBE BOAS COMPRAS)\b/g,'').trim();if(phrase.length>58)phrase=phrase.slice(0,58).replace(/\s+\S*$/,'');if(phrase.length>=4)return phrase.toLocaleLowerCase('pt-BR').replace(/(^|\s)\p{L}/gu,function(m){return m.toLocaleUpperCase('pt-BR');});}}
   return '';
 }
 function lsMergeFlyerRows_(rows){
@@ -6122,22 +6132,23 @@ function lsTextSpeak_(text){
   s=s.replace(/\b(\d+)\s*(?:FD|FDO|FARDO)\b/gi,function(_,q){return q+' fardo'+(Number(q)===1?'':'s');});
   s=s.replace(/\b(\d+)\s*DZ\b/gi,function(_,q){return q+' dúzia'+(Number(q)===1?'':'s');});
   s=s.replace(/\b(?:PCTE?|PCTE\.)\b/gi,'pacote').replace(/\bCXS?\b/gi,'caixa').replace(/\b(?:FD|FDO)\b/gi,'fardo').replace(/\bDZ\b/gi,'dúzia');
-  s=s.replace(/\bKG\b/gi,'quilo').replace(/\bK6\b/gi,'quilo').replace(/\b(?:LT|L)\b/gi,'litro').replace(/\b(?:ML)\b/gi,'mililitro').replace(/\b(?:GR|G)\b/gi,'grama').replace(/\bUN(?:D|ID|1D)?\b/gi,'unidade');
+  s=s.replace(/(^|[^A-Za-zÀ-ÿ])(?:KG|K6)(?=$|[^A-Za-zÀ-ÿ])/gi,'$1quilo').replace(/(^|[^A-Za-zÀ-ÿ])LT(?=$|[^A-Za-zÀ-ÿ])/gi,'$1litro').replace(/(^|[^A-Za-zÀ-ÿ])ML(?=$|[^A-Za-zÀ-ÿ])/gi,'$1mililitro').replace(/(^|[^A-Za-zÀ-ÿ])GR(?=$|[^A-Za-zÀ-ÿ])/gi,'$1grama').replace(/(^|[^A-Za-zÀ-ÿ])UN(?:D|ID|1D)?(?=$|[^A-Za-zÀ-ÿ])/gi,'$1unidade').replace(/\bo\s+L(?=\s|[.!?,;:]|$)/gi,'o litro').replace(/\bo\s+G(?=\s|[.!?,;:]|$)/gi,'o grama');
   s=s.replace(/\bBPF\b/gi,'B-P-F').replace(/\bClub Boas Compras\b/gi,'Clube Boas Compras');
   return s;
 }
 function lsBuildScript_(it){
   var nome=lsTextSpeak_(String(it.produto||'produto').trim());
-  // Se o OCR incluiu o tamanho no nome, separa a medida com uma pausa dramática.
-  nome=nome.replace(/\s+(\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|unidade|unidades|rolos de \d+ metros))$/i,', $1...');
-  var temPausa=/\.\.\.$/.test(nome),separador=temPausa?' ':': ';
-  var preco=lsMoneySpeak_(it.precoPromocional||it.por||''),un=String(it.unidade||'cada').toLowerCase(),de=String(it.de||'').trim();
-  var antes=de?'De '+lsMoneySpeak_(de)+'... agora, ':'';
+  nome=nome.replace(/\s+(?:UNIDADE|UNIDADES|UND|UN|CADA)$/i,'');
+  var temMedida=/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
+  nome=nome.replace(/\s+(\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|unidade|unidades|rolos de \d+ metros))$/i,', $1,');
+  var separador=temMedida?' ':': ',preco=lsMoneySpeak_(it.precoPromocional||it.por||''),un=normalizarTexto(String(it.unidade||'cada')),de=String(it.de||'').trim();
+  var unidadeFalada=({CADA:'cada unidade',UN:'cada unidade',UND:'cada unidade',UNIDADE:'cada unidade',UNIDADES:'cada unidade',KG:'o quilo',KILO:'o quilo',LT:'o litro',LITRO:'o litro',ML:'o mililitro',PCT:'o pacote',PACOTE:'o pacote'})[un]||'';
+  var antes=de?'De '+lsMoneySpeak_(de)+', agora, ':'';
   var oferta='';
   if(it.tipoPromocao==='PACK'){
     var q=Number(it.packQtd||it.qtd||2),modo=it.packTipo||it.modo||'leve';
-    oferta=antes+(modo==='apartir'?'Levando '+q+' unidades, cada uma sai... por apenas... '+preco+'!':'Leve '+q+'... por apenas... '+preco+'!');
-  }else oferta=antes+(temPausa?'':'... ')+'por apenas... '+preco+(un==='cada'?' cada!':' o '+un+'!');
+    oferta=antes+(modo==='apartir'?'Levando '+q+' unidades, cada uma sai por apenas '+preco+'!':'Leve '+q+', por apenas '+preco+'!');
+  }else oferta=antes+(temMedida?'':', ')+'por apenas '+preco+(unidadeFalada?' '+unidadeFalada:'')+'!';
   var club=it.radioTipoPromocao==='CLUB'?' Oferta especial para clientes do Club Boas Compras!':'';
   return nome+separador+oferta+club;
 }
@@ -6146,7 +6157,7 @@ function lsIntro_(cat){
   if(c==='ACOUGUE')return 'Passando pelo açougue do Boas Compras? Aproveite '+camp+', com carne fresca, selecionada, e economia de verdade no Club!';
   if(c.indexOf('FRIOS')===0)return 'Quer praticidade e sabor para a sua mesa? No '+camp+' do Boas Compras tem oferta imperdível para levar agora!';
   if(c.indexOf('LIMPEZA')===0)return 'Hora de deixar a casa limpa e perfumada, economizando de verdade! Confira o que '+camp+' preparou para você!';
-  if(c==='BEBIDAS')return 'E para refrescar toda a família... aproveite os preços especiais do Boas Compras!';
+  if(c==='BEBIDAS')return 'E para refrescar toda a família, aproveite os preços especiais do Boas Compras!';
   if(c==='MERCEARIA E CAFE')return 'Atenção, cliente amigo! O '+camp+' já começou! Confira as ofertas para abastecer a despensa!';
   if(c==='PADARIA')return 'Na padaria do Boas Compras tem sabor e economia esperando por você! Confira!';
   return 'Atenção, cliente amigo! Confira agora as ofertas do '+camp+', no Supermercado Boas Compras!';
@@ -6189,11 +6200,11 @@ function lsSpeakSingle_(phrase,opts){
 }
 async function lsSpeakUtterance_(text){
   if(!window.speechSynthesis)return false;
-  var clean=lsTextSpeak_(text),chunks=clean.split(/(?<=[!?.])\s+|\n+/).map(function(s){return s.trim();}).filter(Boolean),currentJob=lsAudioJobToken;
+  var clean=lsTextSpeak_(text),chunks=clean.split(/(?<=[!?])\s+|\n+/).map(function(s){return s.trim();}).filter(Boolean),currentJob=lsAudioJobToken;
   for(var i=0;i<chunks.length;i++){
     if(currentJob!==lsAudioJobToken)return false;
     var chunk=chunks[i],hasPrice=/\b(reais?|centavos?|apenas|só|por)\b|\d+[,.]\d{2}/i.test(chunk),isFooter=/\b(parcelamos|avenida|whatsapp|aceitamos)\b/i.test(chunk);
-    var opts=isFooter?{rate:1.18,pitch:1.05}:hasPrice?{rate:1.08,pitch:1.15}:{rate:1.15,pitch:1.11};
+    var opts=isFooter?{rate:1.28,pitch:1.04}:hasPrice?{rate:1.18,pitch:1.08}:{rate:1.24,pitch:1.08};
     var ok=await lsSpeakSingle_(chunk,opts);if(!ok)return false;
   }
   return true;
@@ -6212,8 +6223,8 @@ function lsLoadYTApi_(){if(window.YT&&window.YT.Player)return;var s=document.cre
 function lsStartRadio(){var id=lsExtractPlaylist_(document.getElementById('lsPlaylist').value);if(!id){document.getElementById('lsRadioStatus').textContent='Cole um link de playlist do YouTube válido.';return;}if(!lsSelectedOffers_().length){document.getElementById('lsRadioStatus').textContent='Marque ao menos uma promoção para entrar na programação.';return;}lsPlaylistId=id;lsRadioActive=true;document.getElementById('lsNow').textContent='Iniciando playlist. A reprodução começa após a autorização do navegador.';lsLoadYTApi_();if(window.YT&&window.YT.Player)lsCreatePlayer_();else{var prior=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=function(){if(typeof prior==='function')prior();lsCreatePlayer_();};}}
 function lsCreatePlayer_(){var host=document.getElementById('lsPlayer');host.innerHTML='<div id="lsYoutubePlayer"></div>';lsPlayer=new YT.Player('lsYoutubePlayer',{height:'220',width:'100%',playerVars:{listType:'playlist',list:lsPlaylistId,autoplay:1,playsinline:1,rel:0},events:{onReady:function(e){e.target.loadPlaylist({listType:'playlist',list:lsPlaylistId});e.target.setVolume(Number(document.getElementById('lsMusicVolume').value));e.target.playVideo();document.getElementById('lsRadioStatus').textContent='Líder Station está no ar.';},onStateChange:function(e){if(e.data===YT.PlayerState.ENDED&&lsRadioActive){lsCallCount++;var every=Number(document.getElementById('lsEvery').value)||2;lsPendingAnnouncement=lsCallCount%every===0;if(lsPlayer&&lsPlayer.nextVideo)lsPlayer.nextVideo();}if(e.data===YT.PlayerState.PLAYING&&lsPendingAnnouncement){lsPendingAnnouncement=false;setTimeout(function(){if(lsRadioActive)lsSpeakNext(true);},450);}},onError:function(e){document.getElementById('lsRadioStatus').textContent='O YouTube não permitiu tocar este vídeo ou playlist (código '+e.data+'). Tente outra playlist pública com vídeos incorporáveis.';}}});}
 function lsStopRadio(){lsRadioActive=false;lsRadioSpeaking=false;lsAudioJobToken++;if(lsActiveJingle){try{lsActiveJingle.pause();}catch(e){}lsActiveJingle=null;}if(window.speechSynthesis)speechSynthesis.cancel();clearInterval(lsVolumeTimer);if(lsPlayer&&lsPlayer.stopVideo)lsPlayer.stopVideo();document.getElementById('lsNow').textContent='Rádio parada.';document.getElementById('lsRadioStatus').textContent='Transmissão pausada pelo operador.';}
-function lsSaveConfig_(){try{localStorage.setItem('boas_compras_lider_station_v1',JSON.stringify({playlist:document.getElementById('lsPlaylist').value,every:document.getElementById('lsEvery').value,voice:document.getElementById('lsVoice').value,musicVolume:document.getElementById('lsMusicVolume').value,duckVolume:document.getElementById('lsDuckVolume').value,services:document.getElementById('lsServices').value,jingleOpen:document.getElementById('lsJingleOpen').value,jingleClose:document.getElementById('lsJingleClose').value,campaign:document.getElementById('lsCampaign').value.trim(),campaignSource:document.getElementById('lsCampaign').value.trim()?'flyer':'',}));}catch(e){}}
-function lsRestoreConfig_(){try{var c=JSON.parse(localStorage.getItem('boas_compras_lider_station_v1')||'{}');lsPreferredVoiceUri=c.voice||'';window.lsSavedJingleOpen_=c.jingleOpen||'';window.lsSavedJingleClose_=c.jingleClose||'';if(c.campaignSource==='flyer'&&c.campaign)document.getElementById('lsCampaign').value=c.campaign;var pairs={playlist:'lsPlaylist',every:'lsEvery',voice:'lsVoice',musicVolume:'lsMusicVolume',duckVolume:'lsDuckVolume',services:'lsServices',jingleOpen:'lsJingleOpen',jingleClose:'lsJingleClose'};Object.keys(pairs).forEach(function(k){var e=document.getElementById(pairs[k]);if(e&&c[k]!=null)e.value=c[k];});document.getElementById('lsDuckPct').textContent=document.getElementById('lsDuckVolume').value+'%';}catch(e){}['lsPlaylist','lsEvery','lsVoice','lsMusicVolume','lsDuckVolume','lsServices','lsJingleOpen','lsJingleClose'].forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('change',lsSaveConfig_);});}
+function lsSaveConfig_(){try{localStorage.setItem('boas_compras_lider_station_v1',JSON.stringify({playlist:document.getElementById('lsPlaylist').value,every:document.getElementById('lsEvery').value,voice:document.getElementById('lsVoice').value,musicVolume:document.getElementById('lsMusicVolume').value,duckVolume:document.getElementById('lsDuckVolume').value,services:document.getElementById('lsServices').value,jingleOpen:document.getElementById('lsJingleOpen').value,jingleClose:document.getElementById('lsJingleClose').value}));}catch(e){}}
+function lsRestoreConfig_(){try{var c=JSON.parse(localStorage.getItem('boas_compras_lider_station_v1')||'{}');lsPreferredVoiceUri=c.voice||'';window.lsSavedJingleOpen_=c.jingleOpen||'';window.lsSavedJingleClose_=c.jingleClose||'';var pairs={playlist:'lsPlaylist',every:'lsEvery',voice:'lsVoice',musicVolume:'lsMusicVolume',duckVolume:'lsDuckVolume',services:'lsServices',jingleOpen:'lsJingleOpen',jingleClose:'lsJingleClose'};Object.keys(pairs).forEach(function(k){var e=document.getElementById(pairs[k]);if(e&&c[k]!=null)e.value=c[k];});document.getElementById('lsDuckPct').textContent=document.getElementById('lsDuckVolume').value+'%';}catch(e){}['lsPlaylist','lsEvery','lsVoice','lsMusicVolume','lsDuckVolume','lsServices','lsJingleOpen','lsJingleClose'].forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('change',lsSaveConfig_);});}
 
 
 // (Removido: cada linha "extra" tinha sua própria busca/sugestões.
