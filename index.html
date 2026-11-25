@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.35 — leitura corrigida pelo banco de produtos -->
+<!-- Arsenal de Ofertas v8.37 — prévia de rádio e placas sob confirmação -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -511,6 +511,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
     .ls-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
     .ls-head h2{margin:0;font-size:18px}.ls-head p{margin:4px 0 0;color:var(--tx2);font-size:12px}
     .ls-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    @media(min-width:1101px){.ls-grid{grid-template-columns:minmax(0,1.12fr) minmax(0,1fr)}}
     .ls-box{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:12px;min-width:0}
     .ls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ls-row>*{flex:1 1 140px}
     .ls-field{display:flex;flex-direction:column;gap:4px;margin:8px 0}.ls-field label{font-size:11px;font-weight:700;color:var(--tx2)}
@@ -519,7 +520,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
     .ls-promo-list{display:grid;gap:7px;max-height:380px;overflow:auto;margin-top:10px}
     .ls-promo{display:grid;grid-template-columns:24px minmax(120px,2fr) minmax(70px,.7fr) minmax(70px,.7fr) minmax(115px,1fr) minmax(100px,.8fr);gap:6px;align-items:center;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px}
     .ls-promo small{font-size:10px;color:var(--tx2)}.ls-note{font-size:11px;color:var(--tx2);line-height:1.45;margin-top:8px}
-    #lsOcrRows{overflow-x:hidden}
+#lsOcrRows{max-height:none;height:auto;overflow:visible;overscroll-behavior:initial}
     #lsOcrRows .ls-promo{grid-template-columns:26px minmax(0,1.35fr) repeat(3,minmax(0,1fr));gap:7px;padding:10px;min-width:0}
     #lsOcrRows .ls-promo>.ls-ok{grid-column:1;grid-row:1;justify-self:center;width:16px}
     #lsOcrRows .ls-promo>.ls-prod{grid-column:2/6;grid-row:1}
@@ -527,9 +528,13 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
     #lsOcrRows .ls-promo>.ls-por{grid-column:3;grid-row:2}
     #lsOcrRows .ls-promo>.ls-type{grid-column:4;grid-row:2}
     #lsOcrRows .ls-promo>.ls-de{grid-column:5;grid-row:2}
-    #lsOcrRows .ls-promo>.ls-extra:not(.ls-de){grid-column:2/6!important;grid-row:3;display:grid!important;grid-template-columns:70px minmax(0,1.4fr) minmax(76px,.8fr) minmax(95px,1fr);gap:7px;width:100%;min-width:0}
+    #lsOcrRows .ls-promo>.ls-extra:not(.ls-de){grid-column:2/6!important;grid-row:3;display:grid!important;grid-template-columns:70px minmax(0,1.4fr) minmax(76px,.8fr) minmax(95px,1fr) minmax(145px,1fr);gap:7px;width:100%;min-width:0}
     #lsOcrRows .ls-promo>.ls-extra:not(.ls-de)>*{min-width:0;width:100%;padding:7px 6px;font-size:11px}
-    @media(max-width:560px){#lsOcrRows .ls-promo{grid-template-columns:24px repeat(2,minmax(0,1fr))}#lsOcrRows .ls-promo>.ls-prod{grid-column:2/4}#lsOcrRows .ls-promo>.ls-code{grid-column:2;grid-row:2}#lsOcrRows .ls-promo>.ls-por{grid-column:3;grid-row:2}#lsOcrRows .ls-promo>.ls-type{grid-column:2;grid-row:3}#lsOcrRows .ls-promo>.ls-de{grid-column:3;grid-row:3}#lsOcrRows .ls-promo>.ls-extra:not(.ls-de){grid-column:2/4!important;grid-row:4;grid-template-columns:repeat(2,minmax(0,1fr))}}
+    #lsOcrRows .ls-narrar-wrap{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2);line-height:1.25}
+    #lsOcrRows .ls-narrar-de{width:16px!important;height:16px;margin:0;flex:0 0 auto}
+    #lsOcrRows .ls-preview-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    #lsOcrRows .ls-preview-row button{flex:0 0 auto}
+    @media(max-width:560px){#lsOcrRows .ls-promo{grid-template-columns:24px repeat(2,minmax(0,1fr))}#lsOcrRows .ls-promo>.ls-prod{grid-column:2/4}#lsOcrRows .ls-promo>.ls-code{grid-column:2;grid-row:2}#lsOcrRows .ls-promo>.ls-por{grid-column:3;grid-row:2}#lsOcrRows .ls-promo>.ls-type{grid-column:2;grid-row:3}#lsOcrRows .ls-promo>.ls-de{grid-column:3;grid-row:3}#lsOcrRows .ls-promo>.ls-extra:not(.ls-de){grid-column:2/4!important;grid-row:4;grid-template-columns:repeat(2,minmax(0,1fr))}#lsOcrRows .ls-narrar-wrap{grid-column:1/-1}}
     .ls-player{min-height:165px;border-radius:9px;overflow:hidden;background:#171717;display:flex;align-items:center;justify-content:center;color:#fff}
     .ls-player iframe{width:100%;height:220px;border:0}.ls-now{font-size:12px;color:var(--tx2);min-height:18px;margin:6px 0}
     .ls-script{min-height:76px;resize:vertical}.ls-status{font-size:11px;color:var(--tx2);margin-top:7px;min-height:16px}
@@ -540,25 +545,25 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
     <div class="ls-grid">
       <div class="ls-box">
         <strong>Importar promoções do encarte por foto</strong>
-        <p class="ls-note">Envie uma foto ou imagem do encarte. A leitura sugere produto e preços; revise cada linha, associe o código do produto e confirme antes de importar.</p>
+        <p class="ls-note">Envie uma ou várias páginas. Revise os produtos e preços, ajuste a locução e escute a prévia. Nada é gravado nas placas até você clicar em “Criar placas”.</p>
         <div class="ls-row"><label class="btn btn-green btn-sm" for="lsFlyerFile">Escolher páginas do encarte</label><input id="lsFlyerFile" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none" onchange="lsReadFlyer(this)"><button class="btn btn-sm" onclick="lsClearFlyer()">Limpar leitura</button></div>
         <div class="ls-drop" id="lsOcrStatus" style="margin-top:8px">Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.</div>
         <div id="lsOcrRows" class="ls-promo-list"></div>
-        <div class="ls-row" style="margin-top:9px"><button class="btn btn-green btn-sm" id="lsImportBtn" onclick="lsImportFlyerRows()" disabled>Importar promoções revisadas</button><span class="ls-note">A importação grava na lista do Arsenal conectada ao Google Sheets.</span></div>
+        <div class="ls-row ls-preview-row" style="margin-top:9px"><button class="btn btn-sm" id="lsPreviewFlyerBtn" onclick="lsPreviewNext_()" disabled>▶ Ouvir prévia</button><button class="btn btn-green btn-sm" id="lsImportBtn" onclick="lsCreateFlyerPlates_()" disabled>＋ Criar placas</button><span class="ls-note">A prévia da rádio fica neste navegador. As placas só entram na lista de impressão depois de “Criar placas”.</span></div>
       </div>
       <div class="ls-box">
         <strong>Líder Station no ar</strong>
         <div class="ls-field"><label for="lsPlaylist">Link ou código da playlist do YouTube</label><input id="lsPlaylist" placeholder="https://www.youtube.com/playlist?list=..." autocomplete="off"></div>
-        <div class="ls-row"><button class="btn btn-green btn-sm" id="lsStartBtn" onclick="lsStartRadio()">▶ Iniciar rádio</button><button class="btn btn-sm" onclick="lsStopRadio()">■ Parar</button><button class="btn btn-sm" onclick="lsSpeakNext(false)">▶ Chamar oferta agora</button></div>
+        <div class="ls-row"><button class="btn btn-green btn-sm" id="lsStartBtn" onclick="lsStartRadio()">▶ Iniciar rádio</button><button class="btn btn-sm" onclick="lsStopRadio()">■ Parar</button><button class="btn btn-sm" onclick="lsPreviewNext_()">♫ Ouvir prévia</button><button class="btn btn-sm" onclick="lsSpeakNext(false)">▶ Chamar oferta agora</button></div>
         <div class="ls-player" id="lsPlayer"><span>Adicione uma playlist e inicie a transmissão</span></div><div class="ls-now" id="lsNow">Aguardando início.</div>
-        <div class="ls-row"><div class="ls-field"><label for="lsVoice">Voz neural pt-BR</label><select id="lsVoice"></select><span class="ls-note">No Microsoft Edge, prioriza Antonio Online Natural; Francisca e Thalita também aparecem quando disponíveis.</span></div><div class="ls-field"><label for="lsEvery">Intercalar a cada</label><select id="lsEvery"><option value="2" selected>2 músicas</option><option value="3">3 músicas</option></select></div></div>
+        <div class="ls-row"><div class="ls-field"><label for="lsVoice">Voz neural pt-BR</label><select id="lsVoice"></select><span class="ls-note">Padrão no Microsoft Edge: Antonio Online Natural. Uma prévia da voz pode ser ouvida antes de chamar a oferta.</span></div><div class="ls-field"><label for="lsEvery">Intercalar a cada</label><select id="lsEvery"><option value="2" selected>2 músicas</option><option value="3">3 músicas</option></select></div></div>
         <div class="ls-row"><div class="ls-field"><label for="lsMusicVolume">Volume normal da música</label><input id="lsMusicVolume" type="range" min="0" max="100" value="70" oninput="lsSetMusicVolume_(this.value)"></div><div class="ls-field"><label for="lsDuckVolume">Volume durante a voz (ducking)</label><input id="lsDuckVolume" type="range" min="15" max="20" value="18" oninput="document.getElementById('lsDuckPct').textContent=this.value+'%'"><span id="lsDuckPct" class="ls-note">18%</span></div></div>
         <div class="ls-row"><div class="ls-field"><label for="lsCampaign">Campanha identificada no encarte</label><input id="lsCampaign" placeholder="Será lida do cabeçalho; revise se necessário"></div><div class="ls-field"><label for="lsValidity">Validade / condição</label><input id="lsValidity" placeholder="Informe após conferir o rodapé do encarte"></div></div>
         <div class="ls-field"><label for="lsServices">Serviços para mencionar no último bloco (opcional)</label><input id="lsServices" value="Parcelamos nos cartões em até 10 vezes e aceitamos B-P-F. Estamos na Avenida Visconde do Rio Grande, 1960. Tele-entrega pelo WhatsApp (51) 99680-6917."></div>
         <div class="ls-row"><div class="ls-field"><label for="lsJingleOpen">Vinheta MP3 de abertura no Drive</label><select id="lsJingleOpen"><option value="">Carregue a lista do Drive</option></select></div><div class="ls-field"><label for="lsJingleClose">Vinheta MP3 de fechamento no Drive</label><select id="lsJingleClose"><option value="">Carregue a lista do Drive</option></select></div></div>
         <div class="ls-row"><button class="btn btn-sm" type="button" onclick="lsLoadDriveJingles_()">↻ Buscar vinhetas no Drive</button><span class="ls-note" id="lsJingleStatus">Os MP3 ficam privados na pasta “Lider Station - Vinhetas” do Drive.</span></div>
         <div class="ls-note">Com os MP3 configurados, eles substituem as frases de identidade faladas. Se uma vinheta não carregar, a locução lê a frase correspondente.</div>
-        <div class="ls-field"><label for="lsScript">Texto do próximo bloco (editável)</label><textarea id="lsScript" class="ls-script" lang="pt-BR" spellcheck="true" placeholder="Selecione promoções na lista abaixo ou clique em Chamar oferta agora." oninput="lsScriptEdited=true"></textarea><span class="ls-note">O Edge pode sublinhar erros de português nesta caixa. Corrija o texto aqui antes de chamar a oferta; a locução usará a versão revisada. A programação agrupa até quatro ofertas por bloco.</span></div>
+        <div class="ls-field"><label for="lsScript">Prévia do próximo bloco (editável)</label><textarea id="lsScript" class="ls-script" lang="pt-BR" spellcheck="true" placeholder="Leia um encarte ou selecione ofertas já salvas para montar a prévia." oninput="lsScriptEdited=true"></textarea><span class="ls-note">Revise e edite o texto, use “Ouvir prévia” para conferir a locução e “Chamar oferta agora” para transmitir. A rádio intercala automaticamente as ofertas entre as músicas.</span></div>
         <div class="ls-note">A narração transforma valores, medidas e siglas em fala natural e reduz o player para 15% a 20% durante a chamada; ao terminar, o volume volta gradualmente ao nível normal. O início do áudio depende do primeiro clique do operador.</div>
         <div class="ls-status" id="lsRadioStatus"></div>
       </div>
@@ -1011,7 +1016,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.35-lider-station-leitura-banco';
+var AURA_ARSENAL_BUILD='v8.37-lider-station-preview-ocr-plates';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -6021,10 +6026,13 @@ function lsMergeFlyerRows_(rows){
   var combined=lsFlyerRows.concat(rows||[]),seen={};
   lsFlyerRows=combined.filter(function(x){var key=normalizarTexto(x.produto)+'|'+String(x.por||'').replace(',','.');if(seen[key])return false;seen[key]=1;return true;});
 }
+function lsCropOcrColumn_(image,side){var half=Math.floor(image.width/2),overlap=Math.max(8,Math.round(image.width*.012)),x=side===0?0:Math.max(0,half-overlap),w=side===0?Math.min(image.width,half+overlap):image.width-x,canvas=document.createElement('canvas');canvas.width=w;canvas.height=image.height;canvas.getContext('2d').drawImage(image,x,0,w,image.height,0,0,w,image.height);return canvas;}
+function lsFlyerRowsQuality_(rows){return (rows||[]).reduce(function(score,r){var n=normalizarTexto(r.produto||''),words=n.split(/\s+/).filter(Boolean),clue=/CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|ROSQUIN|CARNE|OSSINHO|PALETA|BATATA|QUEIJO|SABAO|SUCO|FRUKI|ARROZ|FEIJAO|LEITE|MARGARINA|SEARA/.test(n);score+=5+(parseDec(r.por)>0?60:0)+(clue?14:0);score-=Math.max(0,words.length-7)*2;if(String(r.produto||'').length>58)score-=10;if(/[|{}\\]/.test(String(r.produto||'')))score-=6;return score;},0);}
+async function lsReadFlyerColumns_(worker,image){var text=[];for(var side=0;side<2;side++){var crop=lsCropOcrColumn_(image,side),res=await worker.recognize(crop);text.push(res&&res.data&&res.data.text||'');}return text.join('\n');}
 async function lsReadFlyer(input){
   var files=Array.prototype.slice.call(input&&input.files||[]).filter(function(f){return /^image\//i.test(f.type||'')||/\.(jpe?g|png|webp)$/i.test(f.name||'');});if(!files.length)return;
-  var status=document.getElementById('lsOcrStatus'),target=document.getElementById('lsOcrRows'),btn=document.getElementById('lsImportBtn');
-  lsFlyerRows=[];target.innerHTML='';btn.disabled=true;lsOcrPageCount_=files.length;lsOcrCurrentPage_=0;document.getElementById('lsCampaign').value='';document.getElementById('lsValidity').value='';lsSaveConfig_();
+  var status=document.getElementById('lsOcrStatus'),target=document.getElementById('lsOcrRows'),btn=document.getElementById('lsImportBtn'),previewBtn=document.getElementById('lsPreviewFlyerBtn');
+  lsFlyerRows=[];target.innerHTML='';btn.disabled=true;if(previewBtn)previewBtn.disabled=true;lsOcrPageCount_=files.length;lsOcrCurrentPage_=0;document.getElementById('lsCampaign').value='';document.getElementById('lsValidity').value='';lsSaveConfig_();
   var extractedCampaign='',pagesOK=0,pagesFailed=[];
   try{
     status.textContent='Preparando o leitor de português para '+files.length+' página(s)…';
@@ -6035,23 +6043,36 @@ async function lsReadFlyer(input){
         if(!extractedCampaign){var headerImage=await lsPrepareOcrImage_(files[i],true);var headerResult=await worker.recognize(headerImage);extractedCampaign=lsExtractCampaign_(headerResult&&headerResult.data&&headerResult.data.text||'');}
         var ocrImage=await lsPrepareOcrImage_(files[i],false);var result=await worker.recognize(ocrImage),text=result&&result.data&&result.data.text||'';
         if(!extractedCampaign)extractedCampaign=lsExtractCampaign_(text);
-        var rows=lsParseFlyer_(text);lsMergeFlyerRows_(rows);pagesOK++;
-        lsDrawFlyerRows_();
+        var rows=lsParseFlyer_(text),fullScore=lsFlyerRowsQuality_(rows),priceCount=rows.filter(function(r){return parseDec(r.por)>0;}).length;
+        if(ocrImage.width>ocrImage.height*.55&&(!rows.length||priceCount<rows.length||fullScore<rows.length*16)){
+          status.textContent='Separando as colunas para melhorar a leitura da página '+(i+1)+'…';
+          var splitText=await lsReadFlyerColumns_(worker,ocrImage),splitRows=lsParseFlyer_(splitText);
+          var splitPrices=splitRows.filter(function(r){return parseDec(r.por)>0;}).length;
+          if(splitPrices>priceCount||lsFlyerRowsQuality_(splitRows)>fullScore)rows=splitRows;
+        }
+        lsMergeFlyerRows_(rows);pagesOK++;
       }catch(pageErr){pagesFailed.push(files[i].name+': '+String(pageErr&&pageErr.message||pageErr));console.error('[Líder Station OCR] Falha na página '+files[i].name,pageErr);}
     }
+    lsDrawFlyerRows_();
     if(extractedCampaign){document.getElementById('lsCampaign').value=extractedCampaign;lsSaveConfig_();}
-    btn.disabled=!lsFlyerRows.length;
+    btn.disabled=!lsFlyerRows.length;if(previewBtn)previewBtn.disabled=!lsFlyerRows.length;
     var msg=lsFlyerRows.length+' oferta(s) reconhecida(s) em '+pagesOK+' de '+files.length+' página(s).';
     msg+=extractedCampaign?' Campanha identificada: '+extractedCampaign+'.':' Não identifiquei o nome da campanha no cabeçalho; preencha o campo da campanha após conferir a imagem.';
-    var semPreco=lsFlyerRows.filter(function(r){return !(parseDec(r.por)>0);}).length;if(semPreco)msg+=' '+semPreco+' item(ns) sem preço lido; complete e confira os valores antes de importar.';if(pagesFailed.length)msg+=' Falha em '+pagesFailed.length+' página(s); confira conexão, permissão do Edge e o console.';
-    status.textContent=msg;
+    var semPreco=lsFlyerRows.filter(function(r){return !(parseDec(r.por)>0);}).length;if(semPreco)msg+=' '+semPreco+' item(ns) sem preço lido; complete e confira os valores antes de criar as placas.';if(pagesFailed.length)msg+=' Falha em '+pagesFailed.length+' página(s); confira conexão, permissão do Edge e o console.';
+    status.textContent=msg+(lsFlyerRows.length?' Revise as linhas e use “Ouvir prévia”; as ofertas continuam somente na prévia da rádio.':'');
   }catch(err){
     console.error('[Líder Station OCR] Falha ao iniciar leitura no Edge:',err);
     status.textContent='Não foi possível iniciar o leitor no Edge: '+String(err&&err.message||err)+'. Confira a conexão e se a extensão de bloqueio permite carregar os arquivos do OCR.';
   }finally{if(input)input.value='';}
 }
 function lsParseFlyer_(text){
-  var lines=String(text||'').split(/\r?\n/).map(function(x){return x.replace(/\s+/g,' ').trim();}).filter(Boolean);
+  var sourceLines=String(text||'').split(/\r?\n/),joined=[];
+  for(var li=0;li<sourceLines.length;li++){
+    var current=String(sourceLines[li]||'').trim(),next=String(sourceLines[li+1]||'').trim();
+    if(/^(?:R\$\s*)?\d{1,3}[,.]?\s*$/.test(current)&&/^\d{2}$/.test(next)){joined.push(current.replace(/^R\$\s*/i,'').replace(/[,.\s]+$/,'')+','+next);li++;}
+    else joined.push(current);
+  }
+  var lines=joined.map(function(x){return x.replace(/(\d)\s*[,.]\s*(\d{2})(?!\d)/g,'$1,$2').replace(/\s+/g,' ').trim();}).filter(Boolean);
   var out=[],re=/(?:R\$\s*)?\d{1,4}(?:[.,]\d{2})/g;
   for(var i=0;i<lines.length;i++){
     var line=lines[i],prices=line.match(re)||[];if(!prices.length)continue;
@@ -6064,8 +6085,8 @@ function lsParseFlyer_(text){
     var vals=prices.map(lsMoney_),row={produto:name,codigo:'',de:vals.length>1?vals[0]:'',por:vals[vals.length-1],unidade:unidade,tipo:tipo,qtd:qtd,modo:modo,validade:'',fala:''};row.fala=lsBuildScript_(row);out.push(row);
   }
   // Quando os números estilizados do encarte escapam ao OCR, ainda lista os nomes
-  // reconhecíveis para que o operador complete preço e produto antes de importar.
-  var dicaProduto=/CAFE|MASSA|MACARR|MOLHO|BISCOITO|ROSQUIN|CARNE|OSSINHO|PORCO|PATINHO|PALETA|COXAO|FRANGO|MARGARINA|SALSICHA|BATATA|PAO|QUEIJO|SABAO|AMACIANTE|PAPEL|DESINFET|SUCO|AGUA|FRUKI|BEBIDA|REFRIG|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO|LEITE|IOGURTE|DETERGENTE|PRESUNTO|LINGUICA|CERVEJA|VINHO|LIMPEZA|HIGIENE/;
+  // reconhecíveis para que o operador complete preço e produto antes de criar placas.
+  var dicaProduto=/CAFE|PRESIDENTE|DOMELLY|CAJAMAR|MASSA|MACARR|MOLHO|BISCOITO|ROSQUIN|CARNE|OSSINHO|PORCO|PATINHO|PALETA|COXAO|FRANGO|MARGARINA|SALSICHA|BATATA|PAO|QUEIJO|SABAO|AMACIANTE|PAPEL|DESINFET|SUCO|AGUA|FRUKI|BEBIDA|REFRIG|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO|LEITE|IOGURTE|DETERGENTE|PRESUNTO|LINGUICA|CERVEJA|VINHO|LIMPEZA|HIGIENE/;
   var bloqueio=/NO CLUB|OFERTAS? VALIDAS|ENQUANTO DURAREM|ESTOQUES|SUPERMERCADO|BOAS COMPRAS|FAZEMOS ENTREGAS|AVENIDA|VISCONDE|RIO GRANDE|PARCELAMOS|CARTOES|CONFIRA CONDICOES|ACEITAMOS|BPF|BLACK FRIDAY|ESQUENTA|\b\d{1,2}\/\d{1,2}\b/;
   function semelhante_(a,b){var aa=normalizarTexto(a).split(/\s+/).filter(Boolean),bb=normalizarTexto(b).split(/\s+/).filter(Boolean);if(!aa.length||!bb.length)return false;var set={};aa.forEach(function(w){set[w]=1;});var comum=bb.filter(function(w){return set[w];}).length;return comum/Math.min(aa.length,bb.length)>=0.6;}
   for(var j=0;j<lines.length;j++){
@@ -6084,37 +6105,40 @@ function lsDrawFlyerRows_(){
   var el=document.getElementById('lsOcrRows');if(!el)return;
   if(!lsFlyerRows.length){el.innerHTML='<div class="ls-note">Nenhuma promoção reconhecida. Tente outra foto ou ajuste iluminação e foco.</div>';return;}
   el.innerHTML=lsFlyerRows.map(function(r,i){return '<div class="ls-promo" data-row="'+i+'">'+
-    '<input type="checkbox" checked class="ls-ok" aria-label="Importar linha">'+
+    '<input type="checkbox" '+(r.selecionada===false?'':'checked')+' class="ls-ok" aria-label="Incluir oferta na rádio e criar placa">'+
     '<input class="ls-prod" value="'+lsEscape_(r.produto)+'" aria-label="Produto" title="Produto lido">'+
     '<input class="ls-code" value="'+lsEscape_(r.codigo)+'" placeholder="Código/EAN" aria-label="Código/EAN">'+
     '<input class="ls-por" value="'+lsEscape_(r.por)+'" placeholder="Por R$" aria-label="Preço promocional">'+
     '<select class="ls-type"><option value="UNITARIA" '+(r.tipo==='UNITARIA'?'selected':'')+'>Unitária</option><option value="PACK" '+(r.tipo==='PACK'?'selected':'')+'>Pack / leve</option><option value="CLUB" '+(r.tipo==='CLUB'?'selected':'')+'>Preço Club</option></select>'+
     '<input class="ls-extra ls-de" value="'+lsEscape_(r.de)+'" placeholder="De R$ (opcional)" aria-label="Preço anterior">'+
-    '<div class="ls-extra" style="grid-column:2/-1;display:flex;gap:6px"><input class="ls-qtd" type="number" min="1" value="'+(r.qtd||2)+'" title="Quantidade do pack"><select class="ls-modo"><option value="leve" '+(r.modo==='leve'?'selected':'')+'>Leve X por (total do pack)</option><option value="apartir" '+(r.modo==='apartir'?'selected':'')+'>A partir de X, cada unidade</option></select><select class="ls-unit"><option '+(r.unidade==='CADA'?'selected':'')+'>CADA</option><option '+(r.unidade==='KG'?'selected':'')+'>KG</option><option '+(r.unidade==='LT'?'selected':'')+'>LT</option><option>UND</option><option>PCT</option></select><input class="ls-validade" value="'+lsEscape_(r.validade)+'" placeholder="Validade (opcional)"></div></div>';}).join('');
+    '<div class="ls-extra" style="grid-column:2/-1;display:grid;gap:6px"><input class="ls-qtd" type="number" min="1" value="'+(r.qtd||2)+'" title="Quantidade do pack"><select class="ls-modo"><option value="leve" '+(r.modo==='leve'?'selected':'')+'>Leve X por (total do pack)</option><option value="apartir" '+(r.modo==='apartir'?'selected':'')+'>A partir de X, cada unidade</option></select><select class="ls-unit"><option '+(r.unidade==='CADA'?'selected':'')+'>CADA</option><option '+(r.unidade==='KG'?'selected':'')+'>KG</option><option '+(r.unidade==='LT'?'selected':'')+'>LT</option><option>UND</option><option>PCT</option></select><input class="ls-validade" value="'+lsEscape_(r.validade)+'" placeholder="Validade (opcional)"><label class="ls-narrar-wrap"><input type="checkbox" class="ls-narrar-de" '+(r.narrarDePor?'checked':'')+'> Narrar preço De/Por</label></div></div>';}).join('');
 }
-function lsClearFlyer(){lsFlyerRows=[];document.getElementById('lsOcrRows').innerHTML='';document.getElementById('lsOcrStatus').textContent='Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.';document.getElementById('lsImportBtn').disabled=true;document.getElementById('lsCampaign').value='';lsSaveConfig_();var f=document.getElementById('lsFlyerFile');if(f)f.value='';}
-async function lsImportFlyerRows(){
+function lsSyncFlyerRowsFromDOM_(){var cards=[].slice.call(document.querySelectorAll('#lsOcrRows .ls-promo'));if(!cards.length)return lsFlyerRows;lsFlyerRows=cards.map(function(c){var i=parseInt(c.getAttribute('data-row'),10),base=lsFlyerRows[i]||{};return Object.assign({},base,{produto:c.querySelector('.ls-prod').value.trim(),codigo:normalizarCodigo(c.querySelector('.ls-code').value),por:c.querySelector('.ls-por').value.trim(),tipo:c.querySelector('.ls-type').value,de:c.querySelector('.ls-de').value.trim(),qtd:parseInt(c.querySelector('.ls-qtd').value,10)||0,modo:c.querySelector('.ls-modo').value,unidade:c.querySelector('.ls-unit').value,validade:c.querySelector('.ls-validade').value.trim(),selecionada:c.querySelector('.ls-ok').checked,narrarDePor:c.querySelector('.ls-narrar-de').checked});});return lsFlyerRows;}
+function lsClearFlyer(){lsFlyerRows=[];document.getElementById('lsOcrRows').innerHTML='';document.getElementById('lsOcrStatus').textContent='Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.';document.getElementById('lsImportBtn').disabled=true;document.getElementById('lsPreviewFlyerBtn').disabled=true;document.getElementById('lsCampaign').value='';lsScriptEdited=false;lsSaveConfig_();var f=document.getElementById('lsFlyerFile');if(f)f.value='';}
+async function lsCreateFlyerPlates_(){
+  lsSyncFlyerRowsFromDOM_();
   var cards=[].slice.call(document.querySelectorAll('#lsOcrRows .ls-promo'));
   var chosen=cards.filter(function(c){return c.querySelector('.ls-ok').checked;});
-  if(!chosen.length){mostrarToast('Marque ao menos uma promoção para importar.','warn');return;}
+  if(!chosen.length){mostrarToast('Marque ao menos uma oferta da prévia.','warn');return;}
   var semCodigo=chosen.filter(function(c){var cod=normalizarCodigo(c.querySelector('.ls-code').value);if(cod)return false;var busca=buscarProdutos(c.querySelector('.ls-prod').value,20);return !busca.some(function(p){return normalizarTexto(p.nome)===normalizarTexto(c.querySelector('.ls-prod').value);});});
-  if(semCodigo.length){mostrarToast('Associe o código/EAN em cada produto antes de importar. O Arsenal usa esse código para vincular a promoção ao cadastro e à foto.','warn');return;}
-  var sem=chosen.filter(function(c){return !(parseDec(c.querySelector('.ls-por').value)>0);});if(sem.length){mostrarToast('Corrija os preços promocionais antes de importar.','warn');return;}
-  var btn=document.getElementById('lsImportBtn');btn.disabled=true;btn.textContent='Importando...';
-  var loaderTicket=window.AuraLoader?window.AuraLoader.start({message:'Importando as promoções revisadas…',complete:'Promoções da foto importadas'}):0;
-  var ok=0,fail=0;
-  for(var i=0;i<chosen.length;i++){var c=chosen[i],tipo=c.querySelector('.ls-type').value,produto=c.querySelector('.ls-prod').value.trim(),cod=normalizarCodigo(c.querySelector('.ls-code').value),por=c.querySelector('.ls-por').value.trim(),qtd=tipo==='PACK'?(parseInt(c.querySelector('.ls-qtd').value,10)||2):0,modo=c.querySelector('.ls-modo').value,unit=c.querySelector('.ls-unit').value;
-    if(!produto){fail++;if(loaderTicket)window.AuraLoader.progress(i+1,chosen.length,'Importando as promoções revisadas…');continue;}
+  if(semCodigo.length){mostrarToast('Associe o código/EAN em cada produto antes de criar as placas. O Arsenal usa esse código para vincular a oferta ao cadastro e à foto.','warn');return;}
+  var sem=chosen.filter(function(c){return !(parseDec(c.querySelector('.ls-por').value)>0);});if(sem.length){mostrarToast('Corrija os preços promocionais antes de criar as placas.','warn');return;}
+  var btn=document.getElementById('lsImportBtn');btn.disabled=true;btn.textContent='Criando placas…';
+  var loaderTicket=window.AuraLoader?window.AuraLoader.start({message:'Criando placas com as ofertas revisadas…',complete:'Placas criadas e disponíveis para impressão'}):0;
+  var ok=0,fail=0,createdRows=[];
+  for(var i=0;i<chosen.length;i++){var c=chosen[i],tipo=c.querySelector('.ls-type').value,produto=c.querySelector('.ls-prod').value.trim(),cod=normalizarCodigo(c.querySelector('.ls-code').value),por=c.querySelector('.ls-por').value.trim(),qtd=tipo==='PACK'?(parseInt(c.querySelector('.ls-qtd').value,10)||2):0,modo=c.querySelector('.ls-modo').value,unit=c.querySelector('.ls-unit').value,narrarDePor=c.querySelector('.ls-narrar-de').checked;
+    if(!produto){fail++;if(loaderTicket)window.AuraLoader.progress(i+1,chosen.length,'Criando as placas revisadas…');continue;}
     var lookup=cod?buscarPorCodigo(cod):null;if(!lookup){var exact=buscarProdutos(produto,20).filter(function(p){return normalizarTexto(p.nome)===normalizarTexto(produto);});if(exact.length){cod=normalizarCodigo(exact[0].cod);lookup=buscarPorCodigo(cod);}}
     var nomeBanco=lookup&&lookup.nome||produto,unidadeBanco=normalizarUnidadeBanco(lookup&&lookup.unidade||''),precoVenda=lookup&&lookup.preco||bancoPreco[cod]||0;
-    var registro={id:gerarIdEncarte(),versaoRegistro:7,codigo:cod,produto:nomeBanco,produtoDigitado:produto,descricaoTransform:'',produtoInfo:{codigo:cod,descricao:produto||nomeBanco,unidade:unidadeBanco,valorVenda:precoVenda},de:c.querySelector('.ls-de').value.trim(),por:por,precoPromocional:por,unidade:unit,unidadePromocao:unit,unidadeBanco:unidadeBanco,unidadeMedida:unit,validade:c.querySelector('.ls-validade').value.trim(),tipoPromocao:tipo==='PACK'?'PACK':'UNITARIA',radioTipoPromocao:tipo,packQtd:qtd,packTipo:modo,packUnidade:modo==='apartir'?unit:'',unirOn:false,unirLayout:'',cod2:'',produtoB:'',produtosExtra:[],descricaoFinal:'',data:new Date().toISOString(),origem:'encarte-foto'};
-    try{var res=await _gasPost('upsertEncarte',{registro:registro});if(res&&res.ok){lsStorePromoMeta_(registro.id,{radioTipoPromocao:registro.radioTipoPromocao});ok++;}else fail++;}catch(e){fail++;}
-    if(loaderTicket)window.AuraLoader.progress(i+1,chosen.length,'Gravando as ofertas no Arsenal…');
+    var registro={id:gerarIdEncarte(),versaoRegistro:7,codigo:cod,produto:nomeBanco,produtoDigitado:produto,descricaoTransform:'',produtoInfo:{codigo:cod,descricao:produto||nomeBanco,unidade:unidadeBanco,valorVenda:precoVenda},de:c.querySelector('.ls-de').value.trim(),por:por,precoPromocional:por,unidade:unit,unidadePromocao:unit,unidadeBanco:unidadeBanco,unidadeMedida:unit,validade:c.querySelector('.ls-validade').value.trim(),tipoPromocao:tipo==='PACK'?'PACK':'UNITARIA',radioTipoPromocao:tipo,radioNarrarDePor:narrarDePor,packQtd:qtd,packTipo:modo,packUnidade:modo==='apartir'?unit:'',unirOn:false,unirLayout:'',cod2:'',produtoB:'',produtosExtra:[],descricaoFinal:'',data:new Date().toISOString(),origem:'encarte-foto'};
+    try{var res=await _gasPost('upsertEncarte',{registro:registro});if(res&&res.ok){lsStorePromoMeta_(registro.id,{radioTipoPromocao:registro.radioTipoPromocao,radioNarrarDePor:narrarDePor});createdRows.push(parseInt(c.getAttribute('data-row'),10));ok++;}else fail++;}catch(e){fail++;}
+    if(loaderTicket)window.AuraLoader.progress(i+1,chosen.length,'Criando as placas revisadas…');
   }
-  btn.disabled=false;btn.textContent='Importar promoções revisadas';
-  if(ok){mostrarToast(ok+' promoção(ões) importada(s) para o Arsenal.','ok');await carregarEncartes();lsRenderQueue();}
+  lsSyncFlyerRowsFromDOM_();
+  if(ok){lsFlyerRows=lsFlyerRows.filter(function(_,idx){return createdRows.indexOf(idx)<0;});lsDrawFlyerRows_();await carregarEncartes();lsRenderQueue();mostrarToast(ok+' placa(s) criada(s) e disponível(is) para impressão.','ok');}
+  btn.disabled=!lsFlyerRows.length;btn.textContent='＋ Criar placas';document.getElementById('lsPreviewFlyerBtn').disabled=!lsFlyerRows.length;
   if(fail)mostrarToast(fail+' linha(s) não foram gravadas; confira a conexão e os dados.','warn');
-  if(loaderTicket){if(!ok)window.AuraLoader.fail('Nenhuma promoção foi gravada no Arsenal.');else window.AuraLoader.done(fail?'Importação parcial: '+ok+' importada(s), '+fail+' pendente(s).':ok+' promoção(ões) importada(s).');}
+  if(loaderTicket){if(!ok)window.AuraLoader.fail('Nenhuma placa foi criada.');else window.AuraLoader.done(fail?'Criação parcial: '+ok+' placa(s) criada(s), '+fail+' pendente(s).':ok+' placa(s) criada(s) e disponível(is) para impressão.');}
 }
 function lsCategory_(it){var n=normalizarTexto(it.produto||'');if(/ACEM|ACOU|COSTELA|OSSINHO|PALETA SUINA|PATINHO|COXAO|CARNE|FRANGO|BOVIN|SUIN/.test(n))return 'Açougue';if(/MARGARINA|SALSICHA|BATATA|CONGEL|QUEIJO|PRESUNTO|FRIOS|PAO DE QUEIJO/.test(n))return 'Frios, congelados e praticidade';if(/DESINFET|AMACIANT|PAPEL HIG|SABAO|DETERG|LIMPEZA|HIGIENE|ALVEJANTE/.test(n))return 'Limpeza e higiene';if(/AGUA|FRUKI|FRUKITO|REFRIG|SUCO|CERVEJA|BEBIDA|ENERGET/.test(n))return 'Bebidas';if(/CAFE|MASSA|MACARR|MOLHO|BISCOITO|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO/.test(n))return 'Mercearia e café';if(/PADARIA|PAO|BOLO|CUCA/.test(n))return 'Padaria';return it.categoriaRadio||'Ofertas do Boas Compras';}
 function lsMoneySpeak_(value){
@@ -6177,24 +6201,27 @@ function lsTextSpeak_(text){
 function lsKeyProduto_(value){return normalizarTexto(String(value||'')).replace(/\s+/g,' ').trim();}
 function lsNomeParaLocucao_(it){
   var original=String(it.produto||'produto').trim(),key=lsKeyProduto_(original);
+  var cod=normalizarCodigo(it.codigo||it.cod||'');
+  if(it.origem==='previsualizacao-local'&&cod&&bancoLeitura[cod])return bancoLeitura[cod];
   var leituraPorNome=bancoLeituraNome[key]||'';
   if(leituraPorNome)return leituraPorNome;
-  var cod=normalizarCodigo(it.codigo||it.cod||''),nomeBanco=cod?String(banco[cod]||''):'';
+  var nomeBanco=cod?String(banco[cod]||''):'';
   // O EAN só aplica a correção se o nome ainda corresponder ao cadastro oficial.
   if(cod&&nomeBanco&&key===lsKeyProduto_(nomeBanco)&&bancoLeitura[cod])return bancoLeitura[cod];
   return original;
 }
 function lsBuildScript_(it){
   var nome=lsTextSpeak_(lsNomeParaLocucao_(it));
-  nome=nome.replace(/\s+(?:UNIDADE|UNIDADES|UND|UN|CADA)$/i,'');
   var eggTray=/ovos brancos, bandeja com \d+ unidades/i.test(nome);
+  if(!eggTray)nome=nome.replace(/\s+(?:UNIDADE|UNIDADES|UND|UN|CADA)$/i,'');
   var temMedida=/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
   if(!temMedida)nome=nome.replace(/\s+(?:QUILOS?|KG|K6|LITROS?|LT|ML|EME ÉLE|GRAMAS?|GR|G|UNIDADES?|UND|UN|CADA)$/i,'');
   temMedida=temMedida||/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
   if(!eggTray)nome=nome.replace(/\s+(\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros))$/i,', $1,');
   var separador=eggTray?': ':temMedida?' ':': ',preco=lsMoneySpeak_(it.precoPromocional||it.por||''),un=normalizarTexto(String(it.unidade||'cada')),de=String(it.de||'').trim();
   var unidadeFalada=eggTray?'':(({CADA:'cada unidade',UN:'cada unidade',UND:'cada unidade',UNIDADE:'cada unidade',UNIDADES:'cada unidade',KG:'o quilo',KILO:'o quilo',LT:'o litro',LITRO:'o litro',ML:'eme éle',PCT:'o pacote',PACOTE:'o pacote'})[un]||'');
-  var antes=de?'De '+lsMoneySpeak_(de)+' por apenas ':'';
+  var narrarDePor=!!(it.radioNarrarDePor||it.narrarDePor);
+  var antes=de&&narrarDePor?'De '+lsMoneySpeak_(de)+', agora por apenas ':'';
   var oferta='';
   if(it.tipoPromocao==='PACK'){
     var q=Number(it.packQtd||it.qtd||2),modo=it.packTipo||it.modo||'leve';
@@ -6236,14 +6263,21 @@ var LS_PROMO_META_KEY='boas_compras_lider_station_promo_meta_v1';
 function lsPromoMeta_(){try{return JSON.parse(localStorage.getItem(LS_PROMO_META_KEY)||'{}');}catch(e){return {};}}
 function lsStorePromoMeta_(id,meta){try{var all=lsPromoMeta_();all[String(id)]=Object.assign(all[String(id)]||{},meta||{});localStorage.setItem(LS_PROMO_META_KEY,JSON.stringify(all));}catch(e){}}
 function lsMergeMeta_(it){var meta=lsPromoMeta_()[String(it.id)]||{};return Object.assign({},it,meta);}
-function lsRenderQueue(){var el=document.getElementById('lsQueue');if(!el)return;var list=encartesCache||[];if(!list.length){el.innerHTML='<div class="ls-note">Ainda não há promoções salvas. Importe um encarte ou atualize a lista do Arsenal.</div>';return;}el.innerHTML=list.map(function(raw,i){var it=lsMergeMeta_(raw),price=it.precoPromocional||it.por||'';return '<label class="ls-promo" style="grid-template-columns:24px minmax(120px,2fr) minmax(80px,1fr) minmax(80px,1fr)"><input type="checkbox" class="ls-queue-check" value="'+lsEscape_(it.id)+'" checked><span>'+lsEscape_(it.produto||'Produto')+'</span><span>R$ '+lsEscape_(price)+'</span><span>'+lsEscape_(lsCategory_(it))+'</span></label>';}).join('');}
-function lsSelectedOffers_(){var ids=[].slice.call(document.querySelectorAll('.ls-queue-check:checked')).map(function(x){return x.value;});return (encartesCache||[]).filter(function(it){return ids.indexOf(String(it.id))>=0;}).map(lsMergeMeta_);}
+function lsRenderQueue(){var el=document.getElementById('lsQueue');if(!el)return;var list=encartesCache||[];if(!list.length){el.innerHTML='<div class="ls-note">Ainda não há placas salvas. Revise a prévia do encarte e clique em Criar placas para disponibilizá-las para impressão.</div>';return;}el.innerHTML=list.map(function(raw,i){var it=lsMergeMeta_(raw),price=it.precoPromocional||it.por||'';return '<label class="ls-promo" style="grid-template-columns:24px minmax(120px,2fr) minmax(80px,1fr) minmax(80px,1fr)"><input type="checkbox" class="ls-queue-check" value="'+lsEscape_(it.id)+'" checked><span>'+lsEscape_(it.produto||'Produto')+'</span><span>R$ '+lsEscape_(price)+'</span><span>'+lsEscape_(lsCategory_(it))+'</span></label>';}).join('');}
+function lsSelectedOffers_(){
+  if(document.querySelector('#lsOcrRows .ls-promo')){
+    var drafts=lsSyncFlyerRowsFromDOM_().filter(function(r){return r.selecionada&&r.produto&&parseDec(r.por)>0;});
+    return drafts.map(function(r,i){return {id:'ls-flyer-preview-'+i,codigo:r.codigo,produto:r.produto,produtoDigitado:r.produto,por:r.por,precoPromocional:r.por,de:r.de,unidade:r.unidade,tipoPromocao:r.tipo==='PACK'?'PACK':'UNITARIA',radioTipoPromocao:r.tipo,radioNarrarDePor:!!r.narrarDePor,packQtd:r.qtd,packTipo:r.modo,validade:r.validade,origem:'previsualizacao-local'};});
+  }
+  var ids=[].slice.call(document.querySelectorAll('.ls-queue-check:checked')).map(function(x){return x.value;});
+  return (encartesCache||[]).filter(function(it){return ids.indexOf(String(it.id))>=0;}).map(lsMergeMeta_);
+}
 function lsBeginDuck_(){if(!lsPlayer||!lsPlayer.setVolume)return;clearInterval(lsVolumeTimer);var from=Number(lsPlayer.getVolume?lsPlayer.getVolume():document.getElementById('lsMusicVolume').value),to=Number(document.getElementById('lsDuckVolume').value);if(isNaN(to))to=18;lsRampVolume_(from,to,450);}
 function lsRestoreVolume_(){if(!lsPlayer||!lsPlayer.setVolume)return;var from=Number(lsPlayer.getVolume?lsPlayer.getVolume():document.getElementById('lsDuckVolume').value),to=Number(document.getElementById('lsMusicVolume').value);if(isNaN(to))to=70;lsRampVolume_(from,to,1100);}
 function lsRampVolume_(from,to,duration){clearInterval(lsVolumeTimer);var start=Date.now();lsVolumeTimer=setInterval(function(){var t=Math.min(1,(Date.now()-start)/duration);var v=Math.round(from+(to-from)*t);try{lsPlayer.setVolume(v);}catch(e){}if(t>=1)clearInterval(lsVolumeTimer);},80);}
 function lsSetMusicVolume_(value){var el=document.getElementById('lsMusicVolume');if(el)el.value=value;if(lsPlayer&&lsPlayer.setVolume&&!lsRadioSpeaking)lsPlayer.setVolume(Number(value));lsSaveConfig_();}
-function lsVoiceSort_(voices){var rank=function(v){var n=String(v.name||'').toLowerCase();if(/microsoft.*antonio.*natural|antonio.*online.*natural/.test(n))return 0;if(/microsoft.*francisca.*natural|francisca.*online.*natural/.test(n))return 1;if(/microsoft.*thalita.*natural|thalita.*online.*natural/.test(n))return 2;if(/microsoft.*natural|online.*natural/.test(n))return 3;return 10;};return voices.filter(function(v){return /^pt(-|_)?br$/i.test(v.lang||'')||/portuguese.*brazil/i.test(v.name||'');}).sort(function(a,b){return rank(a)-rank(b)||String(a.name).localeCompare(String(b.name));});}
-function lsFillVoices(){var sel=document.getElementById('lsVoice');if(!sel)return;var current=sel.value||lsPreferredVoiceUri;var voices=lsVoiceSort_((window.speechSynthesis&&speechSynthesis.getVoices())||[]);sel.innerHTML='<option value="">Automática (Edge Natural quando disponível)</option>';voices.forEach(function(v){var id=v.voiceURI||v.name;sel.insertAdjacentHTML('beforeend','<option value="'+lsEscape_(id)+'">'+lsEscape_(v.name)+' · '+lsEscape_(v.lang)+'</option>');});if(current&&voices.some(function(v){return (v.voiceURI||v.name)===current;}))sel.value=current;else if(!current&&voices.length)sel.value=voices[0].voiceURI||voices[0].name;var natural=voices.some(function(v){return /microsoft.*(antonio|francisca|thalita).*natural|online.*natural/i.test(v.name||'');});var status=document.getElementById('lsRadioStatus');if(status&&!natural)status.textContent='Voz neural Microsoft não detectada. Abra o Arsenal no Edge para disponibilizar Antonio, Francisca ou Thalita Online Natural.';}
+function lsVoiceSort_(voices){var rank=function(v){var n=String(v.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(/microsoft.*antonio.*natural|antonio.*online.*natural/.test(n))return 0;if(/microsoft.*francisca.*natural|francisca.*online.*natural/.test(n))return 1;if(/microsoft.*thalita.*natural|thalita.*online.*natural/.test(n))return 2;if(/microsoft.*natural|online.*natural/.test(n))return 3;return 10;};return voices.filter(function(v){return /^pt(-|_)?br$/i.test(v.lang||'')||/portuguese.*brazil/i.test(String(v.name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,''));}).sort(function(a,b){return rank(a)-rank(b)||String(a.name).localeCompare(String(b.name));});}
+function lsFillVoices(){var sel=document.getElementById('lsVoice');if(!sel)return;var current=sel.value||lsPreferredVoiceUri;var voices=lsVoiceSort_((window.speechSynthesis&&speechSynthesis.getVoices())||[]);sel.innerHTML='<option value="">Automática (Edge Natural quando disponível)</option>';voices.forEach(function(v){var id=v.voiceURI||v.name;sel.insertAdjacentHTML('beforeend','<option value="'+lsEscape_(id)+'">'+lsEscape_(v.name)+' · '+lsEscape_(v.lang)+'</option>');});if(current&&voices.some(function(v){return (v.voiceURI||v.name)===current;}))sel.value=current;else if(!current&&voices.length)sel.value=voices[0].voiceURI||voices[0].name;var natural=voices.some(function(v){return /microsoft.*(ant[oô]nio|francisca|thalita).*natural|online.*natural/i.test(v.name||'');});var status=document.getElementById('lsRadioStatus');if(status&&!natural)status.textContent='Voz neural Microsoft não detectada. Abra o Arsenal no Edge para disponibilizar Antonio, Francisca ou Thalita Online Natural.';}
 function lsSelectedVoice_(){var voices=lsVoiceSort_((window.speechSynthesis&&speechSynthesis.getVoices())||[]),id=document.getElementById('lsVoice').value;return voices.find(function(v){return (v.voiceURI||v.name)===id;})||voices[0]||null;}
 function lsSpeakSingle_(phrase,opts){
   return new Promise(function(resolve){
@@ -6271,15 +6305,29 @@ function lsGetDriveJingle_(fileId){fileId=String(fileId||'');if(!fileId)return P
 function lsLoadDriveJingles_(){var status=document.getElementById('lsJingleStatus');if(status)status.textContent='Buscando arquivos na pasta do Drive…';return _gasGetJsonp('lsListarVinhetasDrive','',20000).then(function(r){if(!r||!r.ok)throw new Error(r&&r.erro||'Falha ao consultar o Drive.');var arquivos=r.arquivos||[],ids=['lsJingleOpen','lsJingleClose'];ids.forEach(function(id){var sel=document.getElementById(id),prior=sel.value;sel.innerHTML='<option value=>Sem vinheta (usar locução)</option>';arquivos.forEach(function(f){var op=document.createElement('option');op.value=f.id;op.textContent=f.nome;sel.appendChild(op);});if(prior&&arquivos.some(function(f){return f.id===prior;}))sel.value=prior;});lsSaveConfig_();if(status)status.textContent=arquivos.length?arquivos.length+' áudio(s) encontrado(s) em “'+r.pasta+'”.':'Pasta encontrada, mas ainda não há arquivos de áudio.';return r;}).catch(function(e){if(status)status.textContent=e.message||'Falha ao buscar as vinhetas.';return {ok:false,erro:e.message};});}
 function lsPlayJingle_(fileId){if(!fileId||!window.Audio)return Promise.resolve(false);return lsGetDriveJingle_(fileId).then(function(url){return new Promise(function(resolve){var done=false,a=new Audio(url),timer=setTimeout(function(){finish(false);},30000);lsActiveJingle=a;function finish(ok){if(done)return;done=true;clearTimeout(timer);a.onended=a.onerror=null;if(!ok){try{a.pause();}catch(e){}}if(lsActiveJingle===a)lsActiveJingle=null;resolve(ok);}a.onended=function(){finish(true);};a.onerror=function(){finish(false);};var p=a.play();if(p&&p.catch)p.catch(function(){finish(false);});});}).catch(function(e){var st=document.getElementById('lsJingleStatus');if(st)st.textContent=e.message||'Falha ao carregar MP3 do Drive.';return false;});}
 function lsStripIdents_(text,opening,closing){var s=String(text||'').trim();if(opening&&s.toLocaleLowerCase().indexOf(opening.toLocaleLowerCase())===0)s=s.slice(opening.length).trim();if(closing&&s.toLocaleLowerCase().slice(-closing.length)===closing.toLocaleLowerCase())s=s.slice(0,-closing.length).trim();return s;}
-async function lsSpeakNext(force){var blocks=lsBlocks_();if(!blocks.length){document.getElementById('lsNow').textContent='Selecione ofertas para a rádio.';return;}var block=blocks[lsSpeakIndex%blocks.length],last=lsSpeakIndex%blocks.length===blocks.length-1;lsSpeakIndex++;var parts=lsBuildBlock_(block,last),input=document.getElementById('lsScript'),custom=!force&&lsScriptEdited,script=custom?input.value.trim():parts.opening+' '+parts.body+' '+parts.closing;if(!custom)input.value=script;lsScriptEdited=false;if(!window.speechSynthesis){document.getElementById('lsRadioStatus').textContent='Não há voz disponível neste navegador. Abra a Líder Station no Microsoft Edge.';return;}var voice=lsSelectedVoice_(),openUrl=document.getElementById('lsJingleOpen').value.trim(),closeUrl=document.getElementById('lsJingleClose').value.trim(),body=custom?lsStripIdents_(script,parts.opening,parts.closing):parts.body,seconds=Math.max(1,Math.round(lsTextSpeak_(script).split(/\s+/).filter(Boolean).length/(145/60))),token=++lsAudioJobToken;window.speechSynthesis.cancel();lsRadioSpeaking=true;lsBeginDuck_();document.getElementById('lsNow').textContent='No ar — bloco '+block.category+' ('+block.items.length+' ofertas, cerca de '+seconds+' s)'+(voice?' · '+voice.name:'')+'.';document.getElementById('lsRadioStatus').textContent=voice&&/microsoft.*(antonio|francisca|thalita).*natural|online.*natural/i.test(voice.name)?'Locução com voz neural Microsoft Edge.':'Locução usando a voz pt-BR selecionada.';await new Promise(function(r){setTimeout(r,480);});if(token!==lsAudioJobToken)return;var openPlayed=openUrl?await lsPlayJingle_(openUrl):false;if(token!==lsAudioJobToken)return;await lsSpeakUtterance_((openPlayed?'':parts.opening+' ')+body);if(token!==lsAudioJobToken)return;var closePlayed=closeUrl?await lsPlayJingle_(closeUrl):false;if(token!==lsAudioJobToken)return;if(!closePlayed)await lsSpeakUtterance_(parts.closing);if(token!==lsAudioJobToken)return;lsRadioSpeaking=false;lsRestoreVolume_();}
+async function lsPreviewNext_(){
+  var blocks=lsBlocks_();
+  if(!blocks.length){document.getElementById('lsRadioStatus').textContent='Revise e marque uma oferta com preço para ouvir a prévia.';return;}
+  if(!window.speechSynthesis){document.getElementById('lsRadioStatus').textContent='Abra a Líder Station no Microsoft Edge para ouvir a prévia com a voz padrão.';return;}
+  var pos=lsSpeakIndex%blocks.length,block=blocks[pos],parts=lsBuildBlock_(block,pos===blocks.length-1),input=document.getElementById('lsScript'),custom=lsScriptEdited,script=custom?input.value.trim():parts.opening+' '+parts.body+' '+parts.closing;
+  if(!custom)input.value=script;
+  if(!script){document.getElementById('lsRadioStatus').textContent='O texto da prévia está vazio.';return;}
+  var token=++lsAudioJobToken;window.speechSynthesis.cancel();lsRadioSpeaking=true;lsBeginDuck_();
+  document.getElementById('lsNow').textContent='Prévia local — bloco '+block.category+' ('+block.items.length+' ofertas).';
+  document.getElementById('lsRadioStatus').textContent='Ouvindo a prévia sem gravar as ofertas nas placas.';
+  await lsSpeakUtterance_(script);
+  if(token!==lsAudioJobToken)return;
+  lsRadioSpeaking=false;lsRestoreVolume_();document.getElementById('lsRadioStatus').textContent='Prévia concluída. Edite o texto ou chame a oferta quando estiver pronta.';
+}
+async function lsSpeakNext(force){var blocks=lsBlocks_();if(!blocks.length){document.getElementById('lsNow').textContent='Selecione ofertas para a rádio.';if(force&&lsPendingAnnouncement&&lsRadioActive&&lsPlayer&&lsPlayer.nextVideo){lsPendingAnnouncement=false;lsPlayer.nextVideo();}return;}var block=blocks[lsSpeakIndex%blocks.length],last=lsSpeakIndex%blocks.length===blocks.length-1;lsSpeakIndex++;var parts=lsBuildBlock_(block,last),input=document.getElementById('lsScript'),custom=!force&&lsScriptEdited,script=custom?input.value.trim():parts.opening+' '+parts.body+' '+parts.closing;if(!custom)input.value=script;lsScriptEdited=false;if(!window.speechSynthesis){document.getElementById('lsRadioStatus').textContent='Não há voz disponível neste navegador. Abra a Líder Station no Microsoft Edge.';if(force&&lsPendingAnnouncement&&lsRadioActive&&lsPlayer&&lsPlayer.nextVideo){lsPendingAnnouncement=false;lsPlayer.nextVideo();}return;}var voice=lsSelectedVoice_(),openUrl=document.getElementById('lsJingleOpen').value.trim(),closeUrl=document.getElementById('lsJingleClose').value.trim(),body=custom?lsStripIdents_(script,parts.opening,parts.closing):parts.body,seconds=Math.max(1,Math.round(lsTextSpeak_(script).split(/\s+/).filter(Boolean).length/(145/60))),token=++lsAudioJobToken;window.speechSynthesis.cancel();lsRadioSpeaking=true;lsBeginDuck_();document.getElementById('lsNow').textContent='No ar — bloco '+block.category+' ('+block.items.length+' ofertas, cerca de '+seconds+' s)'+(voice?' · '+voice.name:'')+'.';document.getElementById('lsRadioStatus').textContent=voice&&/microsoft.*(ant[oô]nio|francisca|thalita).*natural|online.*natural/i.test(voice.name)?'Locução com voz neural Microsoft Edge.':'Locução usando a voz pt-BR selecionada.';await new Promise(function(r){setTimeout(r,480);});if(token!==lsAudioJobToken)return;var openPlayed=openUrl?await lsPlayJingle_(openUrl):false;if(token!==lsAudioJobToken)return;await lsSpeakUtterance_((openPlayed?'':parts.opening+' ')+body);if(token!==lsAudioJobToken)return;var closePlayed=closeUrl?await lsPlayJingle_(closeUrl):false;if(token!==lsAudioJobToken)return;if(!closePlayed)await lsSpeakUtterance_(parts.closing);if(token!==lsAudioJobToken)return;lsRadioSpeaking=false;lsRestoreVolume_();if(force&&lsPendingAnnouncement&&lsRadioActive&&lsPlayer&&lsPlayer.nextVideo){lsPendingAnnouncement=false;lsPlayer.nextVideo();}}
 if(window.speechSynthesis){lsFillVoices();speechSynthesis.onvoiceschanged=lsFillVoices;}
 function lsOpenSeparateWindow_(){var url=new URL(window.location.href);url.hash='liderstation';var w=window.open(url.toString(),'_blank');if(!w){mostrarToast('O navegador bloqueou a nova guia. Permita pop-ups para abrir a Líder Station.','warn');return;}try{w.focus();}catch(e){}}
 function lsExtractPlaylist_(v){var s=String(v||'').trim();var m=s.match(/[?&]list=([A-Za-z0-9_-]+)/);if(m)return m[1];if(/^[A-Za-z0-9_-]{10,}$/.test(s))return s;return '';}
 window.onYouTubeIframeAPIReady=function(){document.getElementById('lsRadioStatus').textContent='Player do YouTube pronto. Configure a playlist e clique em Iniciar rádio.';};
 function lsLoadYTApi_(){if(window.YT&&window.YT.Player)return;var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);}
-function lsStartRadio(){var id=lsExtractPlaylist_(document.getElementById('lsPlaylist').value);if(!id){document.getElementById('lsRadioStatus').textContent='Cole um link de playlist do YouTube válido.';return;}if(!lsSelectedOffers_().length){document.getElementById('lsRadioStatus').textContent='Marque ao menos uma promoção para entrar na programação.';return;}lsPlaylistId=id;lsRadioActive=true;document.getElementById('lsNow').textContent='Iniciando playlist. A reprodução começa após a autorização do navegador.';lsLoadYTApi_();if(window.YT&&window.YT.Player)lsCreatePlayer_();else{var prior=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=function(){if(typeof prior==='function')prior();lsCreatePlayer_();};}}
-function lsCreatePlayer_(){var host=document.getElementById('lsPlayer');host.innerHTML='<div id="lsYoutubePlayer"></div>';lsPlayer=new YT.Player('lsYoutubePlayer',{height:'220',width:'100%',playerVars:{listType:'playlist',list:lsPlaylistId,autoplay:1,playsinline:1,rel:0},events:{onReady:function(e){e.target.loadPlaylist({listType:'playlist',list:lsPlaylistId});e.target.setVolume(Number(document.getElementById('lsMusicVolume').value));e.target.playVideo();document.getElementById('lsRadioStatus').textContent='Líder Station está no ar.';},onStateChange:function(e){if(e.data===YT.PlayerState.ENDED&&lsRadioActive){lsCallCount++;var every=Number(document.getElementById('lsEvery').value)||2;lsPendingAnnouncement=lsCallCount%every===0;if(lsPlayer&&lsPlayer.nextVideo)lsPlayer.nextVideo();}if(e.data===YT.PlayerState.PLAYING&&lsPendingAnnouncement){lsPendingAnnouncement=false;setTimeout(function(){if(lsRadioActive)lsSpeakNext(true);},450);}},onError:function(e){document.getElementById('lsRadioStatus').textContent='O YouTube não permitiu tocar este vídeo ou playlist (código '+e.data+'). Tente outra playlist pública com vídeos incorporáveis.';}}});}
-function lsStopRadio(){lsRadioActive=false;lsRadioSpeaking=false;lsAudioJobToken++;if(lsActiveJingle){try{lsActiveJingle.pause();}catch(e){}lsActiveJingle=null;}if(window.speechSynthesis)speechSynthesis.cancel();clearInterval(lsVolumeTimer);if(lsPlayer&&lsPlayer.stopVideo)lsPlayer.stopVideo();document.getElementById('lsNow').textContent='Rádio parada.';document.getElementById('lsRadioStatus').textContent='Transmissão pausada pelo operador.';}
+function lsStartRadio(){var id=lsExtractPlaylist_(document.getElementById('lsPlaylist').value);if(!id){document.getElementById('lsRadioStatus').textContent='Cole um link de playlist do YouTube válido.';return;}if(!lsSelectedOffers_().length){document.getElementById('lsRadioStatus').textContent='Marque ao menos uma promoção para entrar na programação.';return;}lsPlaylistId=id;lsCallCount=0;lsPendingAnnouncement=false;lsRadioActive=true;document.getElementById('lsNow').textContent='Iniciando playlist. A reprodução começa após a autorização do navegador.';lsLoadYTApi_();if(window.YT&&window.YT.Player)lsCreatePlayer_();else{var prior=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=function(){if(typeof prior==='function')prior();lsCreatePlayer_();};}}
+function lsCreatePlayer_(){var host=document.getElementById('lsPlayer');host.innerHTML='<div id="lsYoutubePlayer"></div>';lsPlayer=new YT.Player('lsYoutubePlayer',{height:'220',width:'100%',playerVars:{listType:'playlist',list:lsPlaylistId,autoplay:1,playsinline:1,rel:0},events:{onReady:function(e){e.target.loadPlaylist({listType:'playlist',list:lsPlaylistId});e.target.setVolume(Number(document.getElementById('lsMusicVolume').value));e.target.playVideo();document.getElementById('lsRadioStatus').textContent='Líder Station está no ar.';},onStateChange:function(e){if(e.data===YT.PlayerState.ENDED&&lsRadioActive){if(lsPlayer&&lsPlayer.pauseVideo)lsPlayer.pauseVideo();lsCallCount++;var every=Number(document.getElementById('lsEvery').value)||2;lsPendingAnnouncement=lsCallCount%every===0;if(lsPendingAnnouncement&&lsSelectedOffers_().length){setTimeout(function(){if(lsRadioActive)lsSpeakNext(true);},120);}else if(lsPlayer&&lsPlayer.nextVideo)lsPlayer.nextVideo();}},onError:function(e){document.getElementById('lsRadioStatus').textContent='O YouTube não permitiu tocar este vídeo ou playlist (código '+e.data+'). Tente outra playlist pública com vídeos incorporáveis.';}}});}
+function lsStopRadio(){lsRadioActive=false;lsRadioSpeaking=false;lsPendingAnnouncement=false;lsAudioJobToken++;if(lsActiveJingle){try{lsActiveJingle.pause();}catch(e){}lsActiveJingle=null;}if(window.speechSynthesis)speechSynthesis.cancel();clearInterval(lsVolumeTimer);if(lsPlayer&&lsPlayer.stopVideo)lsPlayer.stopVideo();document.getElementById('lsNow').textContent='Rádio parada.';document.getElementById('lsRadioStatus').textContent='Transmissão pausada pelo operador.';}
 function lsSaveConfig_(){try{localStorage.setItem('boas_compras_lider_station_v1',JSON.stringify({playlist:document.getElementById('lsPlaylist').value,every:document.getElementById('lsEvery').value,voice:document.getElementById('lsVoice').value,musicVolume:document.getElementById('lsMusicVolume').value,duckVolume:document.getElementById('lsDuckVolume').value,services:document.getElementById('lsServices').value,jingleOpen:document.getElementById('lsJingleOpen').value,jingleClose:document.getElementById('lsJingleClose').value}));}catch(e){}}
 function lsRestoreConfig_(){try{var c=JSON.parse(localStorage.getItem('boas_compras_lider_station_v1')||'{}');lsPreferredVoiceUri=c.voice||'';window.lsSavedJingleOpen_=c.jingleOpen||'';window.lsSavedJingleClose_=c.jingleClose||'';var pairs={playlist:'lsPlaylist',every:'lsEvery',voice:'lsVoice',musicVolume:'lsMusicVolume',duckVolume:'lsDuckVolume',services:'lsServices',jingleOpen:'lsJingleOpen',jingleClose:'lsJingleClose'};Object.keys(pairs).forEach(function(k){var e=document.getElementById(pairs[k]);if(e&&c[k]!=null)e.value=c[k];});document.getElementById('lsDuckPct').textContent=document.getElementById('lsDuckVolume').value+'%';}catch(e){}['lsPlaylist','lsEvery','lsVoice','lsMusicVolume','lsDuckVolume','lsServices','lsJingleOpen','lsJingleClose'].forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('change',lsSaveConfig_);});}
 
