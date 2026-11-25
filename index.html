@@ -553,7 +553,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
         <div class="ls-field"><label for="lsPlaylist">Link ou código da playlist do YouTube</label><input id="lsPlaylist" placeholder="https://www.youtube.com/playlist?list=..." autocomplete="off"></div>
         <div class="ls-row"><button class="btn btn-green btn-sm" id="lsStartBtn" onclick="lsStartRadio()">▶ Iniciar rádio</button><button class="btn btn-sm" onclick="lsStopRadio()">■ Parar</button><button class="btn btn-sm" onclick="lsPreviewNext_()">♫ Ouvir prévia</button><button class="btn btn-sm" onclick="lsSpeakNext(false)">▶ Chamar oferta agora</button></div>
         <div class="ls-player" id="lsPlayer"><span>Adicione uma playlist e inicie a transmissão</span></div><div class="ls-now" id="lsNow">Aguardando início.</div>
-        <div class="ls-row"><div class="ls-field"><label for="lsVoice">Voz neural pt-BR</label><select id="lsVoice"></select><span class="ls-note">Padrão no Microsoft Edge: Antonio Online Natural. Uma prévia da voz pode ser ouvida antes de chamar a oferta.</span></div><div class="ls-field"><label for="lsEvery">Intercalar a cada</label><select id="lsEvery"><option value="2" selected>2 músicas</option><option value="3">3 músicas</option></select></div></div>
+        <div class="ls-row"><div class="ls-field"><label for="lsVoice">Voz neural pt-BR</label><select id="lsVoice"></select><span class="ls-note">Padrão no Microsoft Edge: Antonio Online Natural. Uma prévia da voz pode ser ouvida antes de chamar a oferta.</span></div><div class="ls-field"><label for="lsEvery">Intercalar a cada</label><select id="lsEvery"><option value="1" selected>1 música</option><option value="2">2 músicas</option><option value="3">3 músicas</option></select></div></div>
         <div class="ls-row"><div class="ls-field"><label for="lsMusicVolume">Volume normal da música</label><input id="lsMusicVolume" type="range" min="0" max="100" value="70" oninput="lsSetMusicVolume_(this.value)"></div><div class="ls-field"><label for="lsDuckVolume">Volume durante a voz (ducking)</label><input id="lsDuckVolume" type="range" min="15" max="20" value="18" oninput="document.getElementById('lsDuckPct').textContent=this.value+'%'"><span id="lsDuckPct" class="ls-note">18%</span></div></div>
         <div class="ls-row"><div class="ls-field"><label for="lsCampaign">Campanha identificada no encarte</label><input id="lsCampaign" placeholder="Será lida do cabeçalho; revise se necessário"></div><div class="ls-field"><label for="lsValidity">Validade / condição</label><input id="lsValidity" placeholder="Informe após conferir o rodapé do encarte"></div></div>
         <div class="ls-field"><label for="lsServices">Serviços para mencionar no último bloco (opcional)</label><input id="lsServices" value="Parcelamos nos cartões em até 10 vezes e aceitamos B-P-F. Estamos na Avenida Visconde do Rio Grande, 1960. Tele-entrega pelo WhatsApp (51) 99680-6917."></div>
@@ -1013,7 +1013,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.41-lider-station-ocr-price-recovery';
+var AURA_ARSENAL_BUILD='v8.42-lider-station-automatic-radio';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -5953,8 +5953,8 @@ document.addEventListener('click',function(e){
 // LÍDER STATION — leitura revisável de encartes e rádio interna
 // ============================================================
 var lsFlyerRows=[];
-var lsPlayer=null,lsRadioActive=false,lsRadioSpeaking=false,lsCallCount=0,lsSpeakIndex=0,lsPendingAnnouncement=false,lsVolumeTimer=0,lsScriptEdited=false,lsPreferredVoiceUri='',lsActiveJingle=null,lsAudioJobToken=0;
-var lsPlaylistId='';
+var lsPlayer=null,lsRadioActive=false,lsRadioSpeaking=false,lsCallCount=0,lsSpeakIndex=0,lsPendingAnnouncement=false,lsVolumeTimer=0,lsScriptEdited=false,lsPreferredVoiceUri='',lsActiveJingle=null,lsAudioJobToken=0,lsPlaylistId='',lsPlayerReady_=false,lsStartRequested_=false,lsRadioPhase_='idle',lsPlaylistPrepareTimer_=0;
+var lsPlaylistId='',lsRadioPhase_='idle',lsPlayerReady_=false,lsYTApiLoading_=false,lsPlaylistPrepareTimer_=0,lsArmTimer_=0,lsTrackEndedDuringVoice_=false,lsStartupJinglePromise_=null;
 function lsMoney_(v){return String(v||'').replace(/^R\$\s*/i,'').trim().replace('.',',');}
 function lsEscape_(s){return typeof escapeHtml==='function'?escapeHtml(String(s||'')):String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 var lsOcrWorkerPromise_=null;
@@ -6358,17 +6358,120 @@ async function lsPreviewNext_(){
   if(token!==lsAudioJobToken)return;
   lsRadioSpeaking=false;lsRestoreVolume_();document.getElementById('lsRadioStatus').textContent='Prévia concluída. Edite o texto ou chame a oferta quando estiver pronta.';
 }
-async function lsSpeakNext(force){var blocks=lsBlocks_();if(!blocks.length){document.getElementById('lsNow').textContent='Selecione ofertas para a rádio.';if(force&&lsPendingAnnouncement&&lsRadioActive&&lsPlayer&&lsPlayer.nextVideo){lsPendingAnnouncement=false;lsPlayer.nextVideo();}return;}var block=blocks[lsSpeakIndex%blocks.length],last=lsSpeakIndex%blocks.length===blocks.length-1;lsSpeakIndex++;var parts=lsBuildBlock_(block,last),input=document.getElementById('lsScript'),custom=!force&&lsScriptEdited,script=custom?input.value.trim():parts.opening+' '+parts.body+' '+parts.closing;if(!custom)input.value=script;lsScriptEdited=false;if(!window.speechSynthesis){document.getElementById('lsRadioStatus').textContent='Não há voz disponível neste navegador. Abra a Líder Station no Microsoft Edge.';if(force&&lsPendingAnnouncement&&lsRadioActive&&lsPlayer&&lsPlayer.nextVideo){lsPendingAnnouncement=false;lsPlayer.nextVideo();}return;}var voice=lsSelectedVoice_(),openUrl=document.getElementById('lsJingleOpen').value.trim(),closeUrl=document.getElementById('lsJingleClose').value.trim(),body=custom?lsStripIdents_(script,parts.opening,parts.closing):parts.body,seconds=Math.max(1,Math.round(lsTextSpeak_(script).split(/\s+/).filter(Boolean).length/(145/60))),token=++lsAudioJobToken;window.speechSynthesis.cancel();lsRadioSpeaking=true;lsBeginDuck_();document.getElementById('lsNow').textContent='No ar — bloco '+block.category+' ('+block.items.length+' ofertas, cerca de '+seconds+' s)'+(voice?' · '+voice.name:'')+'.';document.getElementById('lsRadioStatus').textContent=voice&&/microsoft.*(ant[oô]nio|francisca|thalita).*natural|online.*natural/i.test(voice.name)?'Locução com voz neural Microsoft Edge.':'Locução usando a voz pt-BR selecionada.';await new Promise(function(r){setTimeout(r,480);});if(token!==lsAudioJobToken)return;var openPlayed=openUrl?await lsPlayJingle_(openUrl):false;if(token!==lsAudioJobToken)return;await lsSpeakUtterance_((openPlayed?'':parts.opening+' ')+body);if(token!==lsAudioJobToken)return;var closePlayed=closeUrl?await lsPlayJingle_(closeUrl):false;if(token!==lsAudioJobToken)return;if(!closePlayed)await lsSpeakUtterance_(parts.closing);if(token!==lsAudioJobToken)return;lsRadioSpeaking=false;lsRestoreVolume_();if(force&&lsPendingAnnouncement&&lsRadioActive&&lsPlayer&&lsPlayer.nextVideo){lsPendingAnnouncement=false;lsPlayer.nextVideo();}}
 if(window.speechSynthesis){lsFillVoices();speechSynthesis.onvoiceschanged=lsFillVoices;}
 function lsOpenSeparateWindow_(){var url=new URL(window.location.href);url.hash='liderstation';var w=window.open(url.toString(),'_blank');if(!w){mostrarToast('O navegador bloqueou a nova guia. Permita pop-ups para abrir a Líder Station.','warn');return;}try{w.focus();}catch(e){}}
 function lsExtractPlaylist_(v){var s=String(v||'').trim();var m=s.match(/[?&]list=([A-Za-z0-9_-]+)/);if(m)return m[1];if(/^[A-Za-z0-9_-]{10,}$/.test(s))return s;return '';}
-window.onYouTubeIframeAPIReady=function(){document.getElementById('lsRadioStatus').textContent='Player do YouTube pronto. Configure a playlist e clique em Iniciar rádio.';};
-function lsLoadYTApi_(){if(window.YT&&window.YT.Player)return;var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);}
-function lsStartRadio(){var id=lsExtractPlaylist_(document.getElementById('lsPlaylist').value);if(!id){document.getElementById('lsRadioStatus').textContent='Cole um link de playlist do YouTube válido.';return;}if(!lsSelectedOffers_().length){document.getElementById('lsRadioStatus').textContent='Marque ao menos uma promoção para entrar na programação.';return;}lsPlaylistId=id;lsCallCount=0;lsPendingAnnouncement=false;lsRadioActive=true;document.getElementById('lsNow').textContent='Iniciando playlist. A reprodução começa após a autorização do navegador.';lsLoadYTApi_();if(window.YT&&window.YT.Player)lsCreatePlayer_();else{var prior=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=function(){if(typeof prior==='function')prior();lsCreatePlayer_();};}}
-function lsCreatePlayer_(){var host=document.getElementById('lsPlayer');host.innerHTML='<div id="lsYoutubePlayer"></div>';lsPlayer=new YT.Player('lsYoutubePlayer',{height:'220',width:'100%',playerVars:{listType:'playlist',list:lsPlaylistId,autoplay:1,playsinline:1,rel:0},events:{onReady:function(e){e.target.loadPlaylist({listType:'playlist',list:lsPlaylistId});e.target.setVolume(Number(document.getElementById('lsMusicVolume').value));e.target.playVideo();document.getElementById('lsRadioStatus').textContent='Líder Station está no ar.';},onStateChange:function(e){if(e.data===YT.PlayerState.ENDED&&lsRadioActive){if(lsPlayer&&lsPlayer.pauseVideo)lsPlayer.pauseVideo();lsCallCount++;var every=Number(document.getElementById('lsEvery').value)||2;lsPendingAnnouncement=lsCallCount%every===0;if(lsPendingAnnouncement&&lsSelectedOffers_().length){setTimeout(function(){if(lsRadioActive)lsSpeakNext(true);},120);}else if(lsPlayer&&lsPlayer.nextVideo)lsPlayer.nextVideo();}},onError:function(e){document.getElementById('lsRadioStatus').textContent='O YouTube não permitiu tocar este vídeo ou playlist (código '+e.data+'). Tente outra playlist pública com vídeos incorporáveis.';}}});}
-function lsStopRadio(){lsRadioActive=false;lsRadioSpeaking=false;lsPendingAnnouncement=false;lsAudioJobToken++;if(lsActiveJingle){try{lsActiveJingle.pause();}catch(e){}lsActiveJingle=null;}if(window.speechSynthesis)speechSynthesis.cancel();clearInterval(lsVolumeTimer);if(lsPlayer&&lsPlayer.stopVideo)lsPlayer.stopVideo();document.getElementById('lsNow').textContent='Rádio parada.';document.getElementById('lsRadioStatus').textContent='Transmissão pausada pelo operador.';}
-function lsSaveConfig_(){try{localStorage.setItem('boas_compras_lider_station_v1',JSON.stringify({playlist:document.getElementById('lsPlaylist').value,every:document.getElementById('lsEvery').value,voice:document.getElementById('lsVoice').value,musicVolume:document.getElementById('lsMusicVolume').value,duckVolume:document.getElementById('lsDuckVolume').value,services:document.getElementById('lsServices').value,jingleOpen:document.getElementById('lsJingleOpen').value,jingleClose:document.getElementById('lsJingleClose').value}));}catch(e){}}
-function lsRestoreConfig_(){try{var c=JSON.parse(localStorage.getItem('boas_compras_lider_station_v1')||'{}');lsPreferredVoiceUri=c.voice||'';window.lsSavedJingleOpen_=c.jingleOpen||'';window.lsSavedJingleClose_=c.jingleClose||'';var pairs={playlist:'lsPlaylist',every:'lsEvery',voice:'lsVoice',musicVolume:'lsMusicVolume',duckVolume:'lsDuckVolume',services:'lsServices',jingleOpen:'lsJingleOpen',jingleClose:'lsJingleClose'};Object.keys(pairs).forEach(function(k){var e=document.getElementById(pairs[k]);if(e&&c[k]!=null)e.value=c[k];});document.getElementById('lsDuckPct').textContent=document.getElementById('lsDuckVolume').value+'%';}catch(e){}['lsPlaylist','lsEvery','lsVoice','lsMusicVolume','lsDuckVolume','lsServices','lsJingleOpen','lsJingleClose'].forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('change',lsSaveConfig_);});}
+function lsTimePhrase_(){
+  var now=new Date(),h=now.getHours(),m=now.getMinutes(),hourText=h===0?'meia-noite':h===12?'meio-dia':String(h)+' horas',minuteText='';
+  if(m)minuteText=' e '+m+' minuto'+(m===1?'':'s');
+  return 'Agora são '+hourText+minuteText+'.';
+}
+function lsSpeakTime_(){return lsSpeakUtterance_(lsTimePhrase_());}
+function lsPreparePlaylist_(){
+  var id=lsExtractPlaylist_(document.getElementById('lsPlaylist').value);
+  if(!id){document.getElementById('lsRadioStatus').textContent='Cole um link de playlist do YouTube válido.';return false;}
+  lsPlaylistId=id;lsSaveConfig_();
+  if(lsPlayer&&lsPlayerReady_){
+    if(lsCurrentCuedPlaylist_!==id){lsPlayerReady_=false;lsPlayer.cuePlaylist({listType:'playlist',list:id,index:0});}
+    else document.getElementById('lsRadioStatus').textContent='Playlist carregada. Clique em Iniciar rádio para começar a programação.';
+    return true;
+  }
+  lsLoadYTApi_();
+  if(window.YT&&window.YT.Player)lsCreatePlayer_();
+  document.getElementById('lsRadioStatus').textContent='Carregando a playlist do YouTube…';
+  return true;
+}
+var lsCurrentCuedPlaylist_='';
+function lsSchedulePlaylistPrepare_(){clearTimeout(lsPlaylistPrepareTimer_);lsPlaylistPrepareTimer_=setTimeout(lsPreparePlaylist_,650);}
+window.onYouTubeIframeAPIReady=function(){if(lsPlaylistId)lsCreatePlayer_();else document.getElementById('lsRadioStatus').textContent='Player do YouTube pronto. Cole o link da playlist.';};
+function lsLoadYTApi_(){if(window.YT&&window.YT.Player)return;if(document.querySelector('script[src="https://www.youtube.com/iframe_api"]'))return;var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);}
+function lsStartRadio(){
+  var id=lsExtractPlaylist_(document.getElementById('lsPlaylist').value);
+  if(!id){document.getElementById('lsRadioStatus').textContent='Cole um link de playlist do YouTube válido.';return;}
+  if(!lsSelectedOffers_().length){document.getElementById('lsRadioStatus').textContent='Marque ao menos uma promoção com preço para entrar na programação.';return;}
+  lsPlaylistId=id;lsCallCount=0;lsPendingAnnouncement=false;lsStartRequested_=true;
+  if(!lsPlayer||!lsPlayerReady_||lsCurrentCuedPlaylist_!==id){lsPreparePlaylist_();document.getElementById('lsNow').textContent='Preparando a playlist. A programação inicia assim que o YouTube terminar de carregá-la.';return;}
+  lsBeginRadio_();
+}
+function lsBeginRadio_(){
+  if(!lsStartRequested_||!lsPlayer||!lsPlayerReady_)return;
+  lsStartRequested_=false;lsRadioActive=true;lsRadioSpeaking=false;lsRadioPhase_='arming';
+  document.getElementById('lsNow').textContent='Líder Station — abertura, hora certa e música.';
+  document.getElementById('lsRadioStatus').textContent='Abrindo a transmissão…';
+  try{lsPlayer.setVolume(0);lsPlayer.playVideo();}catch(e){lsRadioPhase_='idle';document.getElementById('lsRadioStatus').textContent='Não foi possível iniciar o player. Clique em Iniciar rádio novamente.';}
+}
+async function lsRunOpening_(){
+  if(!lsRadioActive||lsRadioPhase_!=='opening')return;
+  var token=++lsAudioJobToken,openUrl=document.getElementById('lsJingleOpen').value.trim();
+  lsRadioSpeaking=true;document.getElementById('lsRadioStatus').textContent='Abertura da Líder Station.';
+  var played=openUrl?await lsPlayJingle_(openUrl):false;
+  if(token!==lsAudioJobToken||!lsRadioActive)return;
+  if(!played)await lsSpeakUtterance_('Líder Station! A rádio do Boas Compras, o líder das ofertas!');
+  if(token!==lsAudioJobToken||!lsRadioActive)return;
+  await lsSpeakTime_();
+  if(token!==lsAudioJobToken||!lsRadioActive)return;
+  lsRadioSpeaking=false;lsRadioPhase_='music';lsPlayer.setVolume(Number(document.getElementById('lsMusicVolume').value)||70);
+  document.getElementById('lsNow').textContent='No ar — música '+(lsCallCount+1)+'.';
+  document.getElementById('lsRadioStatus').textContent='Líder Station está no ar. Próxima chamada após a música.';
+  lsPlayer.playVideo();
+}
+async function lsRunAutomaticOffer_(){
+  if(!lsRadioActive||lsRadioPhase_!=='offer')return;
+  var blocks=lsBlocks_();
+  if(!blocks.length){lsRadioPhase_='music';lsPendingAnnouncement=false;lsPlayer.nextVideo();return;}
+  var pos=lsSpeakIndex%blocks.length,block=blocks[pos],last=pos===blocks.length-1;lsSpeakIndex++;
+  var parts=lsBuildBlock_(block,last),openUrl=document.getElementById('lsJingleOpen').value.trim(),closeUrl=document.getElementById('lsJingleClose').value.trim();
+  var script='Líder Station! A rádio do Boas Compras! '+lsTimePhrase_()+' '+parts.body+' '+parts.closing;
+  document.getElementById('lsScript').value=script;lsScriptEdited=false;
+  var voice=lsSelectedVoice_(),seconds=Math.max(1,Math.round(lsTextSpeak_(script).split(/\s+/).filter(Boolean).length/(145/60))),token=++lsAudioJobToken;
+  lsRadioSpeaking=true;lsBeginDuck_();
+  document.getElementById('lsNow').textContent='No ar — bloco '+block.category+' ('+block.items.length+' ofertas, cerca de '+seconds+' s)'+(voice?' · '+voice.name:'')+'.';
+  document.getElementById('lsRadioStatus').textContent='A música terminou. Hora certa, vinheta e ofertas.';
+  await new Promise(function(r){setTimeout(r,250);});if(token!==lsAudioJobToken||!lsRadioActive)return;
+  await lsSpeakTime_();if(token!==lsAudioJobToken||!lsRadioActive)return;
+  var opened=openUrl?await lsPlayJingle_(openUrl):false;if(token!==lsAudioJobToken||!lsRadioActive)return;
+  if(!opened)await lsSpeakUtterance_(parts.opening);if(token!==lsAudioJobToken||!lsRadioActive)return;
+  await lsSpeakUtterance_(parts.body);if(token!==lsAudioJobToken||!lsRadioActive)return;
+  var closed=closeUrl?await lsPlayJingle_(closeUrl):false;if(token!==lsAudioJobToken||!lsRadioActive)return;
+  if(!closed)await lsSpeakUtterance_(parts.closing);if(token!==lsAudioJobToken||!lsRadioActive)return;
+  lsRadioSpeaking=false;lsRestoreVolume_();lsPendingAnnouncement=false;lsRadioPhase_='music';
+  document.getElementById('lsRadioStatus').textContent='Oferta concluída. Voltando à playlist.';
+  lsPlayer.nextVideo();
+}
+async function lsSpeakNext(force){
+  if(force){lsRadioPhase_='offer';lsPendingAnnouncement=true;return lsRunAutomaticOffer_();}
+  var blocks=lsBlocks_();if(!blocks.length){document.getElementById('lsNow').textContent='Selecione ofertas para a rádio.';return;}
+  var pos=lsSpeakIndex%blocks.length,block=blocks[pos],parts=lsBuildBlock_(block,pos===blocks.length-1);lsSpeakIndex++;
+  var input=document.getElementById('lsScript'),custom=lsScriptEdited,script=custom?input.value.trim():parts.opening+' '+parts.body+' '+parts.closing;if(!custom)input.value=script;
+  if(!window.speechSynthesis){document.getElementById('lsRadioStatus').textContent='Abra a Líder Station no Microsoft Edge para ouvir a prévia com a voz padrão.';return;}
+  var token=++lsAudioJobToken;window.speechSynthesis.cancel();lsRadioSpeaking=true;lsBeginDuck_();
+  var openUrl=document.getElementById('lsJingleOpen').value.trim(),closeUrl=document.getElementById('lsJingleClose').value.trim();
+  var opened=openUrl?await lsPlayJingle_(openUrl):false;if(token!==lsAudioJobToken)return;
+  await lsSpeakUtterance_((opened?'':parts.opening+' ')+(custom?lsStripIdents_(script,parts.opening,parts.closing):parts.body));if(token!==lsAudioJobToken)return;
+  var closed=closeUrl?await lsPlayJingle_(closeUrl):false;if(token!==lsAudioJobToken)return;if(!closed)await lsSpeakUtterance_(parts.closing);if(token!==lsAudioJobToken)return;
+  lsRadioSpeaking=false;lsRestoreVolume_();
+}
+function lsCreatePlayer_(){
+  if(!window.YT||!window.YT.Player||!lsPlaylistId)return;
+  if(lsPlayer){try{lsPlayer.cuePlaylist({listType:'playlist',list:lsPlaylistId,index:0});}catch(e){}return;}
+  var host=document.getElementById('lsPlayer');host.innerHTML='<div id="lsYoutubePlayer"></div>';
+  lsPlayer=new YT.Player('lsYoutubePlayer',{height:'220',width:'100%',playerVars:{listType:'playlist',list:lsPlaylistId,autoplay:0,playsinline:1,rel:0,loop:1},events:{
+    onReady:function(e){lsPlayerReady_=false;e.target.cuePlaylist({listType:'playlist',list:lsPlaylistId,index:0});e.target.setVolume(Number(document.getElementById('lsMusicVolume').value)||70);try{e.target.setLoop(true);}catch(loopErr){}document.getElementById('lsRadioStatus').textContent='Carregando as músicas da playlist…';},
+    onStateChange:function(e){
+      if(e.data===YT.PlayerState.CUED){lsPlayerReady_=true;lsCurrentCuedPlaylist_=lsPlaylistId;document.getElementById('lsRadioStatus').textContent='Playlist carregada. Clique em Iniciar rádio para começar.';if(lsStartRequested_)lsBeginRadio_();else if(lsRadioActive&&lsRadioPhase_==='music')lsPlayer.playVideo();}
+      if(e.data===YT.PlayerState.PLAYING&&lsRadioActive&&lsRadioPhase_==='arming'){lsPlayer.pauseVideo();try{lsPlayer.seekTo(0,true);}catch(err){}lsRadioPhase_='opening';lsRunOpening_();}
+      if(e.data===YT.PlayerState.ENDED&&lsRadioActive&&lsRadioPhase_==='music'){
+        lsPlayer.pauseVideo();lsCallCount++;var every=Number(document.getElementById('lsEvery').value)||1;
+        if(lsSelectedOffers_().length&&lsCallCount%every===0){lsRadioPhase_='offer';lsPendingAnnouncement=true;lsRunAutomaticOffer_();}
+        else lsPlayer.nextVideo();
+      }
+    },
+    onError:function(e){lsPlayerReady_=false;lsRadioActive=false;lsRadioPhase_='idle';document.getElementById('lsRadioStatus').textContent='O YouTube não permitiu tocar este vídeo ou playlist (código '+e.data+'). Tente uma playlist pública com vídeos incorporáveis.';}
+  }});
+}
+function lsStopRadio(){lsStartRequested_=false;lsRadioActive=false;lsRadioSpeaking=false;lsPendingAnnouncement=false;lsRadioPhase_='idle';lsAudioJobToken++;if(lsActiveJingle){try{lsActiveJingle.pause();}catch(e){}lsActiveJingle=null;}if(window.speechSynthesis)speechSynthesis.cancel();clearInterval(lsVolumeTimer);if(lsPlayer&&lsPlayer.stopVideo)lsPlayer.stopVideo();document.getElementById('lsNow').textContent='Rádio parada.';document.getElementById('lsRadioStatus').textContent='Transmissão pausada pelo operador.';}
+function lsSaveConfig_(){try{localStorage.setItem('boas_compras_lider_station_v1',JSON.stringify({scheduleVersion:2,playlist:document.getElementById('lsPlaylist').value,every:document.getElementById('lsEvery').value,voice:document.getElementById('lsVoice').value,musicVolume:document.getElementById('lsMusicVolume').value,duckVolume:document.getElementById('lsDuckVolume').value,services:document.getElementById('lsServices').value,jingleOpen:document.getElementById('lsJingleOpen').value,jingleClose:document.getElementById('lsJingleClose').value}));}catch(e){}}
+function lsRestoreConfig_(){try{var c=JSON.parse(localStorage.getItem('boas_compras_lider_station_v1')||'{}');lsPreferredVoiceUri=c.voice||'';window.lsSavedJingleOpen_=c.jingleOpen||'';window.lsSavedJingleClose_=c.jingleClose||'';var pairs={playlist:'lsPlaylist',every:'lsEvery',voice:'lsVoice',musicVolume:'lsMusicVolume',duckVolume:'lsDuckVolume',services:'lsServices',jingleOpen:'lsJingleOpen',jingleClose:'lsJingleClose'};Object.keys(pairs).forEach(function(k){var e=document.getElementById(pairs[k]);if(e&&c[k]!=null&&(k!=='every'||Number(c.scheduleVersion)>=2))e.value=c[k];});document.getElementById('lsDuckPct').textContent=document.getElementById('lsDuckVolume').value+'%';}catch(e){}['lsPlaylist','lsEvery','lsVoice','lsMusicVolume','lsDuckVolume','lsServices','lsJingleOpen','lsJingleClose'].forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('change',lsSaveConfig_);});var playlist=document.getElementById('lsPlaylist');if(playlist){playlist.addEventListener('input',lsSchedulePlaylistPrepare_);playlist.addEventListener('change',lsPreparePlaylist_);}}
 
 
 // (Removido: cada linha "extra" tinha sua própria busca/sugestões.
@@ -6414,6 +6517,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   popularSeletorTema();
   lsRestoreConfig_();
   lsRenderQueue();
+  if(lsExtractPlaylist_(document.getElementById('lsPlaylist').value))setTimeout(lsPreparePlaylist_,500);
   if(cfg.id){
     Promise.resolve(syncInicial).then(function(){setTimeout(carregarEncartes,80);})
       .catch(function(){setTimeout(carregarEncartes,80);});
