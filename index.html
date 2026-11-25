@@ -1013,7 +1013,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.44-lider-station-ocr-price-review';
+var AURA_ARSENAL_BUILD='v8.45-lider-station-layout-generic-products';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -6039,12 +6039,30 @@ function lsFlyerPriceFromOcr_(text,words){var s=String(text||'').toUpperCase().r
   var m=s.match(/(?:R\$\s*)?(\d{1,3})\s*[,.]\s*(\d{2})(?!\d)/);if(m)return m[1]+','+m[2];m=s.match(/(?:^|\D)(\d{1,2})\s+(\d{2})(?:\D|$)/);if(m)return m[1]+','+m[2];m=s.match(/(?:^|\D)(\d{3,4})(?:\D|$)/);if(m){var digits=m[1];return digits.slice(0,-2)+','+digits.slice(-2);}return '';}
 function lsCleanFlyerProductName_(value){var s=String(value||'').replace(/(?:R\$\s*)?\d{1,3}\s*[,.]\s*\d{2}/gi,' ').replace(/\b(?:LEVE|LEVANDO|PAGUE|PAGA|CADA|NO CLUB|NO CLUBE)\b.*$/i,' ').replace(/[|{}\\]/g,' ').replace(/\b\d+(?:[.,]\d+)?\b(?!\s*(?:KG|KILO|G|GR|ML|LT|L|UN|UND|UNIDADES|PCT|PCTE|X\d|M\b))/gi,' ').replace(/\s+/g,' ').trim();
   s=s.split(/\s+/).filter(function(w){return w.length>1||/^C\//i.test(w)||/^D['’]/i.test(w);}).join(' ').replace(/^[^A-Za-zÀ-ÿ]+|[^A-Za-zÀ-ÿ0-9)]+$/g,'').trim();return s;}
-function lsFlyerNameValid_(value){var s=lsCleanFlyerProductName_(value),cue=/\b(?:CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|ROSQUIN|CARNE|OSSINHO|PALETA|PATINHO|COXAO|PORCO|BATATA|PAO|QUEIJO|SABAO|SUCO|DKLOSS|D KLOSS|AGUA|FLUA|FRUKI|FRUKITO|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO|LEITE|MARGARINA|DORIANA|SEARA|MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|PRESUNTO|LINGUICA|FRANGO|PAPEL|PLUSH|DESINFET|AMACIANTE|BRILHA SUL|DETERGENTE|IOGURTE|CERVEJA|VINHO|REFRIGERANTE)\b/i,at=s.search(cue);if(at>0)s=s.slice(at).trim();s=s.replace(/\s+(?:TA|TE|T0|TO|EA|FA|JA|LI)\s*$/i,'').trim();var n=normalizarTexto(s),letters=(s.match(/[A-Za-zÀ-ÿ]/g)||[]).length,blocked=/\b(?:PAGUE|PAGA|LEVE|LEVANDO|CADA|NO CLUB|NO CLUBE|HORTIFRUTI|OFERTAS|VALIDAS|ENQUANTO|DURAREM|ESTOQUES|SUPERMERCADO|BOAS COMPRAS|FAZEMOS|ENTREGAS|AVENIDA|VISCONDE|GRANDE|PARCELAMOS|CARTOES|CONFIRA|CONDICOES|ACEITAMOS|BPF|BLACK FRIDAY|ESQUENTA)\b/.test(n);return !blocked&&letters>=3&&s.length<=82&&lsFlyerProductClue_(n)?s:'';}
-function lsFlyerNameFromCell_(text){var src=String(text||'').split(/\r?\n/).map(function(x){return x.replace(/\s+/g,' ').trim();}).filter(Boolean),skip=/NO CLUB|HORTIFRUTI|QUARTA|QUINTA|OFERTAS|VALIDAS|ENQUANTO|DURAREM|ESTOQUES|BOAS COMPRAS|SUPERMERCADO|FAZEMOS|ENTREGAS|AVENIDA|VISCONDE|GRANDE|PARCELAMOS|CARTOES|CONFIRA|CONDICOES|ACEITAMOS|BPF|BLACK|FRIDAY|ESQUENTA|PAGUE|PAGA|LEVE NA|LEVANDO|CADA|UNIDADES|UNIDADE|^KG$|^UN$|^BDJ$|^NO\b/;
-  var candidates=[];for(var i=0;i<src.length;i++){var one=lsFlyerNameValid_(src[i]);if(one&&!skip.test(normalizarTexto(one)))candidates.push({text:one,index:i,score:100+Math.min(one.length,34)});
-    if(i+1<src.length){var pair=lsFlyerNameValid_(src[i]+' '+src[i+1]);if(pair&&!skip.test(normalizarTexto(src[i]))&&!skip.test(normalizarTexto(src[i+1]))){var cues=(normalizarTexto(pair).match(/MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|CARNE|OSSINHO|PALETA|PATINHO|COXAO|MARGARINA|SEARA|BATATA|QUEIJO|SABAO|PAPEL|SUCO|FRUKI|FRUKITO|FLUA/g)||[]).length;candidates.push({text:pair,index:i,score:100+Math.min(pair.length,34)+(cues>1?8:0)});}}
+function lsFlyerNameValid_(value){
+  var s=lsCleanFlyerProductName_(value),cue=/\b(?:CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|ROSQUIN|CARNE|OSSINHO|PALETA|PATINHO|COXAO|PORCO|BATATA|PAO|QUEIJO|SABAO|SUCO|DKLOSS|D KLOSS|AGUA|FLUA|FRUKI|FRUKITO|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO|LEITE|MARGARINA|DORIANA|SEARA|MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|PRESUNTO|LINGUICA|FRANGO|PAPEL|PLUSH|DESINFET|AMACIANTE|BRILHA SUL|DETERGENTE|IOGURTE|CERVEJA|VINHO|REFRIGERANTE)\b/i;
+  var at=s.search(cue);if(at>0)s=s.slice(at).trim();
+  s=s.replace(/\s+(?:TA|TE|T0|TO|EA|FA|JA|LI)\s*$/i,'').trim();
+  var n=normalizarTexto(s),letters=(s.match(/[A-Za-zÀ-ÿ]/g)||[]).length;
+  var blocked=/\b(?:PAGUE|PAGA|LEVE|LEVANDO|CADA|NO CLUB|NO CLUBE|HORTIFRUTI|QUARTA|QUINTA|OFERTAS|VALIDAS|ENQUANTO|DURAREM|ESTOQUES|SUPERMERCADO|BOAS COMPRAS|FAZEMOS|ENTREGAS|AVENIDA|VISCONDE|GRANDE|PARCELAMOS|CARTOES|CONFIRA|CONDICOES|ACEITAMOS|BPF|BLACK FRIDAY|ESQUENTA|OFERTA|OFERTAS|NO CLUB|NO CLUBE|UNIDADE|UNIDADES|^KG$|^UN$|^BDJ$|^PCT$)\b/.test(n);
+  // O nome pode ser qualquer produto: o vocabulário conhecido só dá peso aos candidatos,
+  // não elimina itens de encartes com marcas ou categorias novas.
+  return !blocked&&letters>=3&&s.length<=82;
+}
+function lsFlyerNameFromCell_(text){
+  var src=String(text||'').split(/\r?\n/).map(function(x){return x.replace(/\s+/g,' ').trim();}).filter(Boolean),skip=/NO CLUB|HORTIFRUTI|QUARTA|QUINTA|OFERTAS|VALIDAS|ENQUANTO|DURAREM|ESTOQUES|BOAS COMPRAS|SUPERMERCADO|FAZEMOS|ENTREGAS|AVENIDA|VISCONDE|GRANDE|PARCELAMOS|CARTOES|CONFIRA|CONDICOES|ACEITAMOS|BPF|BLACK|FRIDAY|ESQUENTA|PAGUE|PAGA|LEVE NA|LEVANDO|CADA|UNIDADES|UNIDADE|^KG$|^UN$|^BDJ$|^NO\b/;
+  var candidates=[];
+  for(var i=0;i<src.length;i++){
+    var one=lsFlyerNameValid_(src[i]);if(one&&!skip.test(normalizarTexto(one)))candidates.push({text:one,index:i,score:100+Math.min(one.length,34)+(lsFlyerProductClue_(one)?20:0)});
+    // Une linhas adjacentes: úteis para nomes em coluna e ofertas com vários vegetais.
+    var joined='';for(var j=i;j<Math.min(src.length,i+7);j++){
+      if(skip.test(normalizarTexto(src[j])))break;
+      joined+=(joined?' ':'')+src[j];var cleaned=lsFlyerNameValid_(joined);
+      if(cleaned){var cues=(normalizarTexto(cleaned).match(/MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|CARNE|OSSINHO|PALETA|PATINHO|COXAO|MARGARINA|SEARA|BATATA|QUEIJO|SABAO|PAPEL|SUCO|FRUKI|FRUKITO|FLUA/g)||[]).length;candidates.push({text:cleaned,index:i,score:100+Math.min(cleaned.length,72)+(cues>1?18:0)+(cues===1?8:0)});}
+    }
   }
-  candidates.sort(function(a,b){return b.score-a.score||a.index-b.index;});return candidates.length?candidates[0].text:'';}
+  candidates.sort(function(a,b){return b.score-a.score||a.index-b.index;});return candidates.length?candidates[0].text:'';
+}
 function lsFlyerGrid_(data,imageWidth,imageHeight){var lines=data&&Array.isArray(data.lines)?data.lines:[],words=data&&Array.isArray(data.words)?data.words:[],anchors=[];
   (lines.length?lines:words).forEach(function(w){var t=String(w.text||'').trim(),b=w.bbox||{},x0=Number(b.x0),x1=Number(b.x1),y0=Number(b.y0),y1=Number(b.y1);if(!t||!isFinite(x0+x1+y0+y1)||!lsFlyerNameValid_(t))return;var x=(x0+x1)/2/(imageWidth||1),y=(y0+y1)/2/(imageHeight||1);if(y>.18&&y<.9&&x>.015&&x<.985)anchors.push({x:x,y:y});});
   function cluster_(values,tolerance){values.sort(function(a,b){return a-b;});var groups=[];values.forEach(function(v){var g=groups[groups.length-1];if(g&&v-g.mean<tolerance){g.items.push(v);g.mean=g.items.reduce(function(s,n){return s+n;},0)/g.items.length;}else groups.push({items:[v],mean:v});});return groups.map(function(g){return g.mean;});}
