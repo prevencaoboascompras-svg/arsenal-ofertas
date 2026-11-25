@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.25 — correção OCR/campanha e locução mais natural -->
+<!-- Arsenal de Ofertas v8.26 — Líder Station em largura total -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -20,10 +20,10 @@
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#1e1e1c;--bg2:#282825;--bg3:#323230;--tx:#f0efe8;--tx2:#9b9b95;--bd:rgba(255,255,255,.1);--bds:rgba(255,255,255,.2);}}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg3);color:var(--tx);min-height:100vh;padding:8px}
 html:not(.ls-standalone) #liderStation{display:none!important}
-html.ls-standalone body{padding:12px;background:var(--bg3)}
-html.ls-standalone .wrap{max-width:1180px;margin:0 auto}
+html.ls-standalone body{width:100%;min-height:100vh;padding:8px;background:var(--bg3)}
+html.ls-standalone .wrap{width:100%;max-width:none!important;margin:0!important}
 html.ls-standalone .wrap>:not(#liderStation){display:none!important}
-html.ls-standalone #liderStation{display:block;width:100%;margin:0}
+html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh - 16px);margin:0}
 .wrap{width:100%;max-width:none;margin:0}
 .hd{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .hd h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
@@ -1009,7 +1009,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.25-lider-station-campanha-fala-ajustada';
+var AURA_ARSENAL_BUILD='v8.26-lider-station-largura-total';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
