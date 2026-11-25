@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.33 — revisão ortográfica pt-BR na locução -->
+<!-- Arsenal de Ofertas v8.35 — leitura corrigida pelo banco de produtos -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -888,6 +888,8 @@ var CFG_KEY='aura_cfg';
 var PROD_KEY='placa_prod_cache_banco_oficial_v2';
 var GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec';
 var banco={};          // cod -> descrição OFICIAL da aba BANCO DE DADOS
+var bancoLeitura={};   // cod -> leitura corrigida para a Líder Station
+var bancoLeituraNome={}; // descrição normalizada -> leitura corrigida
 var bancoPreco={};     // cod -> preço de venda OFICIAL da aba BANCO DE DADOS
 var bancoUnidade={};   // cod -> unidade/medida OFICIAL da aba BANCO DE DADOS
 var bancoCusto={};     // cod -> custo OFICIAL da aba BANCO DE DADOS
@@ -1009,7 +1011,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.33-lider-station-revisao-ptbr';
+var AURA_ARSENAL_BUILD='v8.35-lider-station-leitura-banco';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -1361,17 +1363,20 @@ async function loadBanco(cfg,tablePronta){
   var table=tablePronta||await fetchSheet(cfg.idBanco,cfg.abaBanco);
   var rows=rawRows(table);
   banco={};
+  bancoLeitura={};
+  bancoLeituraNome={};
   bancoPreco={};
   bancoCusto={};
   bancoUnidade={};
   bancoAtualizadoEm={};
-  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciCusto=-1,ciUnidade=-1,ciAtualizadoEm=-1;
+  var hIdx=-1,ciCod=-1,ciNome=-1,ciPreco=-1,ciCusto=-1,ciUnidade=-1,ciAtualizadoEm=-1,ciLeitura=-1;
   function isCod(t){return /\bEAN\b|\bGTIN\b|\bPLU\b|COD[\s._\-]?BARRA|BARRAS?\b|C[OÓ]D(IGO)?/.test(t);}
   function isNome(t){return /DESC(RI)?|NOME|PRODUTO|ITEM\b/.test(t);}
   function isPreco(t){return /PRE[CÇ]O|VALOR|VENDA|VLR|PR\.?\s*VENDA|P\.?\s*VENDA/.test(t);}
   function isCusto(t){return /CUSTO|C\.\s*COMPRA|PRE[CÇ]O\s*(DE\s*)?CUSTO/.test(t);}
   function isAtualizacao(t){return /DATA.*ATUAL|ATUALIZA[CÇ][AÃ]O|ULTIMA.*ATUAL/.test(t);}
   function isUnidade(t){return /(^|\b)(UNIDADE|UNID|UND|MEDIDA|UM|U\.M\.)(\b|$)/.test(t);}
+  function isLeitura(t){return /LEITURA.*(CORRIGIDA|LOCU[CÇ][AÃ]O)|NOME.*LOCU[CÇ][AÃ]O/.test(t);}
 
   if(table.cols&&table.cols.length){
     var colTexts=table.cols.map(function(c){return String(c.label||'').toUpperCase();});
@@ -1381,7 +1386,8 @@ async function loadBanco(cfg,tablePronta){
     var coi2=colTexts.findIndex(isCusto);
     var ui2=colTexts.findIndex(isUnidade);
     var dai2=colTexts.findIndex(isAtualizacao);
-    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciCusto=coi2;ciUnidade=ui2;ciAtualizadoEm=dai2;}
+    var li2=colTexts.findIndex(isLeitura);
+    if(ci2>=0&&ni2>=0){hIdx=-1;ciCod=ci2;ciNome=ni2;ciPreco=pi2;ciCusto=coi2;ciUnidade=ui2;ciAtualizadoEm=dai2;ciLeitura=li2;}
   }
   if(ciCod<0||ciNome<0){
     for(var i=0;i<Math.min(5,rows.length);i++){
@@ -1393,7 +1399,8 @@ async function loadBanco(cfg,tablePronta){
       var coi=rowTexts.findIndex(isCusto);
       var ui=rowTexts.findIndex(isUnidade);
       var dai=rowTexts.findIndex(isAtualizacao);
-      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciCusto=coi;ciUnidade=ui;ciAtualizadoEm=dai;break;}
+      var li=rowTexts.findIndex(isLeitura);
+      if(ci>=0&&ni>=0){hIdx=i;ciCod=ci;ciNome=ni;ciPreco=pi;ciCusto=coi;ciUnidade=ui;ciAtualizadoEm=dai;ciLeitura=li;break;}
     }
   }
   if(ciCod<0||ciNome<0){hIdx=0;ciCod=0;ciNome=1;}
@@ -1403,6 +1410,11 @@ async function loadBanco(cfg,tablePronta){
     var cod=String((cells[ciCod]&&cells[ciCod].f)||(cells[ciCod]&&cells[ciCod].v)||'').trim().replace(/[^0-9]/g,'');
     var nome=String((cells[ciNome]&&cells[ciNome].f)||(cells[ciNome]&&cells[ciNome].v)||'').replace(/^,\s*/,'').trim();
     if(cod&&nome)banco[cod]=nome;
+    var leitura=ciLeitura>=0?cellStr(cells[ciLeitura]).trim():'';
+    if(leitura){
+      if(cod)bancoLeitura[cod]=leitura;
+      if(nome)bancoLeituraNome[normalizarTexto(nome)]=leitura;
+    }
     if(cod&&ciPreco>=0){
       var precoBanco=cellNum(cells[ciPreco]);
       if(precoBanco>0)bancoPreco[cod]=precoBanco;
@@ -1477,7 +1489,7 @@ async function loadPrecos(cfg,tablePronta){
     products.push({cod:cod,nome:nome,preco:0,unidade:'',origem:'catalogo_auxiliar'});
   }
   _catalogoProdutosCache=null;
-  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,bancoAtualizadoEm:bancoAtualizadoEm,products:products,ts:Date.now()}));}catch(e){}
+  try{localStorage.setItem(PROD_KEY,JSON.stringify({banco:banco,bancoLeitura:bancoLeitura,bancoLeituraNome:bancoLeituraNome,bancoPreco:bancoPreco,bancoUnidade:bancoUnidade,bancoAtualizadoEm:bancoAtualizadoEm,products:products,ts:Date.now()}));}catch(e){}
 }
 
 var _arsenalSyncInFlight_=null;
@@ -6158,10 +6170,22 @@ function lsTextSpeak_(text){
   s=s.replace(/(^|[^A-Za-zÀ-ÿ])OVOS\s+BRANCOS?\s+(\d{1,2})(?:\s+(?:UN|UND|UNIDADE|UNIDADES))?(?=$|[^A-Za-zÀ-ÿ])/gi,function(_,before,count){return before+'ovos brancos, bandeja com '+count+' unidades';});
   // Adjetivo no singular depois de nome plural: pêssegos nacional vira pêssegos nacionais.
   s=s.replace(/(^|[^A-Za-zÀ-ÿ])([A-Za-zÀ-ÿ]+s)\s+NACIONAL(?=$|[^A-Za-zÀ-ÿ])/gi,'$1$2 nacionais');
+  // Forma de açougue mais natural para a locução, inclusive quando vem repetida ou sem espaço.
+  s=s.replace(/(^|[^A-Za-zÀ-ÿ])(COXAS?)(?:\s+SOBRE\s+|\s+SOBRE|\s*\/\s*)(COXAS?)(?=$|[^A-Za-zÀ-ÿ])/gi,function(_,before,first,second){var plural=/S$/i.test(first)||/S$/i.test(second);return before+(plural?'coxas e sobrecoxas':'coxa e sobrecoxa');});
   return s;
 }
+function lsKeyProduto_(value){return normalizarTexto(String(value||'')).replace(/\s+/g,' ').trim();}
+function lsNomeParaLocucao_(it){
+  var original=String(it.produto||'produto').trim(),key=lsKeyProduto_(original);
+  var leituraPorNome=bancoLeituraNome[key]||'';
+  if(leituraPorNome)return leituraPorNome;
+  var cod=normalizarCodigo(it.codigo||it.cod||''),nomeBanco=cod?String(banco[cod]||''):'';
+  // O EAN só aplica a correção se o nome ainda corresponder ao cadastro oficial.
+  if(cod&&nomeBanco&&key===lsKeyProduto_(nomeBanco)&&bancoLeitura[cod])return bancoLeitura[cod];
+  return original;
+}
 function lsBuildScript_(it){
-  var nome=lsTextSpeak_(String(it.produto||'produto').trim());
+  var nome=lsTextSpeak_(lsNomeParaLocucao_(it));
   nome=nome.replace(/\s+(?:UNIDADE|UNIDADES|UND|UN|CADA)$/i,'');
   var eggTray=/ovos brancos, bandeja com \d+ unidades/i.test(nome);
   var temMedida=/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
@@ -6285,7 +6309,7 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   // recupera cache local
   try{
     var s=localStorage.getItem(PROD_KEY);
-    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(c.bancoAtualizadoEm)bancoAtualizadoEm=c.bancoAtualizadoEm;if(Array.isArray(c.products))products=c.products;}
+    if(s){var c=JSON.parse(s);if(c.banco)banco=c.banco;if(c.bancoLeitura)bancoLeitura=c.bancoLeitura;if(c.bancoLeituraNome)bancoLeituraNome=c.bancoLeituraNome;if(c.bancoPreco)bancoPreco=c.bancoPreco;if(c.bancoUnidade)bancoUnidade=c.bancoUnidade;if(c.bancoAtualizadoEm)bancoAtualizadoEm=c.bancoAtualizadoEm;if(Array.isArray(c.products))products=c.products;}
   }catch(e){}
   var cfg=loadCfg();
   var syncInicial=null;
