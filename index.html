@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.27 — mapa de pronúncia pt-BR -->
+<!-- Arsenal de Ofertas v8.30 — locução de siglas de medida -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -1009,7 +1009,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.27-mapa-pronuncia-ptbr';
+var AURA_ARSENAL_BUILD='v8.30-lider-station-unidades-na-locucao';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -6125,14 +6125,14 @@ function lsTextSpeak_(text){
   s=s.replace(/\bU\s*N(?:D|ID|1D)?\b/gi,'unidade');
   s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*(?:KG|K6)\b/gi,function(_,q){return q+' '+(singular_(q)?'quilo':'quilos');});
   s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*(?:LT|LITRO|LITROS|L)\b/gi,function(_,q){return q+' '+(singular_(q)?'litro':'litros');});
-  s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*(?:ML|MILILITRO|MILILITROS)\b/gi,function(_,q){return q+' '+(singular_(q)?'mililitro':'mililitros');});
+  s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*(ML|MILILITRO|MILILITROS)\b/gi,function(_,q,unit){return q+(String(unit).toUpperCase()==='ML'?' eme éle':' '+(singular_(q)?'mililitro':'mililitros'));});
   s=s.replace(/\b(\d+(?:[.,]\d+)?)\s*(?:GR|GRA|G)\b/gi,function(_,q){return q+' '+(singular_(q)?'grama':'gramas');});
   s=s.replace(/\b(\d+)\s*(?:PCTE?|PCTE?\.)\b/gi,function(_,q){return q+' pacote'+(Number(q)===1?'':'s');});
   s=s.replace(/\b(\d+)\s*(?:CX|CXS)\b/gi,function(_,q){return q+' caixa'+(Number(q)===1?'':'s');});
   s=s.replace(/\b(\d+)\s*(?:FD|FDO|FARDO)\b/gi,function(_,q){return q+' fardo'+(Number(q)===1?'':'s');});
   s=s.replace(/\b(\d+)\s*DZ\b/gi,function(_,q){return q+' dúzia'+(Number(q)===1?'':'s');});
   s=s.replace(/\b(?:PCTE?|PCTE\.)\b/gi,'pacote').replace(/\bCXS?\b/gi,'caixa').replace(/\b(?:FD|FDO)\b/gi,'fardo').replace(/\bDZ\b/gi,'dúzia');
-  s=s.replace(/(^|[^A-Za-zÀ-ÿ])(?:KG|K6)(?=$|[^A-Za-zÀ-ÿ])/gi,'$1quilo').replace(/(^|[^A-Za-zÀ-ÿ])LT(?=$|[^A-Za-zÀ-ÿ])/gi,'$1litro').replace(/(^|[^A-Za-zÀ-ÿ])ML(?=$|[^A-Za-zÀ-ÿ])/gi,'$1mililitro').replace(/(^|[^A-Za-zÀ-ÿ])GR(?=$|[^A-Za-zÀ-ÿ])/gi,'$1grama').replace(/(^|[^A-Za-zÀ-ÿ])UN(?:D|ID|1D)?(?=$|[^A-Za-zÀ-ÿ])/gi,'$1unidade').replace(/\bo\s+L(?=\s|[.!?,;:]|$)/gi,'o litro').replace(/\bo\s+G(?=\s|[.!?,;:]|$)/gi,'o grama');
+  s=s.replace(/(^|[^A-Za-zÀ-ÿ])(?:KG|K6)(?=$|[^A-Za-zÀ-ÿ])/gi,'$1quilo').replace(/(^|[^A-Za-zÀ-ÿ])LT(?=$|[^A-Za-zÀ-ÿ])/gi,'$1litro').replace(/(^|[^A-Za-zÀ-ÿ])ML(?=$|[^A-Za-zÀ-ÿ])/gi,'$1eme éle').replace(/(^|[^A-Za-zÀ-ÿ])GR(?=$|[^A-Za-zÀ-ÿ])/gi,'$1grama').replace(/(^|[^A-Za-zÀ-ÿ])UN(?:D|ID|1D)?(?=$|[^A-Za-zÀ-ÿ])/gi,'$1unidade').replace(/\bo\s+L(?=\s|[.!?,;:]|$)/gi,'o litro').replace(/\bo\s+G(?=\s|[.!?,;:]|$)/gi,'o grama');
   s=s.replace(/\bBPF\b/gi,'B-P-F').replace(/\bClub Boas Compras\b/gi,'Clube Boas Compras');
   // Corrige a pronúncia de palavras que chegam sem acento do cadastro ou OCR.
   // Esta camada só atua no texto falado; descrições e códigos do Arsenal ficam intactos.
@@ -6145,7 +6145,7 @@ function lsTextSpeak_(text){
     cafe:'café',cafes:'cafés',cha:'chá',chas:'chás',agua:'água',aguas:'águas',
     sabao:'sabão',saboes:'sabões',coracao:'coração',coracoes:'corações',
     linguica:'linguiça',linguicas:'linguiças',acougue:'açougue',coxao:'coxão',acem:'acém',
-    higienico:'higiênico',familia:'família',voce:'você',ate:'até',cartoes:'cartões',
+    higienico:'higiênico',pessego:'pêssego',pessegos:'pêssegos',familia:'família',voce:'você',ate:'até',cartoes:'cartões',
     promocao:'promoção',promocoes:'promoções',validas:'válidas',condicoes:'condições',
     sao:'são',so:'só'
   };
@@ -6161,7 +6161,7 @@ function lsBuildScript_(it){
   var temMedida=/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
   nome=nome.replace(/\s+(\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|unidade|unidades|rolos de \d+ metros))$/i,', $1,');
   var separador=temMedida?' ':': ',preco=lsMoneySpeak_(it.precoPromocional||it.por||''),un=normalizarTexto(String(it.unidade||'cada')),de=String(it.de||'').trim();
-  var unidadeFalada=({CADA:'cada unidade',UN:'cada unidade',UND:'cada unidade',UNIDADE:'cada unidade',UNIDADES:'cada unidade',KG:'o quilo',KILO:'o quilo',LT:'o litro',LITRO:'o litro',ML:'o mililitro',PCT:'o pacote',PACOTE:'o pacote'})[un]||'';
+  var unidadeFalada=({CADA:'cada unidade',UN:'cada unidade',UND:'cada unidade',UNIDADE:'cada unidade',UNIDADES:'cada unidade',KG:'o quilo',KILO:'o quilo',LT:'o litro',LITRO:'o litro',ML:'eme éle',PCT:'o pacote',PACOTE:'o pacote'})[un]||'';
   var antes=de?'De '+lsMoneySpeak_(de)+', agora, ':'';
   var oferta='';
   if(it.tipoPromocao==='PACK'){
@@ -6172,14 +6172,20 @@ function lsBuildScript_(it){
   return nome+separador+oferta+club;
 }
 function lsIntro_(cat){
-  var camp=document.getElementById('lsCampaign').value.trim()||'as ofertas do Boas Compras',c=normalizarTexto(cat);
-  if(c==='ACOUGUE')return 'Passando pelo açougue do Boas Compras? Aproveite '+camp+', com carne fresca, selecionada, e economia de verdade no Club!';
-  if(c.indexOf('FRIOS')===0)return 'Quer praticidade e sabor para a sua mesa? No '+camp+' do Boas Compras tem oferta imperdível para levar agora!';
-  if(c.indexOf('LIMPEZA')===0)return 'Hora de deixar a casa limpa e perfumada, economizando de verdade! Confira o que '+camp+' preparou para você!';
-  if(c==='BEBIDAS')return 'E para refrescar toda a família, aproveite os preços especiais do Boas Compras!';
-  if(c==='MERCEARIA E CAFE')return 'Atenção, cliente amigo! O '+camp+' já começou! Confira as ofertas para abastecer a despensa!';
-  if(c==='PADARIA')return 'Na padaria do Boas Compras tem sabor e economia esperando por você! Confira!';
-  return 'Atenção, cliente amigo! Confira agora as ofertas do '+camp+', no Supermercado Boas Compras!';
+  var camp=(document.getElementById('lsCampaign').value||'').trim(),c=normalizarTexto(cat);
+  // O nome do mercado não é campanha: impede que um valor antigo gere “ofertas do as ofertas do Boas Compras”.
+  var campKey=normalizarTexto(camp).replace(/\s+/g,' ').trim();
+  if(/^(AS OFERTAS DO\s+)*(SUPERMERCADO\s+)?BOAS COMPRAS$/.test(campKey))camp='';
+  var chamadas={
+    ACOUGUE:'No açougue, tem carne fresca e selecionada com preço baixo para aproveitar!',
+    FRIOS:'Quer praticidade e sabor? Confira as ofertas e leve para a sua mesa!',
+    LIMPEZA:'Casa limpa e perfumada sem pesar no bolso. Confira e aproveite!',
+    BEBIDAS:'Para refrescar a família, tem preço especial esperando por você!',
+    'MERCEARIA E CAFE':'Abasteça a despensa pagando menos. Confira e aproveite!',
+    PADARIA:'Na padaria, sabor e economia esperam por você. Aproveite!'
+  };
+  var chamada=chamadas[c]|| (c.indexOf('FRIOS')===0?chamadas.FRIOS:c.indexOf('LIMPEZA')===0?chamadas.LIMPEZA:'Atenção, cliente amigo! Preço baixo é aqui: confira as ofertas selecionadas e aproveite!');
+  return (camp?camp+': ':'')+chamada;
 }
 function lsBlocks_(){var offers=lsSelectedOffers_();var grouped={},order=[];offers.forEach(function(it){var cat=lsCategory_(it);if(!grouped[cat]){grouped[cat]=[];order.push(cat);}grouped[cat].push(it);});var blocks=[];order.forEach(function(cat){var arr=grouped[cat];for(var i=0;i<arr.length;i+=4)blocks.push({category:cat,items:arr.slice(i,i+4)});});return blocks;}
 function lsBuildBlock_(block,isLast){
