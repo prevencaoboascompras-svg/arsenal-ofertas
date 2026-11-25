@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.17 — rodapé do pack comunica somente o total -->
+<!-- Arsenal de Ofertas v8.19 — Edge Natural + vinhetas MP3; pack v8 preservado -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -457,6 +457,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -495,6 +496,53 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     </section>
   </header>
 
+  <style>
+    .ls-panel{border:1px solid var(--bd);border-radius:var(--rl);background:var(--bg);padding:16px;margin:0 0 14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .ls-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .ls-head h2{margin:0;font-size:18px}.ls-head p{margin:4px 0 0;color:var(--tx2);font-size:12px}
+    .ls-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .ls-box{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:12px;min-width:0}
+    .ls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ls-row>*{flex:1 1 140px}
+    .ls-field{display:flex;flex-direction:column;gap:4px;margin:8px 0}.ls-field label{font-size:11px;font-weight:700;color:var(--tx2)}
+    .ls-field input,.ls-field select,.ls-field textarea,.ls-promo input,.ls-promo select{min-width:0;width:100%;border:1px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);padding:8px;font:inherit;font-size:12px;box-sizing:border-box}
+    .ls-drop{border:1px dashed #b8b8b8;border-radius:9px;padding:14px;text-align:center;background:var(--bg);font-size:12px;color:var(--tx2)}
+    .ls-promo-list{display:grid;gap:7px;max-height:380px;overflow:auto;margin-top:10px}
+    .ls-promo{display:grid;grid-template-columns:24px minmax(120px,2fr) minmax(70px,.7fr) minmax(70px,.7fr) minmax(115px,1fr) minmax(100px,.8fr);gap:6px;align-items:center;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px}
+    .ls-promo small{font-size:10px;color:var(--tx2)}.ls-note{font-size:11px;color:var(--tx2);line-height:1.45;margin-top:8px}
+    .ls-player{min-height:165px;border-radius:9px;overflow:hidden;background:#171717;display:flex;align-items:center;justify-content:center;color:#fff}
+    .ls-player iframe{width:100%;height:220px;border:0}.ls-now{font-size:12px;color:var(--tx2);min-height:18px;margin:6px 0}
+    .ls-script{min-height:76px;resize:vertical}.ls-status{font-size:11px;color:var(--tx2);margin-top:7px;min-height:16px}
+    @media(max-width:800px){.ls-grid{grid-template-columns:1fr}.ls-promo{grid-template-columns:24px 1fr 1fr}.ls-promo .ls-extra{grid-column:2/-1}.ls-player iframe{height:190px}}
+  </style>
+  <section class="ls-panel" id="liderStation">
+    <div class="ls-head"><div><h2>📻 Líder Station</h2><p>A rádio do Boas Compras. Líder das ofertas, líder no ar.</p></div><span class="hd-badge">Líder Station</span></div>
+    <div class="ls-grid">
+      <div class="ls-box">
+        <strong>Importar promoções do encarte por foto</strong>
+        <p class="ls-note">Envie uma foto ou imagem do encarte. A leitura sugere produto e preços; revise cada linha, associe o código do produto e confirme antes de importar.</p>
+        <div class="ls-row"><label class="btn btn-green btn-sm" for="lsFlyerFile">Escolher foto do encarte</label><input id="lsFlyerFile" type="file" accept="image/*" capture="environment" style="display:none" onchange="lsReadFlyer(this)"><button class="btn btn-sm" onclick="lsClearFlyer()">Limpar leitura</button></div>
+        <div class="ls-drop" id="lsOcrStatus" style="margin-top:8px">JPG, PNG ou foto feita pela câmera do aparelho.</div>
+        <div id="lsOcrRows" class="ls-promo-list"></div>
+        <div class="ls-row" style="margin-top:9px"><button class="btn btn-green btn-sm" id="lsImportBtn" onclick="lsImportFlyerRows()" disabled>Importar promoções revisadas</button><span class="ls-note">A importação grava na lista do Arsenal conectada ao Google Sheets.</span></div>
+      </div>
+      <div class="ls-box">
+        <strong>Líder Station no ar</strong>
+        <div class="ls-field"><label for="lsPlaylist">Link ou código da playlist do YouTube</label><input id="lsPlaylist" placeholder="https://www.youtube.com/playlist?list=..." autocomplete="off"></div>
+        <div class="ls-row"><button class="btn btn-green btn-sm" id="lsStartBtn" onclick="lsStartRadio()">▶ Iniciar rádio</button><button class="btn btn-sm" onclick="lsStopRadio()">■ Parar</button><button class="btn btn-sm" onclick="lsSpeakNext(false)">▶ Chamar oferta agora</button></div>
+        <div class="ls-player" id="lsPlayer"><span>Adicione uma playlist e inicie a transmissão</span></div><div class="ls-now" id="lsNow">Aguardando início.</div>
+        <div class="ls-row"><div class="ls-field"><label for="lsVoice">Voz neural pt-BR</label><select id="lsVoice"></select><span class="ls-note">No Microsoft Edge, prioriza Antonio Online Natural; Francisca e Thalita também aparecem quando disponíveis.</span></div><div class="ls-field"><label for="lsEvery">Intercalar a cada</label><select id="lsEvery"><option value="2" selected>2 músicas</option><option value="3">3 músicas</option></select></div></div>
+        <div class="ls-row"><div class="ls-field"><label for="lsMusicVolume">Volume normal da música</label><input id="lsMusicVolume" type="range" min="0" max="100" value="70" oninput="lsSetMusicVolume_(this.value)"></div><div class="ls-field"><label for="lsDuckVolume">Volume durante a voz (ducking)</label><input id="lsDuckVolume" type="range" min="15" max="20" value="18" oninput="document.getElementById('lsDuckPct').textContent=this.value+'%'"><span id="lsDuckPct" class="ls-note">18%</span></div></div>
+        <div class="ls-row"><div class="ls-field"><label for="lsCampaign">Nome da campanha</label><input id="lsCampaign" value="Esquenta Black Friday"></div><div class="ls-field"><label for="lsValidity">Validade / condição</label><input id="lsValidity" value="Ofertas válidas de 23 a 25 de novembro ou enquanto durarem os estoques."></div></div>
+        <div class="ls-field"><label for="lsServices">Serviços para mencionar no último bloco (opcional)</label><input id="lsServices" value="Parcelamos nos cartões em até 10 vezes e aceitamos B-P-F. Estamos na Avenida Visconde do Rio Grande, 1960. Tele-entrega pelo WhatsApp (51) 99680-6917."></div>
+        <div class="ls-row"><div class="ls-field"><label for="lsJingleOpen">Vinheta MP3 de abertura (link público)</label><input id="lsJingleOpen" placeholder="Link público do MP3 no Drive ou URL direta"></div><div class="ls-field"><label for="lsJingleClose">Vinheta MP3 de fechamento (link público)</label><input id="lsJingleClose" placeholder="Link público do MP3 no Drive ou URL direta"></div></div>
+        <div class="ls-note">Com os MP3 configurados, eles substituem as frases de identidade faladas. Sem os arquivos, a voz neural lê as vinhetas em texto. Use links com acesso público de leitura.</div>
+        <div class="ls-field"><label for="lsScript">Texto do próximo bloco (editável)</label><textarea id="lsScript" class="ls-script" placeholder="Selecione promoções na lista abaixo ou clique em Chamar oferta agora." oninput="lsScriptEdited=true"></textarea><span class="ls-note">A programação agrupa até quatro ofertas da mesma categoria por bloco e informa a duração estimada; revise o texto para manter chamadas curtas, entre 30 e 45 segundos.</span></div>
+        <div class="ls-note">A narração transforma valores, medidas e siglas em fala natural e reduz o player para 15% a 20% durante a chamada; ao terminar, o volume volta gradualmente ao nível normal. O início do áudio depende do primeiro clique do operador.</div>
+        <div class="ls-status" id="lsRadioStatus"></div>
+      </div>
+    </div>
+    <div class="ls-box" style="margin-top:12px"><div class="ls-row"><strong style="flex:0 0 auto">Ofertas disponíveis para a rádio</strong><button class="btn btn-sm" style="flex:0 0 auto" onclick="lsRenderQueue()">Atualizar lista</button></div><div id="lsQueue" class="ls-promo-list"></div></div>
+  </section>
 
   <div class="cfg" id="cfg">
     <h3><i class="ti ti-database"></i> Configuração da fonte de dados (Google Sheets)</h3>
@@ -810,7 +858,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO-TEXTO-FOTOS-PADRAO-20261117-GEOMETRIA-UNIFORME-TODOS-TEMAS-20261117-TEMAS-SAZONAIS-POR-DATA';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO-TEXTO-FOTOS-PADRAO-20261117-GEOMETRIA-UNIFORME-TODOS-TEMAS-20261117-TEMAS-SAZONAIS-POR-DATA-20261124-LIDER-STATION-OCR-EDGE-NATURAL-JINGLES';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -939,7 +987,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.17-pack-rodape-total-claro';
+var AURA_ARSENAL_BUILD='v8.19-edge-natural-vinhetas-mp3';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -4574,6 +4622,7 @@ async function carregarEncartes(){
     _encartesCarregadosUmaVez=true;
     infoEl.textContent=lista.length+' promoção(ões) na lista';
     renderEncartes();
+    if(typeof lsRenderQueue==='function')lsRenderQueue();
   }catch(e){
     infoEl.textContent='';
     listEl.innerHTML='<div class="enc-empty">Não foi possível carregar os encartes salvos.<br>('+e.message+')</div>';
@@ -5864,6 +5913,131 @@ document.addEventListener('click',function(e){
 });
 
 // ============================================================
+// ============================================================
+// LÍDER STATION — leitura revisável de encartes e rádio interna
+// ============================================================
+var lsFlyerRows=[];
+var lsPlayer=null,lsRadioActive=false,lsRadioSpeaking=false,lsCallCount=0,lsSpeakIndex=0,lsPendingAnnouncement=false,lsVolumeTimer=0,lsScriptEdited=false,lsPreferredVoiceUri='',lsActiveJingle=null,lsAudioJobToken=0;
+var lsPlaylistId='';
+function lsMoney_(v){return String(v||'').replace(/^R\$\s*/i,'').trim().replace('.',',');}
+function lsEscape_(s){return typeof escapeHtml==='function'?escapeHtml(String(s||'')):String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function lsReadFlyer(input){
+  var file=input&&input.files&&input.files[0];if(!file)return;
+  var status=document.getElementById('lsOcrStatus');status.textContent='Lendo o encarte. Aguarde...';
+  var target=document.getElementById('lsOcrRows');target.innerHTML='';document.getElementById('lsImportBtn').disabled=true;
+  if(!window.Tesseract){status.textContent='O leitor de texto ainda está carregando. Aguarde alguns segundos e escolha a foto novamente.';return;}
+  Tesseract.recognize(file,'por',{logger:function(m){if(m.status==='recognizing text')status.textContent='Lendo texto do encarte: '+Math.round((m.progress||0)*100)+'%';}})
+    .then(function(result){lsFlyerRows=lsParseFlyer_(result.data&&result.data.text||'');lsDrawFlyerRows_();status.textContent=lsFlyerRows.length+' linha(s) de oferta reconhecida(s). Revise nome, código, preço e condição antes de importar.';document.getElementById('lsImportBtn').disabled=!lsFlyerRows.length;})
+    .catch(function(err){status.textContent='Não consegui ler esta imagem. Tente uma foto mais nítida ou aproxime o encarte.';console.warn('Leitura do encarte:',err);});
+}
+function lsParseFlyer_(text){
+  var lines=String(text||'').split(/\r?\n/).map(function(x){return x.replace(/\s+/g,' ').trim();}).filter(Boolean);
+  var out=[];var re=/(?:R\$\s*)?\d{1,4}(?:[.,]\d{2})/g;
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];var prices=line.match(re)||[];if(!prices.length)continue;
+    var name=line.replace(re,' ').replace(/\bR\$\b/gi,' ').replace(/[|•]+/g,' ').replace(/\s+/g,' ').trim();
+    if(name.replace(/[^A-Za-zÀ-ÿ]/g,'').length<3){
+      var prev=lines[i-1]||'';if(prev&&!((prev.match(re)||[]).length))name=prev+' '+name;
+    }
+    name=name.replace(/\b(OFERTA|PROMOÇÃO|PROMOCAO|R\$)\b/gi,' ').replace(/\s+/g,' ').trim();
+    if(name.length<3)continue;
+    var promoText=((lines[i-1]||'')+' '+line+' '+(lines[i+1]||'')).toUpperCase();
+    var pack=promoText.match(/(?:LEVE|LEVANDO|A PARTIR DE|NA COMPRA DE)\s*(\d{1,2})/i);
+    var tipo=pack?'PACK':(/\bCLUB\b/i.test(promoText)?'CLUB':'UNITARIA');
+    var qtd=pack?Number(pack[1]):0;
+    var modo=/(A PARTIR DE|LEVANDO|CADA)/i.test(promoText)?'apartir':'leve';
+    var unidade=(/\b(KG|QUILO|QUILOGRAMA)\b/i.test(line)?'KG':(/\b(LT|LITRO)\b/i.test(line)?'LT':'CADA'));
+    var vals=prices.map(lsMoney_);
+    var de=vals.length>1?vals[0]:'';
+    var por=vals[vals.length-1];
+    var row={produto:name,codigo:'',de:de,por:por,unidade:unidade,tipo:tipo,qtd:qtd,modo:modo,validade:'',fala:''};
+    row.fala=lsBuildScript_(row);
+    out.push(row);
+  }
+  var seen={};return out.filter(function(x){var k=(x.produto+'|'+x.por).toLowerCase();if(seen[k])return false;seen[k]=1;return true;}).slice(0,100);
+}
+function lsDrawFlyerRows_(){
+  var el=document.getElementById('lsOcrRows');if(!el)return;
+  if(!lsFlyerRows.length){el.innerHTML='<div class="ls-note">Nenhuma promoção reconhecida. Tente outra foto ou ajuste iluminação e foco.</div>';return;}
+  el.innerHTML=lsFlyerRows.map(function(r,i){return '<div class="ls-promo" data-row="'+i+'">'+
+    '<input type="checkbox" checked class="ls-ok" aria-label="Importar linha">'+
+    '<input class="ls-prod" value="'+lsEscape_(r.produto)+'" aria-label="Produto" title="Produto lido">'+
+    '<input class="ls-code" value="'+lsEscape_(r.codigo)+'" placeholder="Código/EAN" aria-label="Código/EAN">'+
+    '<input class="ls-por" value="'+lsEscape_(r.por)+'" placeholder="Por R$" aria-label="Preço promocional">'+
+    '<select class="ls-type"><option value="UNITARIA" '+(r.tipo==='UNITARIA'?'selected':'')+'>Unitária</option><option value="PACK" '+(r.tipo==='PACK'?'selected':'')+'>Pack / leve</option><option value="CLUB" '+(r.tipo==='CLUB'?'selected':'')+'>Preço Club</option></select>'+
+    '<input class="ls-extra ls-de" value="'+lsEscape_(r.de)+'" placeholder="De R$ (opcional)" aria-label="Preço anterior">'+
+    '<div class="ls-extra" style="grid-column:2/-1;display:flex;gap:6px"><input class="ls-qtd" type="number" min="1" value="'+(r.qtd||2)+'" title="Quantidade do pack"><select class="ls-modo"><option value="leve" '+(r.modo==='leve'?'selected':'')+'>Leve X por (total do pack)</option><option value="apartir" '+(r.modo==='apartir'?'selected':'')+'>A partir de X, cada unidade</option></select><select class="ls-unit"><option '+(r.unidade==='CADA'?'selected':'')+'>CADA</option><option '+(r.unidade==='KG'?'selected':'')+'>KG</option><option '+(r.unidade==='LT'?'selected':'')+'>LT</option><option>UND</option><option>PCT</option></select><input class="ls-validade" value="'+lsEscape_(r.validade)+'" placeholder="Validade (opcional)"></div></div>';}).join('');
+}
+function lsClearFlyer(){lsFlyerRows=[];document.getElementById('lsOcrRows').innerHTML='';document.getElementById('lsOcrStatus').textContent='JPG, PNG ou foto feita pela câmera do aparelho.';document.getElementById('lsImportBtn').disabled=true;var f=document.getElementById('lsFlyerFile');if(f)f.value='';}
+async function lsImportFlyerRows(){
+  var cards=[].slice.call(document.querySelectorAll('#lsOcrRows .ls-promo'));
+  var chosen=cards.filter(function(c){return c.querySelector('.ls-ok').checked;});
+  if(!chosen.length){mostrarToast('Marque ao menos uma promoção para importar.','warn');return;}
+  var semCodigo=chosen.filter(function(c){var cod=normalizarCodigo(c.querySelector('.ls-code').value);if(cod)return false;var busca=buscarProdutos(c.querySelector('.ls-prod').value,20);return !busca.some(function(p){return normalizarTexto(p.nome)===normalizarTexto(c.querySelector('.ls-prod').value);});});
+  if(semCodigo.length){mostrarToast('Associe o código/EAN em cada produto antes de importar. O Arsenal usa esse código para vincular a promoção ao cadastro e à foto.','warn');return;}
+  var sem=chosen.filter(function(c){return !(parseDec(c.querySelector('.ls-por').value)>0);});if(sem.length){mostrarToast('Corrija os preços promocionais antes de importar.','warn');return;}
+  var btn=document.getElementById('lsImportBtn');btn.disabled=true;btn.textContent='Importando...';
+  var loaderTicket=window.AuraLoader?window.AuraLoader.start({message:'Importando as promoções revisadas…',complete:'Promoções da foto importadas'}):0;
+  var ok=0,fail=0;
+  for(var i=0;i<chosen.length;i++){var c=chosen[i],tipo=c.querySelector('.ls-type').value,produto=c.querySelector('.ls-prod').value.trim(),cod=normalizarCodigo(c.querySelector('.ls-code').value),por=c.querySelector('.ls-por').value.trim(),qtd=tipo==='PACK'?(parseInt(c.querySelector('.ls-qtd').value,10)||2):0,modo=c.querySelector('.ls-modo').value,unit=c.querySelector('.ls-unit').value;
+    if(!produto){fail++;if(loaderTicket)window.AuraLoader.progress(i+1,chosen.length,'Importando as promoções revisadas…');continue;}
+    var lookup=cod?buscarPorCodigo(cod):null;if(!lookup){var exact=buscarProdutos(produto,20).filter(function(p){return normalizarTexto(p.nome)===normalizarTexto(produto);});if(exact.length){cod=normalizarCodigo(exact[0].cod);lookup=buscarPorCodigo(cod);}}
+    var nomeBanco=lookup&&lookup.nome||produto,unidadeBanco=normalizarUnidadeBanco(lookup&&lookup.unidade||''),precoVenda=lookup&&lookup.preco||bancoPreco[cod]||0;
+    var registro={id:gerarIdEncarte(),versaoRegistro:7,codigo:cod,produto:nomeBanco,produtoDigitado:produto,descricaoTransform:'',produtoInfo:{codigo:cod,descricao:produto||nomeBanco,unidade:unidadeBanco,valorVenda:precoVenda},de:c.querySelector('.ls-de').value.trim(),por:por,precoPromocional:por,unidade:unit,unidadePromocao:unit,unidadeBanco:unidadeBanco,unidadeMedida:unit,validade:c.querySelector('.ls-validade').value.trim(),tipoPromocao:tipo==='PACK'?'PACK':'UNITARIA',radioTipoPromocao:tipo,packQtd:qtd,packTipo:modo,packUnidade:modo==='apartir'?unit:'',unirOn:false,unirLayout:'',cod2:'',produtoB:'',produtosExtra:[],descricaoFinal:'',data:new Date().toISOString(),origem:'encarte-foto'};
+    try{var res=await _gasPost('upsertEncarte',{registro:registro});if(res&&res.ok){lsStorePromoMeta_(registro.id,{radioTipoPromocao:registro.radioTipoPromocao});ok++;}else fail++;}catch(e){fail++;}
+    if(loaderTicket)window.AuraLoader.progress(i+1,chosen.length,'Gravando as ofertas no Arsenal…');
+  }
+  btn.disabled=false;btn.textContent='Importar promoções revisadas';
+  if(ok){mostrarToast(ok+' promoção(ões) importada(s) para o Arsenal.','ok');await carregarEncartes();lsRenderQueue();}
+  if(fail)mostrarToast(fail+' linha(s) não foram gravadas; confira a conexão e os dados.','warn');
+  if(loaderTicket){if(!ok)window.AuraLoader.fail('Nenhuma promoção foi gravada no Arsenal.');else window.AuraLoader.done(fail?'Importação parcial: '+ok+' importada(s), '+fail+' pendente(s).':ok+' promoção(ões) importada(s).');}
+}
+function lsCategory_(it){var n=normalizarTexto(it.produto||'');if(/ACEM|ACOU|COSTELA|OSSINHO|PALETA SUINA|PATINHO|COXAO|CARNE|FRANGO|BOVIN|SUIN/.test(n))return 'Açougue';if(/MARGARINA|SALSICHA|BATATA|CONGEL|QUEIJO|PRESUNTO|FRIOS|PAO DE QUEIJO/.test(n))return 'Frios, congelados e praticidade';if(/DESINFET|AMACIANT|PAPEL HIG|SABAO|DETERG|LIMPEZA|HIGIENE|ALVEJANTE/.test(n))return 'Limpeza e higiene';if(/AGUA|FRUKI|FRUKITO|REFRIG|SUCO|CERVEJA|BEBIDA|ENERGET/.test(n))return 'Bebidas';if(/CAFE|MASSA|MACARR|MOLHO|BISCOITO|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO/.test(n))return 'Mercearia e café';if(/PADARIA|PAO|BOLO|CUCA/.test(n))return 'Padaria';return it.categoriaRadio||'Ofertas do Boas Compras';}
+function lsMoneySpeak_(value){var s=String(value||'').replace(/^R\$\s*/i,'').trim().replace(',','.');var n=Number(s);if(!isFinite(n))return String(value||'');var reais=Math.floor(n),cent=Math.round((n-reais)*100);if(cent===100){reais++;cent=0;}if(!cent)return reais+' reais';return reais+' reais e '+cent+' centavos';}
+function lsTextSpeak_(text){var s=String(text||'');s=s.replace(/\b1[.,]5\s*KG\b/gi,'um quilo e meio').replace(/\b(\d{1,2})\s*(?:LT|LITROS?|L)\b/gi,'$1 litros').replace(/\b(\d+(?:[.,]\d+)?)\s*KG\b/gi,'$1 quilos').replace(/\b(\d+)\s*G\b/gi,'$1 gramas').replace(/\b(\d+(?:[.,]\d+)?)\s*ML\b/gi,'$1 mililitros').replace(/\bBPF\b/gi,'B-P-F').replace(/\b(\d{1,2})\s*UN\b/gi,'$1 unidades');return s;}
+function lsBuildScript_(it){
+  var nome=lsTextSpeak_(String(it.produto||'produto').trim()),preco=lsMoneySpeak_(it.precoPromocional||it.por||''),un=String(it.unidade||'cada').toLowerCase();
+  var oferta='';
+  if(it.tipoPromocao==='PACK'){
+    var q=Number(it.packQtd||it.qtd||2);var modo=it.packTipo||it.modo||'leve';
+    oferta=modo==='apartir'?'Levando '+q+' unidades, cada uma sai por '+preco+'.':'Leve '+q+' por '+preco+'.';
+  }else oferta='por apenas '+preco+' '+(un==='cada'?'cada':'o '+un)+'.';
+  var de=String(it.de||'').trim();var economia=de?' De '+lsMoneySpeak_(de)+' por '+preco+'.':'';
+  var club=it.radioTipoPromocao==='CLUB'?' Oferta especial para clientes do Club Boas Compras!':'';
+  return nome+': '+oferta+economia+club;
+}
+function lsIntro_(cat){var camp=document.getElementById('lsCampaign').value.trim()||'as ofertas do Boas Compras';var c=normalizarTexto(cat);if(c==='ACOUGUE')return 'Passando pelo açougue do Boas Compras? Aproveite '+camp+' com carne fresca, selecionada e economia de verdade no Club.';if(c.indexOf('FRIOS')===0)return 'Quer praticidade e sabor para a sua mesa? No '+camp+' do Boas Compras tem oferta para levar agora.';if(c.indexOf('LIMPEZA')===0)return 'Hora de deixar a casa limpa e perfumada economizando de verdade! Confira o que '+camp+' preparou para você.';if(c==='BEBIDAS')return 'E para refrescar toda a família, aproveite os preços especiais do Boas Compras.';if(c==='MERCEARIA E CAFE')return 'Atenção, cliente amigo! O '+camp+' já começou. Confira as ofertas para abastecer a despensa:';if(c==='PADARIA')return 'Na padaria do Boas Compras tem sabor e economia esperando por você. Confira:';return 'Atenção, cliente amigo! Confira as ofertas do '+camp+' no Supermercado Boas Compras:';}
+function lsBlocks_(){var offers=lsSelectedOffers_();var grouped={},order=[];offers.forEach(function(it){var cat=lsCategory_(it);if(!grouped[cat]){grouped[cat]=[];order.push(cat);}grouped[cat].push(it);});var blocks=[];order.forEach(function(cat){var arr=grouped[cat];for(var i=0;i<arr.length;i+=4)blocks.push({category:cat,items:arr.slice(i,i+4)});});return blocks;}
+function lsBuildBlock_(block,isLast){var lines=block.items.map(lsBuildScript_);var validity=(document.getElementById('lsValidity').value||'').trim();var services=(document.getElementById('lsServices').value||'').trim();var intro=lsIntro_(block.category);var idents=['Líder Station, a rádio do Boas Compras, o líder das ofertas.','Líder Station, a rádio do Boas Compras.','Líder das ofertas, líder no ar.'];var opening=idents[(lsSpeakIndex+idents.length-1)%idents.length];var closing=idents[(lsSpeakIndex+1)%idents.length];var tail=validity?' '+validity:'';if(isLast&&services)tail+=' '+services;return {opening:opening,body:intro+' '+lines.join(' ')+' '+tail,closing:closing};}
+var LS_PROMO_META_KEY='boas_compras_lider_station_promo_meta_v1';
+function lsPromoMeta_(){try{return JSON.parse(localStorage.getItem(LS_PROMO_META_KEY)||'{}');}catch(e){return {};}}
+function lsStorePromoMeta_(id,meta){try{var all=lsPromoMeta_();all[String(id)]=Object.assign(all[String(id)]||{},meta||{});localStorage.setItem(LS_PROMO_META_KEY,JSON.stringify(all));}catch(e){}}
+function lsMergeMeta_(it){var meta=lsPromoMeta_()[String(it.id)]||{};return Object.assign({},it,meta);}
+function lsRenderQueue(){var el=document.getElementById('lsQueue');if(!el)return;var list=encartesCache||[];if(!list.length){el.innerHTML='<div class="ls-note">Ainda não há promoções salvas. Importe um encarte ou atualize a lista do Arsenal.</div>';return;}el.innerHTML=list.map(function(raw,i){var it=lsMergeMeta_(raw),price=it.precoPromocional||it.por||'';return '<label class="ls-promo" style="grid-template-columns:24px minmax(120px,2fr) minmax(80px,1fr) minmax(80px,1fr)"><input type="checkbox" class="ls-queue-check" value="'+lsEscape_(it.id)+'" checked><span>'+lsEscape_(it.produto||'Produto')+'</span><span>R$ '+lsEscape_(price)+'</span><span>'+lsEscape_(lsCategory_(it))+'</span></label>';}).join('');}
+function lsSelectedOffers_(){var ids=[].slice.call(document.querySelectorAll('.ls-queue-check:checked')).map(function(x){return x.value;});return (encartesCache||[]).filter(function(it){return ids.indexOf(String(it.id))>=0;}).map(lsMergeMeta_);}
+function lsBeginDuck_(){if(!lsPlayer||!lsPlayer.setVolume)return;clearInterval(lsVolumeTimer);var from=Number(lsPlayer.getVolume?lsPlayer.getVolume():document.getElementById('lsMusicVolume').value),to=Number(document.getElementById('lsDuckVolume').value);if(isNaN(to))to=18;lsRampVolume_(from,to,450);}
+function lsRestoreVolume_(){if(!lsPlayer||!lsPlayer.setVolume)return;var from=Number(lsPlayer.getVolume?lsPlayer.getVolume():document.getElementById('lsDuckVolume').value),to=Number(document.getElementById('lsMusicVolume').value);if(isNaN(to))to=70;lsRampVolume_(from,to,1100);}
+function lsRampVolume_(from,to,duration){clearInterval(lsVolumeTimer);var start=Date.now();lsVolumeTimer=setInterval(function(){var t=Math.min(1,(Date.now()-start)/duration);var v=Math.round(from+(to-from)*t);try{lsPlayer.setVolume(v);}catch(e){}if(t>=1)clearInterval(lsVolumeTimer);},80);}
+function lsSetMusicVolume_(value){var el=document.getElementById('lsMusicVolume');if(el)el.value=value;if(lsPlayer&&lsPlayer.setVolume&&!lsRadioSpeaking)lsPlayer.setVolume(Number(value));lsSaveConfig_();}
+function lsVoiceSort_(voices){var rank=function(v){var n=String(v.name||'').toLowerCase();if(/microsoft.*antonio.*natural|antonio.*online.*natural/.test(n))return 0;if(/microsoft.*francisca.*natural|francisca.*online.*natural/.test(n))return 1;if(/microsoft.*thalita.*natural|thalita.*online.*natural/.test(n))return 2;if(/microsoft.*natural|online.*natural/.test(n))return 3;return 10;};return voices.filter(function(v){return /^pt(-|_)?br$/i.test(v.lang||'')||/portuguese.*brazil/i.test(v.name||'');}).sort(function(a,b){return rank(a)-rank(b)||String(a.name).localeCompare(String(b.name));});}
+function lsFillVoices(){var sel=document.getElementById('lsVoice');if(!sel)return;var current=sel.value||lsPreferredVoiceUri;var voices=lsVoiceSort_((window.speechSynthesis&&speechSynthesis.getVoices())||[]);sel.innerHTML='<option value="">Automática (Edge Natural quando disponível)</option>';voices.forEach(function(v){var id=v.voiceURI||v.name;sel.insertAdjacentHTML('beforeend','<option value="'+lsEscape_(id)+'">'+lsEscape_(v.name)+' · '+lsEscape_(v.lang)+'</option>');});if(current&&voices.some(function(v){return (v.voiceURI||v.name)===current;}))sel.value=current;else if(!current&&voices.length)sel.value=voices[0].voiceURI||voices[0].name;var natural=voices.some(function(v){return /microsoft.*(antonio|francisca|thalita).*natural|online.*natural/i.test(v.name||'');});var status=document.getElementById('lsRadioStatus');if(status&&!natural)status.textContent='Voz neural Microsoft não detectada. Abra o Arsenal no Edge para disponibilizar Antonio, Francisca ou Thalita Online Natural.';}
+function lsSelectedVoice_(){var voices=lsVoiceSort_((window.speechSynthesis&&speechSynthesis.getVoices())||[]),id=document.getElementById('lsVoice').value;return voices.find(function(v){return (v.voiceURI||v.name)===id;})||voices[0]||null;}
+function lsSpeakUtterance_(text){return new Promise(function(resolve){if(!window.speechSynthesis){resolve(false);return;}var u=new SpeechSynthesisUtterance(lsTextSpeak_(text));u.lang='pt-BR';var chosen=lsSelectedVoice_();if(chosen)u.voice=chosen;u.rate=0.96;u.pitch=1;u.onend=function(){resolve(true);};u.onerror=function(){resolve(false);};window.speechSynthesis.speak(u);});}
+function lsAudioUrl_(value){var s=String(value||'').trim();if(!s)return '';var m=s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/)||s.match(/[?&]id=([A-Za-z0-9_-]+)/);return m?'https://drive.google.com/uc?export=download&id='+m[1]:s;}
+function lsPlayJingle_(value){var url=lsAudioUrl_(value);if(!url||!window.Audio)return Promise.resolve(false);return new Promise(function(resolve){var done=false,a=new Audio(url),timer=setTimeout(function(){finish(false);},20000);lsActiveJingle=a;function finish(ok){if(done)return;done=true;clearTimeout(timer);a.onended=a.onerror=null;if(!ok){try{a.pause();}catch(e){}}if(lsActiveJingle===a)lsActiveJingle=null;resolve(ok);}a.onended=function(){finish(true);};a.onerror=function(){finish(false);};var p=a.play();if(p&&p.catch)p.catch(function(){finish(false);});});}
+function lsStripIdents_(text,opening,closing){var s=String(text||'').trim();if(opening&&s.toLocaleLowerCase().indexOf(opening.toLocaleLowerCase())===0)s=s.slice(opening.length).trim();if(closing&&s.toLocaleLowerCase().slice(-closing.length)===closing.toLocaleLowerCase())s=s.slice(0,-closing.length).trim();return s;}
+async function lsSpeakNext(force){var blocks=lsBlocks_();if(!blocks.length){document.getElementById('lsNow').textContent='Selecione ofertas para a rádio.';return;}var block=blocks[lsSpeakIndex%blocks.length],last=lsSpeakIndex%blocks.length===blocks.length-1;lsSpeakIndex++;var parts=lsBuildBlock_(block,last),input=document.getElementById('lsScript'),custom=!force&&lsScriptEdited,script=custom?input.value.trim():parts.opening+' '+parts.body+' '+parts.closing;if(!custom)input.value=script;lsScriptEdited=false;if(!window.speechSynthesis){document.getElementById('lsRadioStatus').textContent='Não há voz disponível neste navegador. Abra a Líder Station no Microsoft Edge.';return;}var voice=lsSelectedVoice_(),openUrl=document.getElementById('lsJingleOpen').value.trim(),closeUrl=document.getElementById('lsJingleClose').value.trim(),body=custom?lsStripIdents_(script,parts.opening,parts.closing):parts.body,seconds=Math.max(1,Math.round(lsTextSpeak_(script).split(/\s+/).filter(Boolean).length/(145/60))),token=++lsAudioJobToken;window.speechSynthesis.cancel();lsRadioSpeaking=true;lsBeginDuck_();document.getElementById('lsNow').textContent='No ar — bloco '+block.category+' ('+block.items.length+' ofertas, cerca de '+seconds+' s)'+(voice?' · '+voice.name:'')+'.';document.getElementById('lsRadioStatus').textContent=voice&&/microsoft.*(antonio|francisca|thalita).*natural|online.*natural/i.test(voice.name)?'Locução com voz neural Microsoft Edge.':'Locução usando a voz pt-BR selecionada.';await new Promise(function(r){setTimeout(r,480);});if(token!==lsAudioJobToken)return;var openPlayed=openUrl?await lsPlayJingle_(openUrl):false;if(token!==lsAudioJobToken)return;await lsSpeakUtterance_((openPlayed?'':parts.opening+' ')+body);if(token!==lsAudioJobToken)return;var closePlayed=closeUrl?await lsPlayJingle_(closeUrl):false;if(token!==lsAudioJobToken)return;if(!closePlayed)await lsSpeakUtterance_(parts.closing);if(token!==lsAudioJobToken)return;lsRadioSpeaking=false;lsRestoreVolume_();}
+if(window.speechSynthesis){lsFillVoices();speechSynthesis.onvoiceschanged=lsFillVoices;}
+function lsExtractPlaylist_(v){var s=String(v||'').trim();var m=s.match(/[?&]list=([A-Za-z0-9_-]+)/);if(m)return m[1];if(/^[A-Za-z0-9_-]{10,}$/.test(s))return s;return '';}
+window.onYouTubeIframeAPIReady=function(){document.getElementById('lsRadioStatus').textContent='Player do YouTube pronto. Configure a playlist e clique em Iniciar rádio.';};
+function lsLoadYTApi_(){if(window.YT&&window.YT.Player)return;var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);}
+function lsStartRadio(){var id=lsExtractPlaylist_(document.getElementById('lsPlaylist').value);if(!id){document.getElementById('lsRadioStatus').textContent='Cole um link de playlist do YouTube válido.';return;}if(!lsSelectedOffers_().length){document.getElementById('lsRadioStatus').textContent='Marque ao menos uma promoção para entrar na programação.';return;}lsPlaylistId=id;lsRadioActive=true;document.getElementById('lsNow').textContent='Iniciando playlist. A reprodução começa após a autorização do navegador.';lsLoadYTApi_();if(window.YT&&window.YT.Player)lsCreatePlayer_();else{var prior=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=function(){if(typeof prior==='function')prior();lsCreatePlayer_();};}}
+function lsCreatePlayer_(){var host=document.getElementById('lsPlayer');host.innerHTML='<div id="lsYoutubePlayer"></div>';lsPlayer=new YT.Player('lsYoutubePlayer',{height:'220',width:'100%',playerVars:{listType:'playlist',list:lsPlaylistId,autoplay:1,playsinline:1,rel:0},events:{onReady:function(e){e.target.loadPlaylist({listType:'playlist',list:lsPlaylistId});e.target.setVolume(Number(document.getElementById('lsMusicVolume').value));e.target.playVideo();document.getElementById('lsRadioStatus').textContent='Líder Station está no ar.';},onStateChange:function(e){if(e.data===YT.PlayerState.ENDED&&lsRadioActive){lsCallCount++;var every=Number(document.getElementById('lsEvery').value)||2;lsPendingAnnouncement=lsCallCount%every===0;if(lsPlayer&&lsPlayer.nextVideo)lsPlayer.nextVideo();}if(e.data===YT.PlayerState.PLAYING&&lsPendingAnnouncement){lsPendingAnnouncement=false;setTimeout(function(){if(lsRadioActive)lsSpeakNext(true);},450);}},onError:function(e){document.getElementById('lsRadioStatus').textContent='O YouTube não permitiu tocar este vídeo ou playlist (código '+e.data+'). Tente outra playlist pública com vídeos incorporáveis.';}}});}
+function lsStopRadio(){lsRadioActive=false;lsRadioSpeaking=false;lsAudioJobToken++;if(lsActiveJingle){try{lsActiveJingle.pause();}catch(e){}lsActiveJingle=null;}if(window.speechSynthesis)speechSynthesis.cancel();clearInterval(lsVolumeTimer);if(lsPlayer&&lsPlayer.stopVideo)lsPlayer.stopVideo();document.getElementById('lsNow').textContent='Rádio parada.';document.getElementById('lsRadioStatus').textContent='Transmissão pausada pelo operador.';}
+function lsSaveConfig_(){try{localStorage.setItem('boas_compras_lider_station_v1',JSON.stringify({playlist:document.getElementById('lsPlaylist').value,every:document.getElementById('lsEvery').value,voice:document.getElementById('lsVoice').value,musicVolume:document.getElementById('lsMusicVolume').value,duckVolume:document.getElementById('lsDuckVolume').value,campaign:document.getElementById('lsCampaign').value,validity:document.getElementById('lsValidity').value,services:document.getElementById('lsServices').value,jingleOpen:document.getElementById('lsJingleOpen').value,jingleClose:document.getElementById('lsJingleClose').value}));}catch(e){}}
+function lsRestoreConfig_(){try{var c=JSON.parse(localStorage.getItem('boas_compras_lider_station_v1')||'{}');lsPreferredVoiceUri=c.voice||'';var pairs={playlist:'lsPlaylist',every:'lsEvery',voice:'lsVoice',musicVolume:'lsMusicVolume',duckVolume:'lsDuckVolume',campaign:'lsCampaign',validity:'lsValidity',services:'lsServices',jingleOpen:'lsJingleOpen',jingleClose:'lsJingleClose'};Object.keys(pairs).forEach(function(k){var e=document.getElementById(pairs[k]);if(e&&c[k]!=null)e.value=c[k];});document.getElementById('lsDuckPct').textContent=document.getElementById('lsDuckVolume').value+'%';}catch(e){}['lsPlaylist','lsEvery','lsVoice','lsMusicVolume','lsDuckVolume','lsCampaign','lsValidity','lsServices','lsJingleOpen','lsJingleClose'].forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('change',lsSaveConfig_);});}
+
+
 // (Removido: cada linha "extra" tinha sua própria busca/sugestões.
 // Agora tudo passa pela caixa principal #pCod + botão "+", que
 // reaproveita a busca e a lista de sugestões padrão.)
@@ -5905,6 +6079,8 @@ document.getElementById('pFotoUrl').addEventListener('keydown',function(e){
   prepararTemaAtualSemDesenhar_();
   drawPlaca();
   popularSeletorTema();
+  lsRestoreConfig_();
+  lsRenderQueue();
   if(cfg.id){
     Promise.resolve(syncInicial).then(function(){setTimeout(carregarEncartes,80);})
       .catch(function(){setTimeout(carregarEncartes,80);});
