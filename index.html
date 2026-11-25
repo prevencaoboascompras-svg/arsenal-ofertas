@@ -1016,7 +1016,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.37-lider-station-preview-ocr-plates';
+var AURA_ARSENAL_BUILD='v8.38-lider-station-ocr-layout-regions';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -6010,6 +6010,7 @@ function lsExtractCampaign_(text){
   if(hasEsquenta&&hasBlack&&hasFriday)return 'Esquenta Black Friday';
   if(hasBlack&&hasFriday)return 'Black Friday';
   var rules=[
+    {re:/QUARTA.{0,14}QUINTA.{0,18}HORTIFRUTI|HORTIFRUTI.{0,18}QUARTA.{0,14}QUINTA/,value:'Quarta e Quinta Hortifruti'},
     {re:/ARRASTAO.{0,16}PRECO BAIXO/,value:'Arrastão de Preço Baixo'},
     {re:/SEGUNDA.{0,12}ECONOMIA/,value:'Segunda da Economia'},
     {re:/OPORTUNIDADE DO DIA/,value:'Oportunidade do Dia'},
@@ -6027,8 +6028,32 @@ function lsMergeFlyerRows_(rows){
   lsFlyerRows=combined.filter(function(x){var key=normalizarTexto(x.produto)+'|'+String(x.por||'').replace(',','.');if(seen[key])return false;seen[key]=1;return true;});
 }
 function lsCropOcrColumn_(image,side){var half=Math.floor(image.width/2),overlap=Math.max(8,Math.round(image.width*.012)),x=side===0?0:Math.max(0,half-overlap),w=side===0?Math.min(image.width,half+overlap):image.width-x,canvas=document.createElement('canvas');canvas.width=w;canvas.height=image.height;canvas.getContext('2d').drawImage(image,x,0,w,image.height,0,0,w,image.height);return canvas;}
-function lsFlyerRowsQuality_(rows){return (rows||[]).reduce(function(score,r){var n=normalizarTexto(r.produto||''),words=n.split(/\s+/).filter(Boolean),clue=/CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|ROSQUIN|CARNE|OSSINHO|PALETA|BATATA|QUEIJO|SABAO|SUCO|FRUKI|ARROZ|FEIJAO|LEITE|MARGARINA|SEARA/.test(n);score+=5+(parseDec(r.por)>0?60:0)+(clue?14:0);score-=Math.max(0,words.length-7)*2;if(String(r.produto||'').length>58)score-=10;if(/[|{}\\]/.test(String(r.produto||'')))score-=6;return score;},0);}
+function lsFlyerProductClue_(text){return /CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|ROSQUIN|CARNE|OSSINHO|PALETA|BATATA|QUEIJO|SABAO|SUCO|FRUKI|ARROZ|FEIJAO|LEITE|MARGARINA|SEARA|MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|HORTIFRUTI|PRESUNTO|LINGUICA|FRANGO|PAPEL|DESINFET|AMACIANTE/.test(normalizarTexto(text||''));}
+function lsFlyerRowsQuality_(rows){return (rows||[]).reduce(function(score,r){var n=normalizarTexto(r.produto||''),words=n.split(/\s+/).filter(Boolean),clue=lsFlyerProductClue_(n);score+=5+(parseDec(r.por)>0?60:0)+(clue?24:0);score-=Math.max(0,words.length-9)*2;if(String(r.produto||'').length>70)score-=10;if(/[|{}\\]/.test(String(r.produto||'')))score-=6;return score;},0);}
+function lsCombineFlyerCandidates_(sources){var out=[];function similar_(a,b){var aa=normalizarTexto(a||'').split(/\s+/).filter(Boolean),bb=normalizarTexto(b||'').split(/\s+/).filter(Boolean);if(!aa.length||!bb.length)return false;var set={};aa.forEach(function(w){set[w]=1;});var overlap=bb.filter(function(w){return set[w];}).length/Math.min(aa.length,bb.length);return overlap>=.6;}
+  (sources||[]).forEach(function(src){(src.rows||[]).forEach(function(row){var current=out.find(function(x){return similar_(x.produto,row.produto);});if(!current){current=Object.assign({},row,{_rank:src.rank||0});out.push(current);return;}
+    var newNameScore=(lsFlyerProductClue_(row.produto)?20:0)-Math.max(0,String(row.produto||'').length-45),oldNameScore=(lsFlyerProductClue_(current.produto)?20:0)-Math.max(0,String(current.produto||'').length-45);if(newNameScore>oldNameScore)current.produto=row.produto;
+    if(parseDec(row.por)>0&&(!parseDec(current.por)||(src.rank||0)>=current._rank)){current.por=row.por;current._rank=src.rank||0;}
+    if(parseDec(row.de)>0&&!parseDec(current.de))current.de=row.de;if(row.tipo==='PACK'||row.tipo==='CLUB'){current.tipo=row.tipo;current.qtd=row.qtd||current.qtd;current.modo=row.modo||current.modo;}if(row.unidade&&(!current.unidade||current.unidade==='CADA'))current.unidade=row.unidade;
+  });});return out.map(function(x){delete x._rank;return x;});}
 async function lsReadFlyerColumns_(worker,image){var text=[];for(var side=0;side<2;side++){var crop=lsCropOcrColumn_(image,side),res=await worker.recognize(crop);text.push(res&&res.data&&res.data.text||'');}return text.join('\n');}
+function lsCropOcrRect_(image,x0,y0,x1,y1,threshold){var x=Math.max(0,Math.floor(image.width*x0)),y=Math.max(0,Math.floor(image.height*y0)),w=Math.max(1,Math.min(image.width-x,Math.ceil(image.width*(x1-x0)))),h=Math.max(1,Math.min(image.height-y,Math.ceil(image.height*(y1-y0)))),canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;var ctx=canvas.getContext('2d',{willReadFrequently:true});try{ctx.filter='grayscale(1) contrast(1.45)';}catch(e){}ctx.drawImage(image,x,y,w,h,0,0,w,h);if(threshold){var im=ctx.getImageData(0,0,w,h),px=im.data;for(var i=0;i<px.length;i+=4){var l=px[i]*.299+px[i+1]*.587+px[i+2]*.114,v=l<threshold?0:255;px[i]=px[i+1]=px[i+2]=v;}ctx.putImageData(im,0,0);}return canvas;}
+function lsFlyerPriceFromOcr_(text,words){var s=String(text||'').toUpperCase().replace(/[OQ]/g,'0').replace(/[|IL]/g,'1').replace(/S(?=\d)/g,'5').replace(/\s+/g,' ').trim();if(words&&words.length){var reliable=words.filter(function(w){return Number(w.confidence)>=32;}).map(function(w){return String(w.text||'').replace(/[^0-9,.]/g,'');}).filter(Boolean);for(var i=0;i<reliable.length;i++){var exact=reliable[i].match(/^(\d{1,3})[,.](\d{2})$/);if(exact)return exact[1]+','+exact[2];var compact=reliable[i].match(/^(\d{3,4})$/);if(compact)return compact[1].slice(0,-2)+','+compact[1].slice(-2);}for(var a=0;a<reliable.length;a++)if(/^\d{1,2}$/.test(reliable[a]))for(var b=a+1;b<reliable.length;b++)if(/^\d{2}$/.test(reliable[b]))return reliable[a]+','+reliable[b];return '';}
+  var m=s.match(/(?:R\$\s*)?(\d{1,3})\s*[,.]\s*(\d{2})(?!\d)/);if(m)return m[1]+','+m[2];m=s.match(/(?:^|\D)(\d{1,2})\s+(\d{2})(?:\D|$)/);if(m)return m[1]+','+m[2];m=s.match(/(?:^|\D)(\d{3,4})(?:\D|$)/);if(m){var digits=m[1];return digits.slice(0,-2)+','+digits.slice(-2);}return '';}
+function lsFlyerNameFromCell_(text){var src=String(text||'').split(/\r?\n/).map(function(x){return x.replace(/\s+/g,' ').trim();}).filter(Boolean),skip=/NO CLUB|HORTIFRUTI|QUARTA|QUINTA|OFERTAS|VALIDAS|ENQUANTO|DURAREM|ESTOQUES|BOAS COMPRAS|SUPERMERCADO|FAZEMOS|ENTREGAS|AVENIDA|VISCONDE|GRANDE|PARCELAMOS|CARTOES|CONFIRA|CONDICOES|ACEITAMOS|BPF|BLACK|FRIDAY|ESQUENTA|PAGUE|LEVE NA|CADA|UNIDADES|UNIDADE|^KG$|^UN$|^BDJ$|^NO\b/;
+  function clean_(v){return String(v||'').replace(/(?:R\$\s*)?\d{1,3}\s*[,.]?\s*\d{2}/g,' ').replace(/[|{}\\]+/g,' ').replace(/\s+/g,' ').trim();}
+  var cand=[];for(var i=0;i<src.length;i++){var one=clean_(src[i]),norm=normalizarTexto(one),letters=(one.match(/[A-Za-zÀ-ÿ]/g)||[]).length;if(letters>=3&&one.length<=90&&!skip.test(norm)){var sc=(lsFlyerProductClue_(norm)?100:0)+Math.min(letters,34)-Math.max(0,one.length-48);cand.push({text:one,score:sc,index:i});}
+    if(i+1<src.length){var two=clean_(src[i]+' '+src[i+1]),n2=normalizarTexto(two),l2=(two.match(/[A-Za-zÀ-ÿ]/g)||[]).length;if(l2>=5&&two.length<=90&&!skip.test(normalizarTexto(src[i]))&&!skip.test(normalizarTexto(src[i+1]))&&lsFlyerProductClue_(n2))cand.push({text:two,score:115+Math.min(l2,34),index:i});}}
+  cand.sort(function(a,b){return b.score-a.score||a.index-b.index;});return cand.length?cand[0].text:'';}
+async function lsReadFlyerCells_(worker,image){var out=[];for(var row=0;row<2;row++)for(var side=0;side<2;side++){var y0=row===0?.22:.53,y1=row===0?.55:.88,x0=side===0?0:.47,x1=side===0?.53:1,cell=lsCropOcrRect_(image,x0,y0,x1,y1),cellRes=await worker.recognize(cell),cellText=cellRes&&cellRes.data&&cellRes.data.text||'',name=lsFlyerNameFromCell_(cellText);if(!name)continue;
+    // A faixa de preço exclui o rótulo "NO CLUB" e lê apenas os dígitos grandes.
+    var px0=side===0?.025:.75,px1=side===0?.27:.985,py0=row===0?.255:.565,py1=row===0?.375:.685,priceCanvas=lsCropOcrRect_(image,px0,py0,px1,py1,195),priceText='',priceRes=null;
+    try{if(worker.setParameters)await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789,.',preserve_interword_spaces:'1'});priceRes=await worker.recognize(priceCanvas);priceText=priceRes&&priceRes.data&&priceRes.data.text||'';var priceRead=lsFlyerPriceFromOcr_(priceText,priceRes&&priceRes.data&&priceRes.data.words);if(!priceRead&&worker.setParameters){await worker.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789,.',preserve_interword_spaces:'1'});priceRes=await worker.recognize(lsCropOcrRect_(image,px0,py0,px1,py1,0));priceText=priceRes&&priceRes.data&&priceRes.data.text||'';}}catch(priceErr){console.warn('[Líder Station OCR] Leitura isolada do preço indisponível:',priceErr);}finally{try{if(worker.setParameters)await worker.setParameters({tessedit_pageseg_mode:'11',tessedit_char_whitelist:''});}catch(resetErr){}}
+    var promoText=cellText+'\n'+priceText,por=lsFlyerPriceFromOcr_(priceText,priceRes&&priceRes.data&&priceRes.data.words),packQty=0,modo='leve',tipo='UNITARIA',pack=promoText.match(/(?:LEVE|LEVANDO|A PARTIR DE|NA COMPRA DE)\s*(\d{1,2})/i)||promoText.match(/LEVE[^\d]{0,30}C\s*\/\s*(\d{1,2})\s*UN/i),pagamento=promoText.match(/PAGUE\s*(?:R\$\s*)?(\d{1,3}[,.]\s*\d{2})\s*CADA/i);
+    if(pack){packQty=Number(pack[1]||pack[2])||0;tipo='PACK';if(/PAGUE\s*(?:R\$\s*)?\d/i.test(promoText)){modo='apartir';if(pagamento)por=pagamento[1].replace(/\s/g,'').replace('.',',');}}
+    var unit=/\b(KG|QUILO)\b/i.test(promoText)?'KG':(/\b(BDJ|BANDEJA)\b/i.test(promoText)?'BDJ':(/\b(PCT|PACOTE)\b/i.test(promoText)?'PCT':'CADA'));
+    out.push({produto:name,codigo:'',de:'',por:por,unidade:unit,tipo:tipo,qtd:packQty,modo:modo,validade:'',fala:''});
+  }return out;}
 async function lsReadFlyer(input){
   var files=Array.prototype.slice.call(input&&input.files||[]).filter(function(f){return /^image\//i.test(f.type||'')||/\.(jpe?g|png|webp)$/i.test(f.name||'');});if(!files.length)return;
   var status=document.getElementById('lsOcrStatus'),target=document.getElementById('lsOcrRows'),btn=document.getElementById('lsImportBtn'),previewBtn=document.getElementById('lsPreviewFlyerBtn');
@@ -6043,12 +6068,16 @@ async function lsReadFlyer(input){
         if(!extractedCampaign){var headerImage=await lsPrepareOcrImage_(files[i],true);var headerResult=await worker.recognize(headerImage);extractedCampaign=lsExtractCampaign_(headerResult&&headerResult.data&&headerResult.data.text||'');}
         var ocrImage=await lsPrepareOcrImage_(files[i],false);var result=await worker.recognize(ocrImage),text=result&&result.data&&result.data.text||'';
         if(!extractedCampaign)extractedCampaign=lsExtractCampaign_(text);
-        var rows=lsParseFlyer_(text),fullScore=lsFlyerRowsQuality_(rows),priceCount=rows.filter(function(r){return parseDec(r.por)>0;}).length;
-        if(ocrImage.width>ocrImage.height*.55&&(!rows.length||priceCount<rows.length||fullScore<rows.length*16)){
-          status.textContent='Separando as colunas para melhorar a leitura da página '+(i+1)+'…';
-          var splitText=await lsReadFlyerColumns_(worker,ocrImage),splitRows=lsParseFlyer_(splitText);
-          var splitPrices=splitRows.filter(function(r){return parseDec(r.por)>0;}).length;
-          if(splitPrices>priceCount||lsFlyerRowsQuality_(splitRows)>fullScore)rows=splitRows;
+        var rows=lsParseFlyer_(text),candidates=[{rows:rows,rank:1}],fullScore=lsFlyerRowsQuality_(rows),priceCount=rows.filter(function(r){return parseDec(r.por)>0;}).length;
+        if(ocrImage.width>ocrImage.height*.55){
+          if(!rows.length||priceCount<rows.length||fullScore<rows.length*16){
+            status.textContent='Separando as colunas para melhorar a leitura da página '+(i+1)+'…';
+            var splitText=await lsReadFlyerColumns_(worker,ocrImage),splitRows=lsParseFlyer_(splitText);
+            if(splitRows.length)candidates.push({rows:splitRows,rank:2});
+          }
+          status.textContent='Lendo separadamente os quadrantes de produtos e preços da página '+(i+1)+'…';
+          var layoutRows=await lsReadFlyerCells_(worker,ocrImage);if(layoutRows.length)candidates.push({rows:layoutRows,rank:3});
+          rows=lsCombineFlyerCandidates_(candidates);
         }
         lsMergeFlyerRows_(rows);pagesOK++;
       }catch(pageErr){pagesFailed.push(files[i].name+': '+String(pageErr&&pageErr.message||pageErr));console.error('[Líder Station OCR] Falha na página '+files[i].name,pageErr);}
@@ -6069,7 +6098,7 @@ function lsParseFlyer_(text){
   var sourceLines=String(text||'').split(/\r?\n/),joined=[];
   for(var li=0;li<sourceLines.length;li++){
     var current=String(sourceLines[li]||'').trim(),next=String(sourceLines[li+1]||'').trim();
-    if(/^(?:R\$\s*)?\d{1,3}[,.]?\s*$/.test(current)&&/^\d{2}$/.test(next)){joined.push(current.replace(/^R\$\s*/i,'').replace(/[,.\s]+$/,'')+','+next);li++;}
+    if(/^(?:R\$\s*)?\d{1,3}[,.]?\s*$/.test(current)&&/^,?\s*\d{2}$/.test(next)){joined.push(current.replace(/^R\$\s*/i,'').replace(/[,.\s]+$/,'')+','+next.replace(/\D/g,''));li++;}
     else joined.push(current);
   }
   var lines=joined.map(function(x){return x.replace(/(\d)\s*[,.]\s*(\d{2})(?!\d)/g,'$1,$2').replace(/\s+/g,' ').trim();}).filter(Boolean);
@@ -6080,13 +6109,13 @@ function lsParseFlyer_(text){
     if(name.replace(/[^A-Za-zÀ-ÿ]/g,'').length<3){var prev=lines[i-1]||'';if(prev&&!((prev.match(re)||[]).length)&&!/NO CLUB|OFERTAS VALIDAS|BOAS COMPRAS/i.test(prev))name=prev+' '+name;}
     name=name.replace(/\b(OFERTA|PROMOÇÃO|PROMOCAO|R\$)\b/gi,' ').replace(/\s+/g,' ').trim();if(name.length<3)continue;
     var promoText=((lines[i-1]||'')+' '+line+' '+(lines[i+1]||'')).toUpperCase();
-    var pack=promoText.match(/(?:LEVE|LEVANDO|A PARTIR DE|NA COMPRA DE)\s*(\d{1,2})/i),tipo=pack?'PACK':(/\bCLUB\b/i.test(promoText)?'CLUB':'UNITARIA'),qtd=pack?Number(pack[1]):0,modo=/(A PARTIR DE|LEVANDO|CADA)/i.test(promoText)?'apartir':'leve';
+    var pack=promoText.match(/(?:LEVE|LEVANDO|A PARTIR DE|NA COMPRA DE)\s*(\d{1,2})/i)||promoText.match(/LEVE[^\d]{0,30}C\s*\/\s*(\d{1,2})\s*UN/i),tipo=pack?'PACK':(/\bCLUB\b/i.test(promoText)&&!/\bNO\s+CLUB\b/i.test(promoText)?'CLUB':'UNITARIA'),qtd=pack?Number(pack[1]):0,modo=/(A PARTIR DE|LEVANDO|CADA|PAGUE)/i.test(promoText)?'apartir':'leve';
     var unidade=(/\b(KG|QUILO|QUILOGRAMA)\b/i.test(promoText)?'KG':(/\b(LT|LITRO)\b/i.test(promoText)?'LT':'CADA'));
     var vals=prices.map(lsMoney_),row={produto:name,codigo:'',de:vals.length>1?vals[0]:'',por:vals[vals.length-1],unidade:unidade,tipo:tipo,qtd:qtd,modo:modo,validade:'',fala:''};row.fala=lsBuildScript_(row);out.push(row);
   }
   // Quando os números estilizados do encarte escapam ao OCR, ainda lista os nomes
   // reconhecíveis para que o operador complete preço e produto antes de criar placas.
-  var dicaProduto=/CAFE|PRESIDENTE|DOMELLY|CAJAMAR|MASSA|MACARR|MOLHO|BISCOITO|ROSQUIN|CARNE|OSSINHO|PORCO|PATINHO|PALETA|COXAO|FRANGO|MARGARINA|SALSICHA|BATATA|PAO|QUEIJO|SABAO|AMACIANTE|PAPEL|DESINFET|SUCO|AGUA|FRUKI|BEBIDA|REFRIG|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO|LEITE|IOGURTE|DETERGENTE|PRESUNTO|LINGUICA|CERVEJA|VINHO|LIMPEZA|HIGIENE/;
+  var dicaProduto=/CAFE|PRESIDENTE|DOMELLY|CAJAMAR|MASSA|MACARR|MOLHO|BISCOITO|ROSQUIN|CARNE|OSSINHO|PORCO|PATINHO|PALETA|COXAO|FRANGO|MARGARINA|SALSICHA|BATATA|PAO|QUEIJO|SABAO|AMACIANTE|PAPEL|DESINFET|SUCO|AGUA|FRUKI|BEBIDA|REFRIG|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO|LEITE|IOGURTE|DETERGENTE|PRESUNTO|LINGUICA|CERVEJA|VINHO|LIMPEZA|HIGIENE|MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|HORTIFRUTI/;
   var bloqueio=/NO CLUB|OFERTAS? VALIDAS|ENQUANTO DURAREM|ESTOQUES|SUPERMERCADO|BOAS COMPRAS|FAZEMOS ENTREGAS|AVENIDA|VISCONDE|RIO GRANDE|PARCELAMOS|CARTOES|CONFIRA CONDICOES|ACEITAMOS|BPF|BLACK FRIDAY|ESQUENTA|\b\d{1,2}\/\d{1,2}\b/;
   function semelhante_(a,b){var aa=normalizarTexto(a).split(/\s+/).filter(Boolean),bb=normalizarTexto(b).split(/\s+/).filter(Boolean);if(!aa.length||!bb.length)return false;var set={};aa.forEach(function(w){set[w]=1;});var comum=bb.filter(function(w){return set[w];}).length;return comum/Math.min(aa.length,bb.length)>=0.6;}
   for(var j=0;j<lines.length;j++){
@@ -6097,7 +6126,7 @@ function lsParseFlyer_(text){
     if(dicaProduto.test(norm)&&!hasUnit&&j+1<lines.length){var prox=lines[j+1],pn=normalizarTexto(prox);if(prox.length<55&&!bloqueio.test(pn)&&(/[A-Z]{3}/.test(pn))&&(/\b\d+(?:[.,]\d+)?\s*(?:KG|G|ML|LT|L|UN|UND|PCT|PCTE|M)\b/i.test(prox)||/DORIANA|PRESIDENTE|DOMELLY|CAJAMAR|SEARA|BRILHA SUL|SERRA MINEIRA|BEM BRASIL|PLUSH|GOTA LIMPA|FLUA|D KLOSS|DKLOSS|FRUKITO/i.test(pn)))nome+=' '+prox;}
     nome=nome.replace(/\s+/g,' ').trim();if(out.some(function(r){return semelhante_(r.produto,nome);}))continue;
     var un=/\b(KG|QUILO)\b/i.test(nome)?'KG':(/\b(LT|LITRO|ML)\b/i.test(nome)?'LT':'CADA');
-    out.push({produto:nome,codigo:'',de:'',por:'',unidade:un,tipo:/\bCLUB\b/i.test(raw)?'CLUB':'UNITARIA',qtd:0,modo:'leve',validade:'',fala:''});
+    out.push({produto:nome,codigo:'',de:'',por:'',unidade:un,tipo:/\bCLUB\b/i.test(raw)&&!/\bNO\s+CLUB\b/i.test(raw)?'CLUB':'UNITARIA',qtd:0,modo:'leve',validade:'',fala:''});
   }
   var seen={};return out.filter(function(x){var k=normalizarTexto(x.produto)+'|'+String(x.por||'').replace(',','.');if(seen[k])return false;seen[k]=1;return true;}).slice(0,400);
 }
@@ -6140,7 +6169,7 @@ async function lsCreateFlyerPlates_(){
   if(fail)mostrarToast(fail+' linha(s) não foram gravadas; confira a conexão e os dados.','warn');
   if(loaderTicket){if(!ok)window.AuraLoader.fail('Nenhuma placa foi criada.');else window.AuraLoader.done(fail?'Criação parcial: '+ok+' placa(s) criada(s), '+fail+' pendente(s).':ok+' placa(s) criada(s) e disponível(is) para impressão.');}
 }
-function lsCategory_(it){var n=normalizarTexto(it.produto||'');if(/ACEM|ACOU|COSTELA|OSSINHO|PALETA SUINA|PATINHO|COXAO|CARNE|FRANGO|BOVIN|SUIN/.test(n))return 'Açougue';if(/MARGARINA|SALSICHA|BATATA|CONGEL|QUEIJO|PRESUNTO|FRIOS|PAO DE QUEIJO/.test(n))return 'Frios, congelados e praticidade';if(/DESINFET|AMACIANT|PAPEL HIG|SABAO|DETERG|LIMPEZA|HIGIENE|ALVEJANTE/.test(n))return 'Limpeza e higiene';if(/AGUA|FRUKI|FRUKITO|REFRIG|SUCO|CERVEJA|BEBIDA|ENERGET/.test(n))return 'Bebidas';if(/CAFE|MASSA|MACARR|MOLHO|BISCOITO|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO/.test(n))return 'Mercearia e café';if(/PADARIA|PAO|BOLO|CUCA/.test(n))return 'Padaria';return it.categoriaRadio||'Ofertas do Boas Compras';}
+function lsCategory_(it){var n=normalizarTexto(it.produto||'');if(/ACEM|ACOU|COSTELA|OSSINHO|PALETA SUINA|PATINHO|COXAO|CARNE|FRANGO|BOVIN|SUIN/.test(n))return 'Açougue';if(/MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|HORTIFRUTI/.test(n))return 'Hortifruti';if(/MARGARINA|SALSICHA|BATATA|CONGEL|QUEIJO|PRESUNTO|FRIOS|PAO DE QUEIJO/.test(n))return 'Frios, congelados e praticidade';if(/DESINFET|AMACIANT|PAPEL HIG|SABAO|DETERG|LIMPEZA|HIGIENE|ALVEJANTE/.test(n))return 'Limpeza e higiene';if(/AGUA|FRUKI|FRUKITO|REFRIG|SUCO|CERVEJA|BEBIDA|ENERGET/.test(n))return 'Bebidas';if(/CAFE|MASSA|MACARR|MOLHO|BISCOITO|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO/.test(n))return 'Mercearia e café';if(/PADARIA|PAO|BOLO|CUCA/.test(n))return 'Padaria';return it.categoriaRadio||'Ofertas do Boas Compras';}
 function lsMoneySpeak_(value){
   var s=String(value||'').replace(/^R\$\s*/i,'').trim().replace(/\s/g,'');
   if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.');
