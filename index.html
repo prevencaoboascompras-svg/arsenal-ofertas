@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.26 — Líder Station em largura total -->
+<!-- Arsenal de Ofertas v8.27 — mapa de pronúncia pt-BR -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -1009,7 +1009,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.26-lider-station-largura-total';
+var AURA_ARSENAL_BUILD='v8.27-mapa-pronuncia-ptbr';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -6134,6 +6134,25 @@ function lsTextSpeak_(text){
   s=s.replace(/\b(?:PCTE?|PCTE\.)\b/gi,'pacote').replace(/\bCXS?\b/gi,'caixa').replace(/\b(?:FD|FDO)\b/gi,'fardo').replace(/\bDZ\b/gi,'dúzia');
   s=s.replace(/(^|[^A-Za-zÀ-ÿ])(?:KG|K6)(?=$|[^A-Za-zÀ-ÿ])/gi,'$1quilo').replace(/(^|[^A-Za-zÀ-ÿ])LT(?=$|[^A-Za-zÀ-ÿ])/gi,'$1litro').replace(/(^|[^A-Za-zÀ-ÿ])ML(?=$|[^A-Za-zÀ-ÿ])/gi,'$1mililitro').replace(/(^|[^A-Za-zÀ-ÿ])GR(?=$|[^A-Za-zÀ-ÿ])/gi,'$1grama').replace(/(^|[^A-Za-zÀ-ÿ])UN(?:D|ID|1D)?(?=$|[^A-Za-zÀ-ÿ])/gi,'$1unidade').replace(/\bo\s+L(?=\s|[.!?,;:]|$)/gi,'o litro').replace(/\bo\s+G(?=\s|[.!?,;:]|$)/gi,'o grama');
   s=s.replace(/\bBPF\b/gi,'B-P-F').replace(/\bClub Boas Compras\b/gi,'Clube Boas Compras');
+  // Corrige a pronúncia de palavras que chegam sem acento do cadastro ou OCR.
+  // Esta camada só atua no texto falado; descrições e códigos do Arsenal ficam intactos.
+  var pronuncia={
+    maca:'maçã',macas:'maçãs',maça:'maçã',maças:'maçãs',
+    mamao:'mamão',mamoes:'mamões',limao:'limão',limoes:'limões',
+    melao:'melão',meloes:'melões',maracuja:'maracujá',maracujas:'maracujás',
+    pimentao:'pimentão',pimentoes:'pimentões',feijao:'feijão',feijoes:'feijões',
+    pao:'pão',paes:'pães',acai:'açaí',acais:'açaís',acucar:'açúcar',acucares:'açúcares',
+    cafe:'café',cafes:'cafés',cha:'chá',chas:'chás',agua:'água',aguas:'águas',
+    sabao:'sabão',saboes:'sabões',coracao:'coração',coracoes:'corações',
+    linguica:'linguiça',linguicas:'linguiças',acougue:'açougue',coxao:'coxão',acem:'acém',
+    higienico:'higiênico',familia:'família',voce:'você',ate:'até',cartoes:'cartões',
+    promocao:'promoção',promocoes:'promoções',validas:'válidas',condicoes:'condições',
+    sao:'são',so:'só'
+  };
+  Object.keys(pronuncia).forEach(function(word){
+    var re=new RegExp('(^|[^A-Za-zÀ-ÿ])'+word+'(?=$|[^A-Za-zÀ-ÿ])','gi');
+    s=s.replace(re,function(_,before){return before+pronuncia[word];});
+  });
   return s;
 }
 function lsBuildScript_(it){
