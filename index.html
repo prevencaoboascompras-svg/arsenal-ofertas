@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.30 — locução de siglas de medida -->
+<!-- Arsenal de Ofertas v8.33 — revisão ortográfica pt-BR na locução -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -558,7 +558,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
         <div class="ls-row"><div class="ls-field"><label for="lsJingleOpen">Vinheta MP3 de abertura no Drive</label><select id="lsJingleOpen"><option value="">Carregue a lista do Drive</option></select></div><div class="ls-field"><label for="lsJingleClose">Vinheta MP3 de fechamento no Drive</label><select id="lsJingleClose"><option value="">Carregue a lista do Drive</option></select></div></div>
         <div class="ls-row"><button class="btn btn-sm" type="button" onclick="lsLoadDriveJingles_()">↻ Buscar vinhetas no Drive</button><span class="ls-note" id="lsJingleStatus">Os MP3 ficam privados na pasta “Lider Station - Vinhetas” do Drive.</span></div>
         <div class="ls-note">Com os MP3 configurados, eles substituem as frases de identidade faladas. Se uma vinheta não carregar, a locução lê a frase correspondente.</div>
-        <div class="ls-field"><label for="lsScript">Texto do próximo bloco (editável)</label><textarea id="lsScript" class="ls-script" placeholder="Selecione promoções na lista abaixo ou clique em Chamar oferta agora." oninput="lsScriptEdited=true"></textarea><span class="ls-note">A programação agrupa até quatro ofertas da mesma categoria por bloco e informa a duração estimada; revise o texto para manter chamadas curtas, entre 30 e 45 segundos.</span></div>
+        <div class="ls-field"><label for="lsScript">Texto do próximo bloco (editável)</label><textarea id="lsScript" class="ls-script" lang="pt-BR" spellcheck="true" placeholder="Selecione promoções na lista abaixo ou clique em Chamar oferta agora." oninput="lsScriptEdited=true"></textarea><span class="ls-note">O Edge pode sublinhar erros de português nesta caixa. Corrija o texto aqui antes de chamar a oferta; a locução usará a versão revisada. A programação agrupa até quatro ofertas por bloco.</span></div>
         <div class="ls-note">A narração transforma valores, medidas e siglas em fala natural e reduz o player para 15% a 20% durante a chamada; ao terminar, o volume volta gradualmente ao nível normal. O início do áudio depende do primeiro clique do operador.</div>
         <div class="ls-status" id="lsRadioStatus"></div>
       </div>
@@ -1009,7 +1009,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.30-lider-station-unidades-na-locucao';
+var AURA_ARSENAL_BUILD='v8.33-lider-station-revisao-ptbr';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -6153,21 +6153,29 @@ function lsTextSpeak_(text){
     var re=new RegExp('(^|[^A-Za-zÀ-ÿ])'+word+'(?=$|[^A-Za-zÀ-ÿ])','gi');
     s=s.replace(re,function(_,before){return before+pronuncia[word];});
   });
+  // Concordância e embalagem que o cadastro do encarte costuma abreviar.
+  s=s.replace(/(^|[^A-Za-zÀ-ÿ])OVOS\s+BRANCO(?=$|[^A-Za-zÀ-ÿ])/gi,'$1ovos brancos');
+  s=s.replace(/(^|[^A-Za-zÀ-ÿ])OVOS\s+BRANCOS?\s+(\d{1,2})(?:\s+(?:UN|UND|UNIDADE|UNIDADES))?(?=$|[^A-Za-zÀ-ÿ])/gi,function(_,before,count){return before+'ovos brancos, bandeja com '+count+' unidades';});
+  // Adjetivo no singular depois de nome plural: pêssegos nacional vira pêssegos nacionais.
+  s=s.replace(/(^|[^A-Za-zÀ-ÿ])([A-Za-zÀ-ÿ]+s)\s+NACIONAL(?=$|[^A-Za-zÀ-ÿ])/gi,'$1$2 nacionais');
   return s;
 }
 function lsBuildScript_(it){
   var nome=lsTextSpeak_(String(it.produto||'produto').trim());
   nome=nome.replace(/\s+(?:UNIDADE|UNIDADES|UND|UN|CADA)$/i,'');
-  var temMedida=/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
-  nome=nome.replace(/\s+(\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|unidade|unidades|rolos de \d+ metros))$/i,', $1,');
-  var separador=temMedida?' ':': ',preco=lsMoneySpeak_(it.precoPromocional||it.por||''),un=normalizarTexto(String(it.unidade||'cada')),de=String(it.de||'').trim();
-  var unidadeFalada=({CADA:'cada unidade',UN:'cada unidade',UND:'cada unidade',UNIDADE:'cada unidade',UNIDADES:'cada unidade',KG:'o quilo',KILO:'o quilo',LT:'o litro',LITRO:'o litro',ML:'eme éle',PCT:'o pacote',PACOTE:'o pacote'})[un]||'';
-  var antes=de?'De '+lsMoneySpeak_(de)+', agora, ':'';
+  var eggTray=/ovos brancos, bandeja com \d+ unidades/i.test(nome);
+  var temMedida=/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
+  if(!temMedida)nome=nome.replace(/\s+(?:QUILOS?|KG|K6|LITROS?|LT|ML|EME ÉLE|GRAMAS?|GR|G|UNIDADES?|UND|UN|CADA)$/i,'');
+  temMedida=temMedida||/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
+  if(!eggTray)nome=nome.replace(/\s+(\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros))$/i,', $1,');
+  var separador=eggTray?': ':temMedida?' ':': ',preco=lsMoneySpeak_(it.precoPromocional||it.por||''),un=normalizarTexto(String(it.unidade||'cada')),de=String(it.de||'').trim();
+  var unidadeFalada=eggTray?'':(({CADA:'cada unidade',UN:'cada unidade',UND:'cada unidade',UNIDADE:'cada unidade',UNIDADES:'cada unidade',KG:'o quilo',KILO:'o quilo',LT:'o litro',LITRO:'o litro',ML:'eme éle',PCT:'o pacote',PACOTE:'o pacote'})[un]||'');
+  var antes=de?'De '+lsMoneySpeak_(de)+' por apenas ':'';
   var oferta='';
   if(it.tipoPromocao==='PACK'){
     var q=Number(it.packQtd||it.qtd||2),modo=it.packTipo||it.modo||'leve';
-    oferta=antes+(modo==='apartir'?'Levando '+q+' unidades, cada uma sai por apenas '+preco+'!':'Leve '+q+', por apenas '+preco+'!');
-  }else oferta=antes+(temMedida?'':', ')+'por apenas '+preco+(unidadeFalada?' '+unidadeFalada:'')+'!';
+    oferta=antes+(modo==='apartir'?'Levando '+q+' unidades, cada uma sai por apenas '+preco+'!':'Leve '+q+' por apenas '+preco+'!');
+  }else oferta=(antes||'Por apenas ')+preco+(unidadeFalada?' '+unidadeFalada:'')+'!';
   var club=it.radioTipoPromocao==='CLUB'?' Oferta especial para clientes do Club Boas Compras!':'';
   return nome+separador+oferta+club;
 }
@@ -6225,7 +6233,7 @@ function lsSpeakSingle_(phrase,opts){
 }
 async function lsSpeakUtterance_(text){
   if(!window.speechSynthesis)return false;
-  var clean=lsTextSpeak_(text),chunks=clean.split(/(?<=[!?])\s+|\n+/).map(function(s){return s.trim();}).filter(Boolean),currentJob=lsAudioJobToken;
+  var clean=lsTextSpeak_(text),chunks=[clean.replace(/\n+/g,' ').trim()].filter(Boolean),currentJob=lsAudioJobToken;
   for(var i=0;i<chunks.length;i++){
     if(currentJob!==lsAudioJobToken)return false;
     var chunk=chunks[i],hasPrice=/\b(reais?|centavos?|apenas|só|por)\b|\d+[,.]\d{2}/i.test(chunk),isFooter=/\b(parcelamos|avenida|whatsapp|aceitamos)\b/i.test(chunk);
