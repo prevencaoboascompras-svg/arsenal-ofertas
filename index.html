@@ -1013,7 +1013,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.39-lider-station-ocr-clean-promos';
+var AURA_ARSENAL_BUILD='v8.40-lider-station-ocr-dynamic-grid';
 var temaAutomaticoAtual='padrao';
 
 function temaSazonalPorData_(data){
@@ -6042,11 +6042,21 @@ function lsCleanFlyerProductName_(value){var s=String(value||'').replace(/(?:R\$
 function lsFlyerNameValid_(value){var s=lsCleanFlyerProductName_(value),cue=/\b(?:CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|ROSQUIN|CARNE|OSSINHO|PALETA|PATINHO|COXAO|PORCO|BATATA|PAO|QUEIJO|SABAO|SUCO|DKLOSS|D KLOSS|AGUA|FLUA|FRUKI|FRUKITO|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO|LEITE|MARGARINA|DORIANA|SEARA|MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|PRESUNTO|LINGUICA|FRANGO|PAPEL|PLUSH|DESINFET|AMACIANTE|BRILHA SUL|DETERGENTE|IOGURTE|CERVEJA|VINHO|REFRIGERANTE)\b/i,at=s.search(cue);if(at>0)s=s.slice(at).trim();var n=normalizarTexto(s),letters=(s.match(/[A-Za-zÀ-ÿ]/g)||[]).length,blocked=/\b(?:PAGUE|PAGA|LEVE|LEVANDO|CADA|NO CLUB|NO CLUBE|HORTIFRUTI|OFERTAS|VALIDAS|ENQUANTO|DURAREM|ESTOQUES|SUPERMERCADO|BOAS COMPRAS|FAZEMOS|ENTREGAS|AVENIDA|VISCONDE|GRANDE|PARCELAMOS|CARTOES|CONFIRA|CONDICOES|ACEITAMOS|BPF|BLACK FRIDAY|ESQUENTA)\b/.test(n);return !blocked&&letters>=3&&s.length<=82&&lsFlyerProductClue_(n)?s:'';}
 function lsFlyerNameFromCell_(text){var src=String(text||'').split(/\r?\n/).map(function(x){return x.replace(/\s+/g,' ').trim();}).filter(Boolean),skip=/NO CLUB|HORTIFRUTI|QUARTA|QUINTA|OFERTAS|VALIDAS|ENQUANTO|DURAREM|ESTOQUES|BOAS COMPRAS|SUPERMERCADO|FAZEMOS|ENTREGAS|AVENIDA|VISCONDE|GRANDE|PARCELAMOS|CARTOES|CONFIRA|CONDICOES|ACEITAMOS|BPF|BLACK|FRIDAY|ESQUENTA|PAGUE|PAGA|LEVE NA|LEVANDO|CADA|UNIDADES|UNIDADE|^KG$|^UN$|^BDJ$|^NO\b/;
   var candidates=[];for(var i=0;i<src.length;i++){var one=lsFlyerNameValid_(src[i]);if(one&&!skip.test(normalizarTexto(one)))candidates.push({text:one,index:i,score:100+Math.min(one.length,34)});
-    if(i+1<src.length){var next=lsCleanFlyerProductName_(src[i+1]),pair=lsFlyerNameValid_(src[i]+' '+src[i+1]);if(pair&&!skip.test(normalizarTexto(src[i]))&&!skip.test(normalizarTexto(src[i+1]))){var cues=(normalizarTexto(pair).match(/MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|CARNE|OSSINHO|PALETA|PATINHO|COXAO|MARGARINA|SEARA|BATATA|QUEIJO|SABAO|PAPEL|SUCO|FRUKI|FRUKITO|FLUA/g)||[]).length;candidates.push({text:pair,index:i,score:100+Math.min(pair.length,34)+(cues>1?8:0)});}}
+    if(i+1<src.length){var pair=lsFlyerNameValid_(src[i]+' '+src[i+1]);if(pair&&!skip.test(normalizarTexto(src[i]))&&!skip.test(normalizarTexto(src[i+1]))){var cues=(normalizarTexto(pair).match(/MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|CARNE|OSSINHO|PALETA|PATINHO|COXAO|MARGARINA|SEARA|BATATA|QUEIJO|SABAO|PAPEL|SUCO|FRUKI|FRUKITO|FLUA/g)||[]).length;candidates.push({text:pair,index:i,score:100+Math.min(pair.length,34)+(cues>1?8:0)});}}
+  }
   candidates.sort(function(a,b){return b.score-a.score||a.index-b.index;});return candidates.length?candidates[0].text:'';}
-async function lsReadFlyerCells_(worker,image){var out=[];for(var row=0;row<2;row++)for(var side=0;side<2;side++){var y0=row===0?.22:.53,y1=row===0?.55:.88,x0=side===0?0:.47,x1=side===0?.53:1,cell=lsCropOcrRect_(image,x0,y0,x1,y1),cellRes=await worker.recognize(cell),cellText=cellRes&&cellRes.data&&cellRes.data.text||'',name=lsFlyerNameFromCell_(cellText);if(!name)continue;
-    // A faixa de preço exclui o rótulo "NO CLUB" e lê apenas os dígitos grandes.
-    var px0=side===0?.025:.75,px1=side===0?.27:.985,py0=row===0?.255:.565,py1=row===0?.375:.685,priceCanvas=lsCropOcrRect_(image,px0,py0,px1,py1,195),priceText='',priceRes=null;
+function lsFlyerGrid_(data,imageWidth,imageHeight){var lines=data&&Array.isArray(data.lines)?data.lines:[],words=data&&Array.isArray(data.words)?data.words:[],anchors=[];
+  (lines.length?lines:words).forEach(function(w){var t=String(w.text||'').trim(),b=w.bbox||{},x0=Number(b.x0),x1=Number(b.x1),y0=Number(b.y0),y1=Number(b.y1);if(!t||!isFinite(x0+x1+y0+y1)||!lsFlyerNameValid_(t))return;var x=(x0+x1)/2/(imageWidth||1),y=(y0+y1)/2/(imageHeight||1);if(y>.18&&y<.9&&x>.015&&x<.985)anchors.push({x:x,y:y});});
+  function cluster_(values,tolerance){values.sort(function(a,b){return a-b;});var groups=[];values.forEach(function(v){var g=groups[groups.length-1];if(g&&v-g.mean<tolerance){g.items.push(v);g.mean=g.items.reduce(function(s,n){return s+n;},0)/g.items.length;}else groups.push({items:[v],mean:v});});return groups.map(function(g){return g.mean;});}
+  var ys=cluster_(anchors.map(function(a){return a.y;}),.105),xs=cluster_(anchors.map(function(a){return a.x;}),.20),rows=[];
+  if(ys.length>=3){var yBounds=[.18];for(var i=1;i<ys.length;i++)yBounds.push((ys[i-1]+ys[i])/2);yBounds.push(.9);for(var ri=0;ri<ys.length;ri++)rows.push({y0:yBounds[ri],y1:yBounds[ri+1]});}
+  else rows=[{y0:.20,y1:.53},{y0:.53,y1:.90}];
+  var cols=[];if(xs.length>=3){var xBounds=[0];for(var xi=1;xi<xs.length;xi++)xBounds.push((xs[xi-1]+xs[xi])/2);xBounds.push(1);for(var ci=0;ci<xs.length;ci++)cols.push({x0:xBounds[ci],x1:xBounds[ci+1]});}
+  else cols=[{x0:0,x1:.53,side:0},{x0:.47,x1:1,side:1}];return {rows:rows,cols:cols};}
+async function lsReadFlyerCells_(worker,image,data){var out=[],grid=lsFlyerGrid_(data||{},image.width,image.height);for(var row=0;row<grid.rows.length;row++)for(var col=0;col<grid.cols.length;col++){var y0=grid.rows[row].y0,y1=grid.rows[row].y1,region=grid.cols[col],x0=region.x0,x1=region.x1,cell=lsCropOcrRect_(image,x0,y0,x1,y1),cellRes=await worker.recognize(cell),cellText=cellRes&&cellRes.data&&cellRes.data.text||'',name=lsFlyerNameFromCell_(cellText);if(!name)continue;
+    // Em colunas padrão, recorta o preço pela borda. Em grades mais largas, usa a própria coluna detectada.
+    var px0,px1;if(grid.cols.length>2){px0=x0+(x1-x0)*.05;px1=x1-(x1-x0)*.05;}else if(region.side===0){px0=.025;px1=.27;}else{px0=.75;px1=.985;}
+    var span=y1-y0,py0=y0+span*.15,py1=y0+span*.55,priceCanvas=lsCropOcrRect_(image,px0,py0,px1,py1,195),priceText='',priceRes=null;
     try{if(worker.setParameters)await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789,.',preserve_interword_spaces:'1'});priceRes=await worker.recognize(priceCanvas);priceText=priceRes&&priceRes.data&&priceRes.data.text||'';var priceRead=lsFlyerPriceFromOcr_(priceText,priceRes&&priceRes.data&&priceRes.data.words);if(!priceRead&&worker.setParameters){await worker.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789,.',preserve_interword_spaces:'1'});priceRes=await worker.recognize(lsCropOcrRect_(image,px0,py0,px1,py1,0));priceText=priceRes&&priceRes.data&&priceRes.data.text||'';}}catch(priceErr){console.warn('[Líder Station OCR] Leitura isolada do preço indisponível:',priceErr);}finally{try{if(worker.setParameters)await worker.setParameters({tessedit_pageseg_mode:'11',tessedit_char_whitelist:''});}catch(resetErr){}}
     var promoText=cellText+'\n'+priceText,por=lsFlyerPriceFromOcr_(priceText,priceRes&&priceRes.data&&priceRes.data.words),packQty=0,modo='leve',tipo='UNITARIA',pack=promoText.match(/(?:LEVE|LEVANDO|A PARTIR DE|NA COMPRA DE)\s*(\d{1,2})/i)||promoText.match(/LEVE[^\d]{0,30}C\s*\/\s*(\d{1,2})\s*UN/i),pagamento=promoText.match(/PAGUE\s*(?:R\$\s*)?(\d{1,3}[,.]\s*\d{2})\s*CADA/i);
     if(pack){packQty=Number(pack[1]||pack[2])||0;tipo='PACK';if(/PAGUE\s*(?:R\$\s*)?\d/i.test(promoText)){modo='apartir';if(pagamento)por=pagamento[1].replace(/\s/g,'').replace('.',',');}}
@@ -6074,9 +6084,9 @@ async function lsReadFlyer(input){
             var splitText=await lsReadFlyerColumns_(worker,ocrImage);splitRows=lsParseFlyer_(splitText).filter(function(r){return lsFlyerNameValid_(r.produto)&&parseDec(r.por)>0;});
           }
           status.textContent='Lendo separadamente os quadrantes de produtos e preços da página '+(i+1)+'…';
-          var layoutRows=(await lsReadFlyerCells_(worker,ocrImage)).filter(function(r){return !!lsFlyerNameValid_(r.produto);}).slice(0,4);
+          var layoutRows=(await lsReadFlyerCells_(worker,ocrImage,result&&result.data)).filter(function(r){return !!lsFlyerNameValid_(r.produto);});
           // A leitura regional é a fonte principal; páginas e colunas só complementam preços confiáveis.
-          rows=lsCombineFlyerCandidates_([{rows:layoutRows,rank:3},{rows:splitRows,rank:2},{rows:fullRows,rank:1}]).slice(0,4);
+          rows=lsCombineFlyerCandidates_([{rows:layoutRows,rank:3},{rows:splitRows,rank:2},{rows:fullRows,rank:1}]);
         }
         lsMergeFlyerRows_(rows);pagesOK++;
       }catch(pageErr){pagesFailed.push(files[i].name+': '+String(pageErr&&pageErr.message||pageErr));console.error('[Líder Station OCR] Falha na página '+files[i].name,pageErr);}
