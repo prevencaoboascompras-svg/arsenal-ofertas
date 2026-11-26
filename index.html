@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.65 — base v8.64 consolidada + locução natural e preços variados -->
+<!-- Arsenal de Ofertas v8.66 — base v8.65 consolidada + fluidez e energia da locução -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -6675,53 +6675,53 @@ function lsSpeakSingle_(phrase,opts){
     try{window.speechSynthesis.speak(u);}catch(e){finish(false);}
   });
 }
-// v8.65: conserva frases inteiras e agrupa ofertas curtas, sem reiniciar a prosódia a cada produto.
+// v8.66: prosódia comercial restaurada; limite flexível, nunca corta uma frase pelo tamanho.
 function lsSpeechChunks_(text){
   var spoken=lsTextSpeak_(text).replace(/(\bB\s*-\s*P\s*-\s*F\b)[.!?,;:\s]*(?=tele[\s-]*entrega\b)/gi,'$1.\n');
-  var lines=spoken.split(/\r?\n+/),chunks=[],pending='',limit=180;
-  function flush(){if(pending){chunks.push(pending);pending='';}}
-  function splitLine(line){
-    // Só divide no fim de frases; para frases excepcionalmente longas, prefere vírgulas e pontos e vírgulas.
-    var sentences=line.split(/(?<=[.!?])\s+/),out=[];
-    sentences.forEach(function(sentence){
-      var rest=sentence.trim();while(rest.length>limit){
-        var head=rest.slice(0,limit+1),cut=Math.max(head.lastIndexOf(', '),head.lastIndexOf('; '),head.lastIndexOf(': '));
-        if(cut>=50)cut++;else cut=head.lastIndexOf(' ');
-        if(cut<=0)break;out.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim();
-      }if(rest)out.push(rest);
-    });return out;
+  var chunks=[],pending='',pendingKind='',target=220;
+  function flush(){if(pending){chunks.push(pending);pending='';pendingKind='';}}
+  function add(sentence,kind){
+    if(pending&&(pendingKind!==kind||pending.length+sentence.length+1>target))flush();
+    pending+=(pending?' ':'')+sentence;pendingKind=kind;
   }
-  function add(part){if(pending&&pending.length+part.length+1>limit)flush();pending+=(pending?' ':'')+part;}
-  lines.forEach(function(raw){var line=raw.trim();if(!line)return;
-    var offer=/\b(?:reais?|centavos?)\b/i.test(line)&&! /\b(?:parcelamos|whatsapp|aceitamos)\b/i.test(line);
-    // Mantém abertura, validade, gatilhos, serviços e fechamento separados das ofertas.
-    if(!offer)flush();splitLine(line).forEach(add);if(!offer)flush();
+  spoken.split(/\r?\n+/).forEach(function(raw){
+    var line=raw.trim();if(!line)return;
+    // Pagamento e telefone são unidades indivisíveis, com velocidade própria.
+    var special=/\b(?:parcelamos|aceitamos|whatsapp|tele[\s-]*entrega)\b/i.test(line);
+    if(special){flush();chunks.push(line);return;}
+    var kind=/\b(?:reais?|centavos?)\b/i.test(line)?'offer':'narration';
+    // Preserva a oferta inteira, inclusive nomes compostos, quantidades e condições de pack.
+    if(kind==='offer'){add(line,kind);return;}
+    // Só usa pontuação de fim de sentença; uma sentença longa fica inteira.
+    var sentences=line.split(/(?<=[.!?])\s+/);
+    sentences.forEach(function(sentence){if(sentence.trim())add(sentence.trim(),kind);});
   });flush();return chunks;
 }
 async function lsSpeakUtterance_(text){
   if(!window.speechSynthesis)return false;
   var chunks=lsSpeechChunks_(text),currentJob=lsAudioJobToken,voice=lsSelectedVoice_();
-  if(!voice){console.warn('[Líder Station v8.65] Nenhuma voz pt-BR disponível.');return false;}
-  console.info('[Líder Station v8.65] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
+  if(!voice){console.warn('[Líder Station v8.66] Nenhuma voz pt-BR disponível.');return false;}
+  console.info('[Líder Station v8.66] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
   for(var i=0;i<chunks.length;i++){
     if(currentJob!==lsAudioJobToken)return false;
     var chunk=chunks[i],hasPrice=/\b(?:reais?|centavos?)\b/i.test(chunk),isFooter=/\b(?:parcelamos|avenida|whatsapp|aceitamos)\b/i.test(chunk);
-    var opts={voice:voice,rate:isFooter?1.06:hasPrice?1.10:1.12,pitch:1.0};
+    // Recupera a energia das versões estáveis anteriores, sem mudar a voz durante o bloco.
+    var opts={voice:voice,rate:isFooter?1.12:hasPrice?1.18:1.24,pitch:isFooter?1.04:1.08};
     if(lsRadioActive&&lsRadioPhase_==='offer')document.getElementById('lsRadioStatus').textContent='Locução integral em andamento — trecho '+(i+1)+' de '+chunks.length+'. Playlist pausada.';
     if(/\bwhatsapp\b/i.test(chunk)){
-      opts.rate=0.98;
+      opts.rate=0.98;opts.pitch=1.04;
       chunk=chunk.replace(/(?:\(\s*(\d{2})\s*\)|\b(\d{2}))\s*(\d{4,5})\s*[-– ]\s*(\d{4})(?!\d)/g,function(_,dddA,dddB,first,last){
         var digits=['zero','um','dois','três','quatro','cinco','seis','sete','oito','nove'];
         function read(group){return group.split('').map(function(d){return digits[Number(d)];}).join(' ');}
         return 'DDD '+read(dddA||dddB)+', '+read(first)+', '+read(last);
       });
     }
-    if(/\bB\s*-\s*P\s*-\s*F\b[.!?]*$/i.test(chunk))opts.rate=1.06;
     var ok=await lsSpeakSingle_(chunk,opts);if(!ok){if(currentJob===lsAudioJobToken)console.warn('[Líder Station Rádio] Falha na locução, trecho '+(i+1)+'/'+chunks.length);return false;}
-    if(i+1<chunks.length){
+    // Não acrescenta silêncio entre ofertas ou frases: a pontuação da voz governa o ritmo.
+    // Única pausa explícita: pagamento/B-P-F antes do contato, sem interromper a trilha.
+    if(/\bB\s*-\s*P\s*-\s*F\b[.!?]*$/i.test(chunk)&&/^tele[\s-]*entrega\b/i.test(chunks[i+1]||'')){
       if(currentJob!==lsAudioJobToken)return false;
-      var pause=/\bB\s*-\s*P\s*-\s*F\b[.!?]*$/i.test(chunk)&&/^tele[\s-]*entrega\b/i.test(chunks[i+1])?800: /\bwhatsapp\b/i.test(chunk)?350: /[.!?]$/.test(chunk)?120:50;
-      await new Promise(function(resolve){setTimeout(resolve,pause);});
+      await new Promise(function(resolve){setTimeout(resolve,800);});
       if(currentJob!==lsAudioJobToken)return false;
     }
   }
@@ -6963,7 +6963,7 @@ function lsClearAdvance_(){clearTimeout(lsAdvanceTimer_);lsAdvanceTimer_=0;}
 function lsResetTracking_(){lsClearAdvance_();clearInterval(lsTrackWatch_);clearTimeout(lsStartTimeout_);lsTrackWatch_=lsStartTimeout_=0;lsTrack_=lsEndedTrack_=lsOfferRetryEnded_=null;}
 function lsPauseForVoice_(){clearInterval(lsVolumeTimer);try{lsPlayer.setVolume(0);}catch(e){}try{lsPlayer.pauseVideo();}catch(e){console.warn('[Líder Station Rádio] Pausa:',e);}}
 function lsResumeCurrent_(){if(!lsRadioActive)return;try{lsPlayer.setVolume(Number(document.getElementById('lsMusicVolume').value));lsPlayer.playVideo();}catch(e){lsRadioFailure_('Não foi possível retomar a playlist: '+e.message);}}
-function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.65]',message);}
+function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.66]',message);}
 function lsStartupDeadline_(message,ms){clearTimeout(lsStartTimeout_);lsStartTimeout_=setTimeout(function(){if(lsStartRequested_||lsRadioPhase_==='arming')lsRadioFailure_(message);},ms);}
 function lsOpeningFromPlayer_(){
   if(!lsRadioActive||lsRadioPhase_!=='arming')return;
@@ -6992,7 +6992,7 @@ function lsAdvanceEnded_(ended){
 function lsTransition_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='music')return;
   lsCallCount++;var every=Math.max(1,Number(document.getElementById('lsEvery').value)||1);
-  console.info('[Líder Station Rádio v8.65] Transição:',reason,'·',lsCallCount,'música(s)');
+  console.info('[Líder Station Rádio v8.66] Transição:',reason,'·',lsCallCount,'música(s)');
   if(lsCallCount%every===0){lsClearAdvance_();lsRadioPhase_='offer';lsPendingAnnouncement=true;lsPauseForVoice_();lsRunAutomaticOffer_(reason,ended).catch(function(e){if(lsRadioActive)lsHoldOffer_(ended,'Falha na chamada: '+e.message);});}
   else if(ended){lsClearAdvance_();lsAdvanceTimer_=setTimeout(function(){lsAdvanceTimer_=0;lsAdvanceEnded_(ended);},900);}
 }
@@ -7056,7 +7056,7 @@ function lsHoldOffer_(ended,message){
 async function lsRunAutomaticOffer_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='offer'||lsRadioSpeaking)return;
   if(lsFlyerBusy){lsHoldOffer_(ended,'Leitura de encarte ainda em andamento.');return;}
-  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.65] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
+  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.66] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
   var blocks=lsBlocks_(false),block=blocks[0],parts=block?lsBuildBlock_(block,true):null,token=++lsAudioJobToken;
   var input=document.getElementById('lsScript');
   function build(){return parts?lsFullScript_(parts):'Líder Station! A rádio do Boas Compras! '+lsTimePhrase_()+' Líder das ofertas! Líder no ar!';}
@@ -7064,14 +7064,14 @@ async function lsRunAutomaticOffer_(reason,ended){
   var total=block?block.items.length:0;
   document.getElementById('lsNow').textContent=block?'No ar — chamada integral ('+total+' ofertas).':'No ar — identificação da rádio e hora certa.';
   document.getElementById('lsRadioStatus').textContent=(reason==='manual'?'Chamada manual.':reason==='troca de faixa'?'Troca de música detectada.':'A música terminou.')+' Preparando '+total+' ofertas e hora certa.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.65] Início da chamada integral:',total,'ofertas ·',reason);
+  console.info('[Líder Station Rádio v8.66] Início da chamada integral:',total,'ofertas ·',reason);
   var ok=await lsVoiceWithBed_(token,build,false);
   if(token!==lsAudioJobToken||!lsRadioActive)return;
   if(!ok){lsHoldOffer_(ended,'A locução não foi concluída.');return;}
   if(block){lsSpeakIndex++;lsCommitCalls_(parts);}
   lsRadioSpeaking=false;lsPendingAnnouncement=false;lsRadioPhase_='music';lsOfferRetryEnded_=null;
   document.getElementById('lsRadioStatus').textContent='Chamada concluída: '+total+' oferta(s). Voltando à playlist.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.65] Chamada concluída:',total,'ofertas.');
+  console.info('[Líder Station Rádio v8.66] Chamada concluída:',total,'ofertas.');
   if(ended)lsAdvanceEnded_(ended);
   else{lsTrack_=lsReadTrack_()||lsTrack_;lsEndedTrack_=null;lsResumeCurrent_();}
 }
