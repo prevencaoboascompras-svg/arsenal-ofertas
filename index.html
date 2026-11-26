@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.66 — base v8.65 consolidada + fluidez e energia da locução -->
+<!-- Arsenal de Ofertas v8.68 — base v8.67 consolidada + moeda nativa e prosódia neural -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -6346,11 +6346,17 @@ function lsMoneySpeak_(value){
   var reaisTxt=reais+(reais===1?' real':' reais');if(!cent)return reaisTxt;
   return reaisTxt+' e '+cent+(cent===1?' centavo':' centavos');
 }
+// Moeda nativa para o texto da prévia e para as vozes neurais; valida antes de formatar.
+function lsMoneyNative_(value){
+  var s=String(value==null?'':value).trim().replace(/^R\$\s*/i,'');
+  if(!/^(?:\d+(?:[,.]\d{1,2})?|\d{1,3}(?:\.\d{3})+,\d{1,2})$/.test(s))return String(value==null?'':value);
+  var n=Number(s.indexOf(',')>=0?s.replace(/\./g,'').replace(',','.'):s);
+  return Number.isFinite(n)?'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):String(value);
+}
 function lsTextSpeak_(text){
   var s=String(text||'');
   function singular_(q){return Math.abs(Number(String(q).replace(',','.'))-1)<0.00001;}
-  // Dinheiro escrito em texto manual: evita o TTS verbalizar “erre cifrão”.
-  s=s.replace(/R\$\s*([\d.]+(?:,[\d]{1,2})?)/gi,function(_,v){return lsMoneySpeak_(v);});
+  // Mantém o símbolo de moeda. O fallback não neural é aplicado apenas na saída de voz.
   // Medidas e unidades que o OCR costuma trazer abreviadas ou com confusão entre N/I/1.
   s=s.replace(/\b1[.,]5\s*KG\b/gi,'um quilo e meio');
   s=s.replace(/\b(\d+)\s*[xX]\s*(\d+)\s*M\b/gi,'$1 rolos de $2 metros');
@@ -6454,8 +6460,8 @@ function lsBuildScript_(it,index){
   temMedida=temMedida||/\s+\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros)$/i.test(nome);
   if(!eggTray)nome=nome.replace(/\s+(\d+(?:[.,]\d+)?\s+(?:quilo|quilos|grama|gramas|litro|litros|mililitro|mililitros|eme éle|unidade|unidades|rolos de \d+ metros))$/i,', $1,');
   nome=nome.replace(/[,\s]+$/,'');
-  var preco=lsMoneySpeak_(it.precoPromocional||it.por||''),un=normalizarTexto(String(it.unidade||'cada')),de=String(it.de||'').trim();
-  var unidadeFalada=(({CADA:'a unidade',UN:'a unidade',UND:'a unidade',UNIDADE:'a unidade',UNIDADES:'a unidade',KG:'o quilo',KILO:'o quilo',LT:'o litro',LITRO:'o litro',ML:'eme éle',PCT:'o pacote',PACOTE:'o pacote'})[un]||'');
+  var preco=lsMoneyNative_(it.precoPromocional||it.por||''),un=normalizarTexto(String(it.unidade||'cada')),de=String(it.de||'').trim();
+  var unidadeFalada=(({CADA:'cada',UN:'cada',UND:'cada',UNIDADE:'cada',UNIDADES:'cada',KG:'o quilo',KILO:'o quilo',LT:'o litro',LITRO:'o litro',ML:'eme éle',PCT:'o pacote',PACOTE:'o pacote'})[un]||'');
   var narrarDePor=!!(it.radioNarrarDePor||it.narrarDePor),isPack=it.tipoPromocao==='PACK'||it.tipo==='PACK';
   var q=Number(it.packQtd||it.qtd||2),modo=it.packTipo||it.modo||'leve';
   // Este produto específico foi confirmado pela loja como bandeja, e não pack de vinte ovos avulsos.
@@ -6463,21 +6469,21 @@ function lsBuildScript_(it,index){
   if(isPack&&modo==='leve'&&q===20&&(/^ovos brancos$/i.test(nome)||/^ovos brancos, bandeja com 20 unidades$/i.test(nome))){
     nome='Ovos brancos, bandeja com 20 unidades';eggTray=true;isPack=false;unidadeFalada='';
   }
-  if(eggTray&&!isPack&&/^(?:a unidade|o pacote)$/.test(unidadeFalada))unidadeFalada='';
+  if(eggTray&&!isPack&&/^(?:cada|o pacote)$/.test(unidadeFalada))unidadeFalada='';
   var suffix=unidadeFalada?' '+unidadeFalada:'',variant=Math.max(0,Math.floor(Number(index)||0))%6,oferta;
-  var antes=de&&narrarDePor?'De '+lsMoneySpeak_(de)+', agora ':'';
+  var antes=de&&narrarDePor&&lsOfferPriceOK_({por:de})?'De '+lsMoneyNative_(de)+', agora ':'';
   if(isPack){
     // Preserva preço total do leve e preço unitário na quantidade mínima.
-    oferta=antes+(modo==='apartir'?(variant%2?'Na compra de '+q+' unidades, cada uma sai por ':'Levando '+q+' unidades, cada uma fica por ')+preco:'Leve '+q+' unidades por '+preco+' no total');
+    oferta=antes+(modo==='apartir'?(variant%2?'Na compra de '+q+' unidades, cada uma sai por ':'Levando '+q+' unidades, cada uma sai por ')+preco:'Leve '+q+' unidades por '+preco+' no total');
   }else if(antes){oferta=antes+'por '+preco+suffix;}
-  else if(variant===0){oferta=unidadeFalada&&unidadeFalada!=='eme éle'?unidadeFalada+' sai por '+preco:'por '+preco+suffix;}
+  else if(variant===0){oferta=preco+suffix;}
   else if(variant===1){oferta='só '+preco+suffix;}
   else if(variant===2){oferta=preco+suffix;}
   else if(variant===3){oferta='aproveite por '+preco+suffix;}
   else if(variant===4){oferta='por '+preco+suffix;}
   else{oferta='apenas '+preco+suffix;}
   var club=(it.radioTipoPromocao==='CLUB'||it.tipo==='CLUB')?' Oferta especial para clientes do Club Boas Compras!':'';
-  return nome+', '+oferta+'!'+club;
+  return nome+'... '+(isPack?oferta.charAt(0).toLocaleLowerCase('pt-BR')+oferta.slice(1):oferta)+'!'+club;
 }
 function lsIntro_(cat){
   var camp=(document.getElementById('lsCampaign').value||'').trim(),c=normalizarTexto(cat);
@@ -6485,7 +6491,7 @@ function lsIntro_(cat){
   var campKey=normalizarTexto(camp).replace(/\s+/g,' ').trim();
   if(/^(AS OFERTAS DO\s+)*(SUPERMERCADO\s+)?BOAS COMPRAS$/.test(campKey))camp='';
   var spoken=lsNomeNatural_(camp).replace(/^quarta\s+e\s+quinta\s+(?:do\s+)?hortifrúti$/i,'Quarta e quinta do hortifrúti');
-  return (camp?spoken+': ':'')+'Atenção, cliente! Confira as ofertas selecionadas e aproveite!';
+  return 'Atenção, cliente! Confira as ofertas selecionadas'+(camp?' da campanha '+spoken:'')+' e aproveite!';
 }
 // Uma única chamada comercial contém a lista inteira, organizada por setor.
 function lsBlocks_(includeMissing){
@@ -6547,7 +6553,7 @@ function lsCampaignCalls_(clock){
   function add(id,group,text){out.push({id:id,sector:group,season:true,score:100,text:text});}
   // Black Friday: campanha de 2026 aprovada para 27/11. Não repete em outros anos por suposição.
   if(year===2026&&month===11&&day===26){
-    add('bf-eve-1','black-friday','Black Friday é um dia especial do ano! Aqui no Boas Compras, estamos preparando ofertas para você economizar de verdade. Amanhã, sexta-feira, dia vinte e sete de novembro, é dia de Black Friday. Programe suas compras!');
+    add('bf-eve-1','black-friday','E atenção, cliente! Amanhã, sexta-feira, dia vinte e sete de novembro, é dia de Black Friday no Boas Compras! Programe suas compras e economize de verdade!');
     add('bf-eve-2','black-friday','Amanhã tem Black Friday no Boas Compras! Já preparou sua lista de compras? Sexta-feira, dia vinte e sete de novembro, confira nossa campanha especial.');
   }else if(year===2026&&month===11&&day===27){
     add('bf-day-1','black-friday','Hoje é dia de Black Friday no Boas Compras! Um dia especial, com ofertas preparadas para você economizar de verdade. Confira o encarte da campanha e aproveite!');
@@ -6617,6 +6623,14 @@ function lsSectorCallsForBlock_(total,cycle,date,groups){
   while(picked.length<count&&choose(pool)){}
   return picked;
 }
+// Conecta as inserções ao anúncio anterior sem alterar a seleção ou a vigência.
+function lsCommercialSegue_(call,afterValidity){
+  var text=String(call.text||'').trim();if(!text)return text;
+  if(/^E\s/i.test(text))return text;
+  if(afterValidity&&!call.season)return 'E aproveitando que você está aqui na loja... '+text;
+  if(call.season)return 'E atenção, cliente! '+text;
+  return text;
+}
 function lsBuildBlock_(block,isLast){
   var lines=[],groups=block.groups||[{category:block.category,items:block.items}];
   var total=groups.reduce(function(n,g){return n+g.items.length;},0),calls=lsSectorCallsForBlock_(total,lsSpeakIndex,null,groups),read=0,callIndex=0;
@@ -6626,14 +6640,14 @@ function lsBuildBlock_(block,isLast){
     g.items.forEach(function(it){var phrase=lsOfferPriceOK_(it)?String(lsBuildScript_(it,read+lsSpeakIndex)||'').trim():lsTextSpeak_(lsNomeParaLocucao_(it))+': preço pendente de conferência';lines.push(phrase.replace(/[.!?…]+$/,'')+'!');
       read++;
       // Mantém o último convite para depois da validade, sem interromper produtos.
-      if(callIndex<calls.length-1&&read<total&&read>=Math.ceil(total*(callIndex+1)/calls.length))lines.push(calls[callIndex++].text);
+      if(callIndex<calls.length-1&&read<total&&read>=Math.ceil(total*(callIndex+1)/calls.length))lines.push(lsCommercialSegue_(calls[callIndex++],false));
     });
   });
   var validity=(document.getElementById('lsValidity').value||'').trim(),services=(document.getElementById('lsServices').value||'').trim();
   if(validity)lines.push(lsValidadeFalada_(validity).replace(/[.!?…]+$/,'')+'!');
-  while(callIndex<calls.length)lines.push(calls[callIndex++].text);
+  while(callIndex<calls.length)lines.push(lsCommercialSegue_(calls[callIndex++],true));
   services=lsServicosSemEndereco_(services);
-  if(isLast&&services)lines.push(services.replace(/[.!?…]+$/,'')+'!');
+  if(isLast&&services)lines.push(lsPhoneCadence_(services).replace(/[.!?…]+$/,'')+'!');
   return {opening:'Líder Station! A rádio do Boas Compras, o líder das ofertas!',body:lines.join('\n'),closing:'Líder das ofertas! Líder no ar!',callIds:calls.map(function(x){return x.id;})};
 }
 function lsFullScript_(parts){return [parts.opening,lsTimePhrase_(),parts.body,parts.closing].join('\n');}
@@ -6675,49 +6689,51 @@ function lsSpeakSingle_(phrase,opts){
     try{window.speechSynthesis.speak(u);}catch(e){finish(false);}
   });
 }
-// v8.66: prosódia comercial restaurada; limite flexível, nunca corta uma frase pelo tamanho.
-function lsSpeechChunks_(text){
-  var spoken=lsTextSpeak_(text).replace(/(\bB\s*-\s*P\s*-\s*F\b)[.!?,;:\s]*(?=tele[\s-]*entrega\b)/gi,'$1.\n');
-  var chunks=[],pending='',pendingKind='',target=220;
-  function flush(){if(pending){chunks.push(pending);pending='';pendingKind='';}}
-  function add(sentence,kind){
-    if(pending&&(pendingKind!==kind||pending.length+sentence.length+1>target))flush();
-    pending+=(pending?' ':'')+sentence;pendingKind=kind;
+// v8.68: cadência de rádio, moeda nativa e blocos contínuos sem perder cancelamento/timeout.
+function lsPhoneCadence_(text){
+  // Só formata números completos no contexto do contato, sem alterar EAN, preço ou outros dígitos.
+  return String(text||'').replace(/(\bwhatsapp\s*[:,]?\s*)(?:\(\s*(\d{2})\s*\)|(\d{2}))\s*(\d{4,5})\s*[-– ]\s*(\d{4})(?!\d)/gi,function(_,prefix,dddA,dddB,first,last){
+    return prefix+(dddA||dddB)+', '+first.slice(0,-2)+', '+first.slice(-2)+', '+last.slice(0,2)+', '+last.slice(2);
+  });
+}
+function lsPrepareNaturalSpeech_(text,voice){
+  var s=lsPhoneCadence_(lsTextSpeak_(text));
+  // A voz natural recebe o valor em formato monetário; outras vozes mantêm a leitura segura anterior.
+  if(voice&&!/natural/i.test(String(voice.name||'')+' '+String(voice.voiceURI||''))){
+    s=s.replace(/R\$\s*(\d{1,3}(?:\.\d{3})+,\d{1,2}|\d+(?:[,.]\d{1,2})?)(?!\d|[,.]\d)/gi,function(_,v){return lsMoneySpeak_(v);});
+  }
+  // Não troca todos os pontos por exclamações: preserva decimais, abreviações e a cadência das frases.
+  return s.replace(/(\bB\s*-\s*P\s*-\s*F\b)[.!?,;:\s]*(?=tele[\s-]*entrega\b)/gi,'$1!\n');
+}
+function lsSpeechChunks_(text,voice){
+  var spoken=lsPrepareNaturalSpeech_(text,voice),chunks=[],pending='',target=520;
+  function flush(){if(pending){chunks.push(pending);pending='';}}
+  function add(sentence){
+    if(pending&&pending.length+sentence.length+1>target)flush();
+    pending+=(pending?' ':'')+sentence;
   }
   spoken.split(/\r?\n+/).forEach(function(raw){
     var line=raw.trim();if(!line)return;
-    // Pagamento e telefone são unidades indivisíveis, com velocidade própria.
-    var special=/\b(?:parcelamos|aceitamos|whatsapp|tele[\s-]*entrega)\b/i.test(line);
-    if(special){flush();chunks.push(line);return;}
-    var kind=/\b(?:reais?|centavos?)\b/i.test(line)?'offer':'narration';
-    // Preserva a oferta inteira, inclusive nomes compostos, quantidades e condições de pack.
-    if(kind==='offer'){add(line,kind);return;}
-    // Só usa pontuação de fim de sentença; uma sentença longa fica inteira.
-    var sentences=line.split(/(?<=[.!?])\s+/);
-    sentences.forEach(function(sentence){if(sentence.trim())add(sentence.trim(),kind);});
+    // O rodapé mantém a pausa e a leitura lenta do contato; demais frases compartilham um ritmo único.
+    if(/\b(?:parcelamos|aceitamos|whatsapp|tele[\s-]*entrega)\b/i.test(line)){flush();chunks.push(line);return;}
+    // Não quebra ofertas, packs ou chamadas inteiras por tamanho, nem por reticências.
+    if(line.length<=target||/R\$|\b(?:reais?|centavos?)\b/i.test(line)){add(line);return;}
+    var sentences=line.split(/(?<=[!?])\s+|(?<=[^.\s]\.)\s+(?=[A-ZÀ-Ý])/);
+    sentences.forEach(function(sentence){if(sentence.trim())add(sentence.trim());});
   });flush();return chunks;
 }
 async function lsSpeakUtterance_(text){
   if(!window.speechSynthesis)return false;
-  var chunks=lsSpeechChunks_(text),currentJob=lsAudioJobToken,voice=lsSelectedVoice_();
-  if(!voice){console.warn('[Líder Station v8.66] Nenhuma voz pt-BR disponível.');return false;}
-  console.info('[Líder Station v8.66] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
+  var currentJob=lsAudioJobToken,voice=lsSelectedVoice_();
+  if(!voice){console.warn('[Líder Station v8.68] Nenhuma voz pt-BR disponível.');return false;}
+  var chunks=lsSpeechChunks_(text,voice);
+  console.info('[Líder Station v8.68] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
   for(var i=0;i<chunks.length;i++){
     if(currentJob!==lsAudioJobToken)return false;
-    var chunk=chunks[i],hasPrice=/\b(?:reais?|centavos?)\b/i.test(chunk),isFooter=/\b(?:parcelamos|avenida|whatsapp|aceitamos)\b/i.test(chunk);
-    // Recupera a energia das versões estáveis anteriores, sem mudar a voz durante o bloco.
-    var opts={voice:voice,rate:isFooter?1.12:hasPrice?1.18:1.24,pitch:isFooter?1.04:1.08};
+    var chunk=chunks[i],isPhone=/\bwhatsapp\b/i.test(chunk);
+    var opts={voice:voice,rate:isPhone?0.98:1.15,pitch:1.02};
     if(lsRadioActive&&lsRadioPhase_==='offer')document.getElementById('lsRadioStatus').textContent='Locução integral em andamento — trecho '+(i+1)+' de '+chunks.length+'. Playlist pausada.';
-    if(/\bwhatsapp\b/i.test(chunk)){
-      opts.rate=0.98;opts.pitch=1.04;
-      chunk=chunk.replace(/(?:\(\s*(\d{2})\s*\)|\b(\d{2}))\s*(\d{4,5})\s*[-– ]\s*(\d{4})(?!\d)/g,function(_,dddA,dddB,first,last){
-        var digits=['zero','um','dois','três','quatro','cinco','seis','sete','oito','nove'];
-        function read(group){return group.split('').map(function(d){return digits[Number(d)];}).join(' ');}
-        return 'DDD '+read(dddA||dddB)+', '+read(first)+', '+read(last);
-      });
-    }
     var ok=await lsSpeakSingle_(chunk,opts);if(!ok){if(currentJob===lsAudioJobToken)console.warn('[Líder Station Rádio] Falha na locução, trecho '+(i+1)+'/'+chunks.length);return false;}
-    // Não acrescenta silêncio entre ofertas ou frases: a pontuação da voz governa o ritmo.
     // Única pausa explícita: pagamento/B-P-F antes do contato, sem interromper a trilha.
     if(/\bB\s*-\s*P\s*-\s*F\b[.!?]*$/i.test(chunk)&&/^tele[\s-]*entrega\b/i.test(chunks[i+1]||'')){
       if(currentJob!==lsAudioJobToken)return false;
@@ -6924,7 +6940,7 @@ function lsExtractPlaylist_(v){var s=String(v||'').trim();var m=s.match(/[?&]lis
 function lsTimePhrase_(){
   var now=new Date(),h=now.getHours(),m=now.getMinutes(),hourText=h===0?'meia-noite':h===12?'meio-dia':String(h)+' horas',minuteText='';
   if(m)minuteText=' e '+m+' minuto'+(m===1?'':'s');
-  return 'Agora são '+hourText+minuteText+'.';
+  return (h===0||h===1||h===12?'Agora é ':'Agora são ')+(h===1?'1 hora':hourText)+minuteText+'!';
 }
 function lsSpeakTime_(){return lsSpeakUtterance_(lsTimePhrase_());}
 function lsPreparePlaylist_(){
@@ -6963,7 +6979,7 @@ function lsClearAdvance_(){clearTimeout(lsAdvanceTimer_);lsAdvanceTimer_=0;}
 function lsResetTracking_(){lsClearAdvance_();clearInterval(lsTrackWatch_);clearTimeout(lsStartTimeout_);lsTrackWatch_=lsStartTimeout_=0;lsTrack_=lsEndedTrack_=lsOfferRetryEnded_=null;}
 function lsPauseForVoice_(){clearInterval(lsVolumeTimer);try{lsPlayer.setVolume(0);}catch(e){}try{lsPlayer.pauseVideo();}catch(e){console.warn('[Líder Station Rádio] Pausa:',e);}}
 function lsResumeCurrent_(){if(!lsRadioActive)return;try{lsPlayer.setVolume(Number(document.getElementById('lsMusicVolume').value));lsPlayer.playVideo();}catch(e){lsRadioFailure_('Não foi possível retomar a playlist: '+e.message);}}
-function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.66]',message);}
+function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.68]',message);}
 function lsStartupDeadline_(message,ms){clearTimeout(lsStartTimeout_);lsStartTimeout_=setTimeout(function(){if(lsStartRequested_||lsRadioPhase_==='arming')lsRadioFailure_(message);},ms);}
 function lsOpeningFromPlayer_(){
   if(!lsRadioActive||lsRadioPhase_!=='arming')return;
@@ -6992,7 +7008,7 @@ function lsAdvanceEnded_(ended){
 function lsTransition_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='music')return;
   lsCallCount++;var every=Math.max(1,Number(document.getElementById('lsEvery').value)||1);
-  console.info('[Líder Station Rádio v8.66] Transição:',reason,'·',lsCallCount,'música(s)');
+  console.info('[Líder Station Rádio v8.68] Transição:',reason,'·',lsCallCount,'música(s)');
   if(lsCallCount%every===0){lsClearAdvance_();lsRadioPhase_='offer';lsPendingAnnouncement=true;lsPauseForVoice_();lsRunAutomaticOffer_(reason,ended).catch(function(e){if(lsRadioActive)lsHoldOffer_(ended,'Falha na chamada: '+e.message);});}
   else if(ended){lsClearAdvance_();lsAdvanceTimer_=setTimeout(function(){lsAdvanceTimer_=0;lsAdvanceEnded_(ended);},900);}
 }
@@ -7056,7 +7072,7 @@ function lsHoldOffer_(ended,message){
 async function lsRunAutomaticOffer_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='offer'||lsRadioSpeaking)return;
   if(lsFlyerBusy){lsHoldOffer_(ended,'Leitura de encarte ainda em andamento.');return;}
-  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.66] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
+  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.68] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
   var blocks=lsBlocks_(false),block=blocks[0],parts=block?lsBuildBlock_(block,true):null,token=++lsAudioJobToken;
   var input=document.getElementById('lsScript');
   function build(){return parts?lsFullScript_(parts):'Líder Station! A rádio do Boas Compras! '+lsTimePhrase_()+' Líder das ofertas! Líder no ar!';}
@@ -7064,14 +7080,14 @@ async function lsRunAutomaticOffer_(reason,ended){
   var total=block?block.items.length:0;
   document.getElementById('lsNow').textContent=block?'No ar — chamada integral ('+total+' ofertas).':'No ar — identificação da rádio e hora certa.';
   document.getElementById('lsRadioStatus').textContent=(reason==='manual'?'Chamada manual.':reason==='troca de faixa'?'Troca de música detectada.':'A música terminou.')+' Preparando '+total+' ofertas e hora certa.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.66] Início da chamada integral:',total,'ofertas ·',reason);
+  console.info('[Líder Station Rádio v8.68] Início da chamada integral:',total,'ofertas ·',reason);
   var ok=await lsVoiceWithBed_(token,build,false);
   if(token!==lsAudioJobToken||!lsRadioActive)return;
   if(!ok){lsHoldOffer_(ended,'A locução não foi concluída.');return;}
   if(block){lsSpeakIndex++;lsCommitCalls_(parts);}
   lsRadioSpeaking=false;lsPendingAnnouncement=false;lsRadioPhase_='music';lsOfferRetryEnded_=null;
   document.getElementById('lsRadioStatus').textContent='Chamada concluída: '+total+' oferta(s). Voltando à playlist.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.66] Chamada concluída:',total,'ofertas.');
+  console.info('[Líder Station Rádio v8.68] Chamada concluída:',total,'ofertas.');
   if(ended)lsAdvanceEnded_(ended);
   else{lsTrack_=lsReadTrack_()||lsTrack_;lsEndedTrack_=null;lsResumeCurrent_();}
 }
