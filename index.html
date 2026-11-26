@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.71 — base v8.70 consolidada + polimento de locução e ganchos variados -->
+<!-- Arsenal de Ofertas v8.73 — base v8.72 consolidada + oito chamadas originais restauradas -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -6560,7 +6560,7 @@ function lsCampaignCalls_(clock,all){
   function add(id,group,text){out.push({id:id,sector:group,season:true,score:100,text:text});}
   // Black Friday: campanha de 2026 aprovada para 27/11. Não repete em outros anos por suposição.
   if(all||(year===2026&&month===11&&day===26)){
-    add('bf-eve-1','black-friday','Atenção cliente! Amanhã, sexta-feira, dia vinte e sete de novembro, é dia de Black Friday no Boas Compras! Programe suas compras e economize de verdade!');
+    add('bf-eve-1','black-friday','Black Friday é um dia único do ano, é o dia mais barato do ano! Aqui no Boas Compras preparamos ofertas exclusivas, ofertas que você não encontra normalmente nos nossos encartes! São ofertas para você verdadeiramente economizar! Sexta-feira, dia 27 de novembro, dia de Black Friday no Boas Compras! Não perca as melhores ofertas!');
     add('bf-eve-2','black-friday','Amanhã tem Black Friday no Boas Compras! Já preparou sua lista de compras? Sexta-feira, dia vinte e sete de novembro, confira nossa campanha especial!');
   }
   if(all||(year===2026&&month===11&&day===27)){
@@ -6571,7 +6571,7 @@ function lsCampaignCalls_(clock,all){
   var first=new Date(Date.UTC(year,month-1,1)).getUTCDay(),fri=1+(5-first+7)%7;
   if(all||(day>=Math.max(1,fri-4)&&day<=fri+1)){
     if(all||day<fri){
-      add('arr-pre-1','arrastao','Fique ligado na nossa programação! Na primeira sexta e sábado do mês tem Arrastão no Boas Compras! Prepare sua lista e programe seu rancho!');
+      add('arr-pre-1','arrastao','E pra você cliente, nunca se esqueça: primeira sexta e sábado do mês é dia de Arrastão no Boas Compras! É dia de um show de ofertas, um encarte especial, encarte preparado para você fazer o seu rancho com 100 itens promocionados, muitos itens exclusivos e preços pra encher carrinho! Vem pro Boas Compras que estamos te esperando!');
       add('arr-pre-2','arrastao','O Arrastão do Boas Compras está chegando! Na primeira sexta e sábado do mês, confira o encarte especial e programe seu rancho economizando de verdade!');
     }
     if(all||day>=fri){
@@ -6600,17 +6600,17 @@ function lsSectorCallPool_(c,groups,all){
   var pool=[];
   function add(id,sector,text,score){pool.push({id:id,sector:sector,text:text,score:score+(relevant[sector]?18:0),season:false});}
   if(cafe){
-    add('pad-cafe','padaria','Bateu aquela vontade de um café especial? Um bolo gostoso, um café quentinho e uma boa companhia! Na padaria do Boas Compras, escolha as suas delícias!',50);
-    add('pad-pao','padaria','Que tal aquele cheirinho de pão quentinho? Nossa padaria tem delícias para deixar o seu café ainda mais gostoso!',50);
+    add('pad-cafe','padaria','Um bolo gostoso, um café quentinho, uma boa companhia... Tem combinação melhor pra pausa do seu dia? Venha na padaria do Boas Compras! Aqui você encontra tudo o que você procura!',50);
+    add('pad-pao','padaria','E pra você, cliente do Boas Compras, sinta o cheirinho do pão quentinho saindo do forno! Passe em nossa padaria e garanta as maiores delícias para o seu café!',50);
   }
   if(refeicao){
-    add('ac-cardapio','acougue','Vai preparar o almoço ou o jantar de hoje? Bife acebolado, carne de panela com aipim ou aquele churrasco! No açougue do Boas Compras você encontra opções de cortes para a sua receita!',40);
+    add('ac-cardapio','acougue','E você, já pensou no seu cardápio de hoje? Bife acebolado, carne de panela com aipim, ou aquele churrasco com uma cervejinha bem gelada... Qual vai ser o seu cardápio? Seja qual for, passe no açougue do Boas Compras e garanta a melhor carne da cidade!',40);
   }
   if(weekend){
-    add('ac-churrasco','acougue','Fim de semana chegando pede brasa acesa! Já garantiu a carne, os petiscos, o carvão e a bebida gelada? Aqui no Boas Compras tem opções para a sua resenha!',42);
-    if(all||h>=14)add('beb-festa','bebidas','Já escolheu a sua bebida para o fim de semana? Aqui no Boas Compras você encontra cervejas, refrigerantes, vodkas e energéticos! Se tem fim de semana, se tem festa, lembre das bebidas para acompanhar!',40);
+    add('ac-churrasco','acougue','Já se programou pro churrasco no fim de semana? Aqui no Boas Compras você encontra tudo que você precisa para o seu churrasco: a melhor carne, acompanhamentos, petiscos, carvão e aquela cerveja gelada! Então junte a família e os amigos pra aquela resenha com produtos de qualidade aqui do açougue do Boas Compras!',42);
+    if(all||h>=14)add('beb-festa','bebidas','Já escolheu a sua bebida para o fim de semana? Aqui no Boas Compras temos a maior variedade de bebidas, a cerveja mais gelada, a maior variedade de refrigerantes, a maior variedade de vodkas e energéticos! Então se tem fim de semana, se tem festa, se tem bebida, passa no Boas Compras e garanta a sua!',40);
   }
-  add('horti-mesa','horti','Quer deixar a mesa mais colorida e saudável hoje? Passe no hortifrúti do Boas Compras e escolha frutas para o lanche e verduras para a sua salada!',30);
+  add('horti-mesa','horti','E no setor de hortifrúti, garanta aqueles itens pra sua salada, aquela fruta pro seu lanchinho e muito mais sabor e qualidade em sua mesa! Venha pro Boas Compras e inspire suas refeições com um hortifrúti de muita qualidade!',30);
   // Variações curtas derivadas dos áudios, úteis quando o horário reduz as opções elegíveis.
   add('horti-lanche','horti','Uma fruta pro lanchinho e verduras para uma salada caprichada! Já escolheu o que vai deixar suas refeições mais saborosas hoje?',26);
   if(cafe)add('pad-pausa','padaria','Café quentinho e uma delícia da padaria! Que tal essa combinação para uma pausa gostosa no seu dia?',42);
@@ -6718,7 +6718,7 @@ function lsSpeakSingle_(phrase,opts){
     try{window.speechSynthesis.speak(u);}catch(e){finish(false);}
   });
 }
-// v8.71: cadência de rádio, moeda nativa e blocos contínuos sem perder cancelamento/timeout.
+// v8.73: cadência de rádio, moeda nativa e blocos contínuos sem perder cancelamento/timeout.
 function lsPhoneCadence_(text){
   // Só formata números completos no contexto do contato, sem alterar EAN, preço ou outros dígitos.
   return String(text||'').replace(/(\bwhatsapp\s*[:,]?\s*\d{2},\s*)(\d)(\d{2})(?=,\s*\d{2},\s*\d{2},\s*\d{2}(?!\d))/gi,'$1$2, $3').replace(/(\bwhatsapp\s*[:,]?\s*)(?:\(\s*(\d{2})\s*\)|(\d{2}))\s*(\d{4,5})\s*[-– ]\s*(\d{4})(?!\d)/gi,function(_,prefix,dddA,dddB,first,last){
@@ -6733,6 +6733,9 @@ function lsPrepareNaturalSpeech_(text,voice){
     s=s.replace(/R\$\s*(\d{1,3}(?:\.\d{3})+,\d{1,2}|\d+(?:[,.]\d{1,2})?)(?!\d|[,.]\d)/gi,function(_,v){return lsMoneySpeak_(v);});
   }
   // Não troca todos os pontos por exclamações: preserva decimais, abreviações e a cadência das frases.
+  // Alias fonético somente na saída do sintetizador: mantém o D audível em português.
+  // A biblioteca e os produtos continuam exibindo vodka/vodkas.
+  s=s.replace(/\bvod[ck]as?\b/gi,function(m){return /s$/i.test(m)?'vódicas':'vódica';});
   return s.replace(/(\bB\s*-\s*P\s*-\s*F\b)[.!?,;:\s]*(?=tele[\s-]*entrega\b)/gi,'$1!\n');
 }
 function lsSpeechChunks_(text,voice){
@@ -6755,9 +6758,9 @@ function lsSpeechChunks_(text,voice){
 async function lsSpeakUtterance_(text){
   if(!window.speechSynthesis)return false;
   var currentJob=lsAudioJobToken,voice=lsSelectedVoice_();
-  if(!voice){console.warn('[Líder Station v8.71] Nenhuma voz pt-BR disponível.');return false;}
+  if(!voice){console.warn('[Líder Station v8.73] Nenhuma voz pt-BR disponível.');return false;}
   var chunks=lsSpeechChunks_(text,voice);
-  console.info('[Líder Station v8.71] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
+  console.info('[Líder Station v8.73] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
   for(var i=0;i<chunks.length;i++){
     if(currentJob!==lsAudioJobToken)return false;
     var chunk=chunks[i],isPhone=/\bwhatsapp\b/i.test(chunk);
@@ -7057,7 +7060,7 @@ function lsClearAdvance_(){clearTimeout(lsAdvanceTimer_);lsAdvanceTimer_=0;}
 function lsResetTracking_(){lsClearAdvance_();clearInterval(lsTrackWatch_);clearTimeout(lsStartTimeout_);lsTrackWatch_=lsStartTimeout_=0;lsTrack_=lsEndedTrack_=lsOfferRetryEnded_=null;}
 function lsPauseForVoice_(){clearInterval(lsVolumeTimer);try{lsPlayer.setVolume(0);}catch(e){}try{lsPlayer.pauseVideo();}catch(e){console.warn('[Líder Station Rádio] Pausa:',e);}}
 function lsResumeCurrent_(){if(!lsRadioActive)return;try{lsPlayer.setVolume(Number(document.getElementById('lsMusicVolume').value));lsPlayer.playVideo();}catch(e){lsRadioFailure_('Não foi possível retomar a playlist: '+e.message);}}
-function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.71]',message);}
+function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.73]',message);}
 function lsStartupDeadline_(message,ms){clearTimeout(lsStartTimeout_);lsStartTimeout_=setTimeout(function(){if(lsStartRequested_||lsRadioPhase_==='arming')lsRadioFailure_(message);},ms);}
 function lsOpeningFromPlayer_(){
   if(!lsRadioActive||lsRadioPhase_!=='arming')return;
@@ -7086,7 +7089,7 @@ function lsAdvanceEnded_(ended){
 function lsTransition_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='music')return;
   lsCallCount++;var every=Math.max(1,Number(document.getElementById('lsEvery').value)||1);
-  console.info('[Líder Station Rádio v8.71] Transição:',reason,'·',lsCallCount,'música(s)');
+  console.info('[Líder Station Rádio v8.73] Transição:',reason,'·',lsCallCount,'música(s)');
   if(lsCallCount%every===0){lsClearAdvance_();lsRadioPhase_='offer';lsPendingAnnouncement=true;lsPauseForVoice_();lsRunAutomaticOffer_(reason,ended).catch(function(e){if(lsRadioActive)lsHoldOffer_(ended,'Falha na chamada: '+e.message);});}
   else if(ended){lsClearAdvance_();lsAdvanceTimer_=setTimeout(function(){lsAdvanceTimer_=0;lsAdvanceEnded_(ended);},900);}
 }
@@ -7150,7 +7153,7 @@ function lsHoldOffer_(ended,message){
 async function lsRunAutomaticOffer_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='offer'||lsRadioSpeaking)return;
   if(lsFlyerBusy){lsHoldOffer_(ended,'Leitura de encarte ainda em andamento.');return;}
-  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.71] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
+  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.73] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
   var blocks=lsBlocks_(false),block=blocks[0],parts=block?lsBuildBlock_(block,true):null,token=++lsAudioJobToken;
   var input=document.getElementById('lsScript');
   function build(){return parts?lsFullScript_(parts):'Líder Station! A rádio do Boas Compras! '+lsTimePhrase_()+' Líder das ofertas! Líder no ar!';}
@@ -7158,14 +7161,14 @@ async function lsRunAutomaticOffer_(reason,ended){
   var total=block?block.items.length:0;
   document.getElementById('lsNow').textContent=block?'No ar — chamada integral ('+total+' ofertas).':'No ar — identificação da rádio e hora certa.';
   document.getElementById('lsRadioStatus').textContent=(reason==='manual'?'Chamada manual.':reason==='troca de faixa'?'Troca de música detectada.':'A música terminou.')+' Preparando '+total+' ofertas e hora certa.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.71] Início da chamada integral:',total,'ofertas ·',reason);
+  console.info('[Líder Station Rádio v8.73] Início da chamada integral:',total,'ofertas ·',reason);
   var ok=await lsVoiceWithBed_(token,build,false);
   if(token!==lsAudioJobToken||!lsRadioActive)return;
   if(!ok){lsHoldOffer_(ended,'A locução não foi concluída.');return;}
   if(block){lsSpeakIndex++;lsCommitCalls_(parts);}
   lsRadioSpeaking=false;lsPendingAnnouncement=false;lsRadioPhase_='music';lsOfferRetryEnded_=null;
   document.getElementById('lsRadioStatus').textContent='Chamada concluída: '+total+' oferta(s). Voltando à playlist.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.71] Chamada concluída:',total,'ofertas.');
+  console.info('[Líder Station Rádio v8.73] Chamada concluída:',total,'ofertas.');
   if(ended)lsAdvanceEnded_(ended);
   else{lsTrack_=lsReadTrack_()||lsTrack_;lsEndedTrack_=null;lsResumeCurrent_();}
 }
