@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.48 — Líder Station: proteção de leitura Gemini e compatibilidade de resposta -->
+<!-- Arsenal de Ofertas v8.49 — Líder Station: diagnóstico de cascata Gemini por página -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -6196,8 +6196,10 @@ async function lsGeminiReadPage_(file){
       if(typeof payload==='string'){try{payload=JSON.parse(payload);}catch(e){throw new Error('Resposta do Gemini em JSON inválido.');}}
       if(payload&&payload.ok===false)throw new Error(payload.erro||'Falha na leitura do Gemini.');
       if(!payload||!Array.isArray(payload.ofertas))throw new Error('Resposta do Gemini sem a lista de ofertas. Confira o formato retornado pelo Code.gs.');
+      console.info('[Líder Station Gemini] Página '+file.name,{requestId:requestId,modelo:payload.modelo||payload.modeloSolicitado||'não informado',modeloPrincipal:payload.modeloPrincipal||'',alternativo:payload.usouAlternativo===true,ofertas:payload.ofertas.length,tentativas:payload.tentativasModelos||[]});
       return payload;
     }
+    if(result&&result.tentativasModelos)console.warn('[Líder Station Gemini] Cascata sem sucesso: '+file.name,{requestId:requestId,tentativas:result.tentativasModelos});
     lastError=String(result&&result.erro||'Resposta vazia do Apps Script');
     // Falhas transitórias do canal JSONP não devem encerrar uma leitura em curso.
     if(!result||/^(Timeout ao consultar Apps Script|Falha ao carregar JSONP do Apps Script|Resposta vazia do Apps Script)$/i.test(lastError)){
@@ -6230,7 +6232,7 @@ async function lsReadFlyer(input){
 async function lsReadFlyerBatch_(input,files){
   var status=document.getElementById('lsOcrStatus'),target=document.getElementById('lsOcrRows'),btn=document.getElementById('lsImportBtn'),previewBtn=document.getElementById('lsPreviewFlyerBtn');
   lsFlyerRows=[];target.innerHTML='';btn.disabled=true;if(previewBtn)previewBtn.disabled=true;lsOcrPageCount_=files.length;lsOcrCurrentPage_=0;document.getElementById('lsCampaign').value='';document.getElementById('lsValidity').value='';lsSaveConfig_();
-  var pagesOK=0,failed=[],failedFiles=[],campaign='',validity='',geminiWorked=false;
+  var pagesOK=0,failed=[],failedFiles=[],campaign='',validity='',geminiWorked=false,modelCounts=Object.create(null);
   try{
     for(var p=0;p<files.length;p++){
       lsOcrCurrentPage_=p+1;status.textContent='Analisando página '+(p+1)+' de '+files.length+' com Gemini Vision…';
@@ -6239,7 +6241,7 @@ async function lsReadFlyerBatch_(input,files){
         if(!campaign&&data.campanha)campaign=data.campanha;if(!validity&&data.validade)validity=data.validade;
         var rows=(data.ofertas||[]).map(function(o){var observation=String(o.observacao||''),pack=observation.match(/(?:LEVE|NA COMPRA DE|A PARTIR DE)[^\d]{0,24}(\d{1,2})\s*(?:UN|UNIDADES)?/i)||observation.match(/C\s*\/\s*(\d{1,2})\s*UN/i),pay=observation.match(/PAGUE\s*(?:R\$\s*)?(\d{1,3}[,.]\d{2})\s*CADA/i);var unit=String(o.unidade||'CADA').toUpperCase();if(['KG','UN','BDJ','PCT','LT','CADA'].indexOf(unit)<0)unit='CADA';if(pay)unit='CADA';var name=String(o.produto||''),matches=buscarProdutos(name,30).filter(function(m){var a=normalizarTexto(name),b=normalizarTexto(m.nome);return b===a||b.indexOf(a+' ')===0||a.indexOf(b+' ')===0;});var code=matches.length===1?normalizarCodigo(matches[0].cod):'';return {produto:name,codigo:code,de:'',por:String(pay?pay[1].replace('.',','):o.preco||''),precoConfiavel:false,precoRevisar:true,precoCandidato:String(o.preco||''),unidade:unit,tipo:pack?'PACK':'UNITARIA',qtd:pack?Number(pack[1]):0,modo:pay?'apartir':'leve',validade:'',observacao:observation,fala:'',origemLeitura:'Gemini Vision'};}).filter(function(o){return lsFlyerNameValid_(o.produto);});
         if(!rows.length)throw new Error('Nenhuma oferta utilizável encontrada nesta página pelo Gemini.');
-        lsMergeFlyerRows_(rows);pagesOK++;
+        lsMergeFlyerRows_(rows);pagesOK++;var modelName=String(data.modeloSolicitado||data.modelo||'não informado');modelCounts[modelName]=(modelCounts[modelName]||0)+1;
       }catch(pageErr){failed.push(files[p].name+': '+String(pageErr&&pageErr.message||pageErr));failedFiles.push(files[p]);console.warn('[Líder Station Gemini] Falha na página '+files[p].name,pageErr);}
     }
     if(!geminiWorked||!lsFlyerRows.length){status.textContent='Gemini não encontrou ofertas utilizáveis. Tentando a leitura local do Edge…';await lsReadFlyerLocal_(input);if(failed.length)status.textContent+=' Gemini: '+failed.join(' | ');return;}
@@ -6247,7 +6249,7 @@ async function lsReadFlyerBatch_(input,files){
     lsDrawFlyerRows_();if(campaign)document.getElementById('lsCampaign').value=campaign;if(validity)document.getElementById('lsValidity').value=validity;lsSaveConfig_();
     btn.disabled=!lsFlyerRows.length;if(previewBtn)previewBtn.disabled=!lsFlyerRows.length;
     var noPrice=lsFlyerRows.filter(function(r){return !(parseDec(r.por)>0);}).length;
-    status.textContent=lsFlyerRows.length+' oferta(s) reconhecida(s). Gemini: '+pagesOK+' de '+files.length+' página(s) com ofertas. '+(noPrice?noPrice+' sem preço legível. ':'')+'Confira cada produto e preço com a imagem antes de ouvir ou criar placas.'+(failed.length?' '+failed.length+' página(s) encaminhada(s) à leitura local. Falhas do Gemini: '+failed.join(' | '):'');
+    status.textContent=lsFlyerRows.length+' oferta(s) reconhecida(s). Gemini: '+pagesOK+' de '+files.length+' página(s) com ofertas. '+(Object.keys(modelCounts).length?'Modelos: '+Object.keys(modelCounts).map(function(m){return m+' ('+modelCounts[m]+')';}).join(', ')+'. ':'')+(noPrice?noPrice+' sem preço legível. ':'')+'Confira cada produto e preço com a imagem antes de ouvir ou criar placas.'+(failed.length?' '+failed.length+' página(s) encaminhada(s) à leitura local. Falhas do Gemini: '+failed.join(' | '):'');
     if(!lsFlyerRows.length)status.textContent+=' A leitura local do Edge será usada como alternativa.';
   }catch(err){console.error('[Líder Station Gemini] Falha:',err);status.textContent='Não foi possível consultar o Gemini. Tentando a leitura local do Edge…';await lsReadFlyerLocal_(input);}
 }
