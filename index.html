@@ -883,7 +883,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
 <script>
 window.ARSENAL_SEARCHCORE_BUILD='v7.18-impressao-conteudo-visivel';
 window.ARSENAL_PRINT_BUILD='v1.0-assistente-impressao-estilo-windows';
-window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO-TEXTO-FOTOS-PADRAO-20261117-GEOMETRIA-UNIFORME-TODOS-TEMAS-20261117-TEMAS-SAZONAIS-POR-DATA-20261124-LIDER-STATION-OCR-EDGE-NATURAL-JINGLES';
+window.ARSENAL_BUILD='REGIONAL-SAFE-GOOGLE-20260826-ARRASTAO-FOTOS-20260903-IMPRESSAO-CLASSICA-TEMA-AUTO-SETOR-AURA-UNIVERSAL-20261022-PACK-UNIT-BADGE-20261028-DESC-EDITAVEL-PACK-CAMPOS-EM-LINHA-20261029-CABECALHO-IMPRIMIR-PDF-1-2-4-PROPORCAO-PRESERVADA-Cestas-10-3-4-3-CABECALHOS-HORTI-STYLE-20261104-GRUPO-PRECO-VENDA-ULTIMA-ATUALIZACAO-20261105-SETOR-CENTRAL-20261110-PACK-NATAL-TEMPLATE-NOVO-20261113-V2-PRECO-PADRAO-TEXTO-FOTOS-PADRAO-20261117-GEOMETRIA-UNIFORME-TODOS-TEMAS-20261117-TEMAS-SAZONAIS-POR-DATA-20261126-LIDER-STATION-GEMINI-VISION-OCR';
 // ============================================================
 // CONFIGURAÇÃO E ESTADO
 // ============================================================
@@ -6128,7 +6128,7 @@ async function lsReadFlyerCells_(worker,image,data){
   }
   return out;
 }
-async function lsReadFlyer(input){
+async function lsReadFlyerLocal_(input){
   var files=Array.prototype.slice.call(input&&input.files||[]).filter(function(f){return /^image\//i.test(f.type||'')||/\.(jpe?g|png|webp)$/i.test(f.name||'');});if(!files.length)return;
   var status=document.getElementById('lsOcrStatus'),target=document.getElementById('lsOcrRows'),btn=document.getElementById('lsImportBtn'),previewBtn=document.getElementById('lsPreviewFlyerBtn');
   lsFlyerRows=[];target.innerHTML='';btn.disabled=true;if(previewBtn)previewBtn.disabled=true;lsOcrPageCount_=files.length;lsOcrCurrentPage_=0;document.getElementById('lsCampaign').value='';document.getElementById('lsValidity').value='';lsSaveConfig_();
@@ -6167,6 +6167,48 @@ async function lsReadFlyer(input){
     console.error('[Líder Station OCR] Falha ao iniciar leitura no Edge:',err);
     status.textContent='Não foi possível iniciar o leitor no Edge: '+String(err&&err.message||err)+'. Confira a conexão e se a extensão de bloqueio permite carregar os arquivos do OCR.';
   }finally{if(input)input.value='';}
+}
+function lsFlyerImageForGemini_(file){return new Promise(function(resolve,reject){
+  createImageBitmap(file).then(function(bitmap){try{var scale=Math.min(1,1800/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));var ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);if(bitmap.close)bitmap.close();var url=canvas.toDataURL('image/jpeg',.84),parts=url.split(',');resolve({mimeType:'image/jpeg',base64:parts[1]||''});}catch(err){if(bitmap.close)bitmap.close();reject(err);}}).catch(reject);
+});}
+async function lsGeminiReadPage_(file){
+  var cfg=loadCfg();if(!cfg.url)throw new Error('URL do Apps Script não configurada.');
+  var image=await lsFlyerImageForGemini_(file),requestId='LS'+Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+  if(image.base64.length>6*1024*1024)throw new Error('A página ainda ficou grande após a compressão. Envie uma imagem menor.');
+  // no-cors permite o POST simples ao Apps Script; a resposta chega por JSONP.
+  await fetch(cfg.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'lsExtrairEncarteGemini',requestId:requestId,mimeType:image.mimeType,base64:image.base64})});
+  var started=Date.now();
+  while(Date.now()-started<150000){
+    var result=await _gasGetJsonp('lsResultadoEncarteGemini','&requestId='+encodeURIComponent(requestId),15000);
+    if(result&&result.pendente){await new Promise(function(resolve){setTimeout(resolve,1100);});continue;}
+    if(!result||!result.ok)throw new Error(result&&result.erro||'Falha ao receber a leitura do Gemini.');
+    return result;
+  }
+  throw new Error('A leitura no servidor excedeu o tempo limite. Tente novamente com a página em JPG.');
+}
+async function lsReadFlyer(input){
+  var files=Array.prototype.slice.call(input&&input.files||[]).filter(function(f){return /^image\//i.test(f.type||'')||/\.(jpe?g|png|webp)$/i.test(f.name||'');});if(!files.length)return;
+  var status=document.getElementById('lsOcrStatus'),target=document.getElementById('lsOcrRows'),btn=document.getElementById('lsImportBtn'),previewBtn=document.getElementById('lsPreviewFlyerBtn');
+  lsFlyerRows=[];target.innerHTML='';btn.disabled=true;if(previewBtn)previewBtn.disabled=true;lsOcrPageCount_=files.length;lsOcrCurrentPage_=0;document.getElementById('lsCampaign').value='';document.getElementById('lsValidity').value='';lsSaveConfig_();
+  var pagesOK=0,failed=[],failedFiles=[],campaign='',validity='',geminiWorked=false;
+  try{
+    for(var p=0;p<files.length;p++){
+      lsOcrCurrentPage_=p+1;status.textContent='Analisando página '+(p+1)+' de '+files.length+' com Gemini Vision…';
+      try{
+        var data=await lsGeminiReadPage_(files[p]);geminiWorked=true;
+        if(!campaign&&data.campanha)campaign=data.campanha;if(!validity&&data.validade)validity=data.validade;
+        var rows=(data.ofertas||[]).map(function(o){var observation=String(o.observacao||''),pack=observation.match(/(?:LEVE|NA COMPRA DE|A PARTIR DE)[^\d]{0,24}(\d{1,2})\s*(?:UN|UNIDADES)?/i)||observation.match(/C\s*\/\s*(\d{1,2})\s*UN/i),pay=observation.match(/PAGUE\s*(?:R\$\s*)?(\d{1,3}[,.]\d{2})\s*CADA/i);var unit=String(o.unidade||'CADA').toUpperCase();if(['KG','UN','BDJ','PCT','LT','CADA'].indexOf(unit)<0)unit='CADA';if(pay)unit='CADA';var name=String(o.produto||''),matches=buscarProdutos(name,30).filter(function(m){var a=normalizarTexto(name),b=normalizarTexto(m.nome);return b===a||b.indexOf(a+' ')===0||a.indexOf(b+' ')===0;});var code=matches.length===1?normalizarCodigo(matches[0].cod):'';return {produto:name,codigo:code,de:'',por:String(pay?pay[1].replace('.',','):o.preco||''),precoConfiavel:false,precoRevisar:true,precoCandidato:String(o.preco||''),unidade:unit,tipo:pack?'PACK':'UNITARIA',qtd:pack?Number(pack[1]):0,modo:pay?'apartir':'leve',validade:'',observacao:observation,fala:'',origemLeitura:'Gemini Vision'};}).filter(function(o){return lsFlyerNameValid_(o.produto);});
+        lsMergeFlyerRows_(rows);pagesOK++;
+      }catch(pageErr){failed.push(files[p].name+': '+String(pageErr&&pageErr.message||pageErr));failedFiles.push(files[p]);console.warn('[Líder Station Gemini] Falha na página '+files[p].name,pageErr);}
+    }
+    if(!geminiWorked||!lsFlyerRows.length){status.textContent='Gemini não encontrou ofertas utilizáveis. Tentando a leitura local do Edge…';await lsReadFlyerLocal_(input);return;}
+    if(failedFiles.length){var geminiRows=lsFlyerRows.slice();try{status.textContent='Tentando leitura local do Edge nas '+failedFiles.length+' página(s) que o Gemini não processou…';await lsReadFlyerLocal_({files:failedFiles,value:''});var localRows=lsFlyerRows.slice();lsFlyerRows=[];lsMergeFlyerRows_(geminiRows.concat(localRows));}catch(fallbackErr){lsFlyerRows=geminiRows;console.warn('[Líder Station OCR] Alternativa local também falhou:',fallbackErr);}}
+    lsDrawFlyerRows_();if(campaign)document.getElementById('lsCampaign').value=campaign;if(validity)document.getElementById('lsValidity').value=validity;lsSaveConfig_();
+    btn.disabled=!lsFlyerRows.length;if(previewBtn)previewBtn.disabled=!lsFlyerRows.length;
+    var noPrice=lsFlyerRows.filter(function(r){return !(parseDec(r.por)>0);}).length;
+    status.textContent=lsFlyerRows.length+' oferta(s) lida(s) pelo Gemini em '+pagesOK+' de '+files.length+' página(s). '+(noPrice?noPrice+' sem preço legível. ':'')+'Confira cada produto e preço com a imagem antes de ouvir ou criar placas.'+(failed.length?' '+failed.length+' página(s) falharam.':'');
+    if(!lsFlyerRows.length)status.textContent+=' A leitura local do Edge será usada como alternativa.';
+  }catch(err){console.error('[Líder Station Gemini] Falha:',err);status.textContent='Não foi possível consultar o Gemini. Tentando a leitura local do Edge…';await lsReadFlyerLocal_(input);}
 }
 function lsParseFlyer_(text){
   var sourceLines=String(text||'').split(/\r?\n/),joined=[];
@@ -6215,10 +6257,10 @@ function lsDrawFlyerRows_(){
     '<input class="ls-code" value="'+lsEscape_(r.codigo)+'" placeholder="Código/EAN" aria-label="Código/EAN">'+
     '<input class="ls-por '+(r.precoRevisar?'ls-price-review':'')+'" value="'+lsEscape_(r.por)+'" placeholder="Por R$" aria-label="Preço promocional">'+
     '<select class="ls-type"><option value="UNITARIA" '+(r.tipo==='UNITARIA'?'selected':'')+'>Unitária</option><option value="PACK" '+(r.tipo==='PACK'?'selected':'')+'>Pack / leve</option><option value="CLUB" '+(r.tipo==='CLUB'?'selected':'')+'>Preço Club</option></select>'+
-    '<div class="ls-extra" style="grid-column:2/-1;display:grid;gap:6px"><input class="ls-qtd" type="number" min="1" value="'+(r.qtd||2)+'" title="Quantidade do pack"><select class="ls-modo"><option value="leve" '+(r.modo==='leve'?'selected':'')+'>Leve X por (total do pack)</option><option value="apartir" '+(r.modo==='apartir'?'selected':'')+'>A partir de X, cada unidade</option></select><select class="ls-unit"><option '+(r.unidade==='CADA'?'selected':'')+'>CADA</option><option '+(r.unidade==='KG'?'selected':'')+'>KG</option><option '+(r.unidade==='LT'?'selected':'')+'>LT</option><option>UND</option><option>PCT</option></select><input class="ls-validade" value="'+lsEscape_(r.validade)+'" placeholder="Validade (opcional)">'+(r.precoRevisar?'<div class="ls-ocr-review">'+(r.recorte?'<img src="'+r.recorte+'" alt="Recorte da oferta para conferência">':'')+'<span>⚠ Preço sem confirmação segura. Confira o recorte e preencha o valor antes da locução.</span></div>':'<div class="ls-ocr-price-ok">✓ Preço conferido por leituras concordantes.</div>')+'</div></div>';}).join('');
+    '<div class="ls-extra" style="grid-column:2/-1;display:grid;gap:6px"><input class="ls-qtd" type="number" min="1" value="'+(r.qtd||2)+'" title="Quantidade do pack"><select class="ls-modo"><option value="leve" '+(r.modo==='leve'?'selected':'')+'>Leve X por (total do pack)</option><option value="apartir" '+(r.modo==='apartir'?'selected':'')+'>A partir de X, cada unidade</option></select><select class="ls-unit"><option '+(r.unidade==='CADA'?'selected':'')+'>CADA</option><option '+(r.unidade==='KG'?'selected':'')+'>KG</option><option '+(r.unidade==='LT'?'selected':'')+'>LT</option><option>UND</option><option>PCT</option></select><input class="ls-validade" value="'+lsEscape_(r.validade)+'" placeholder="Validade (opcional)">'+(r.observacao?'<input class="ls-observacao" value="'+lsEscape_(r.observacao)+'" placeholder="Condição lida no encarte (confira)">':'')+(r.precoRevisar?'<div class="ls-ocr-review"><span>'+(parseDec(r.por)>0?'⚠ Preço lido pela IA. Confira o valor no encarte antes de usar.'+(r.precoCandidato&&r.precoCandidato!==r.por?' Preço promocional impresso: R$ '+lsEscape_(r.precoCandidato)+'.':''):'⚠ Preço não identificado. Confira a imagem e informe o valor.')+'</span></div>':'<div class="ls-ocr-price-ok">✓ Preço conferido por leituras concordantes.</div>')+'</div></div>';}).join('');
   [].slice.call(el.querySelectorAll('.ls-por')).forEach(function(input){input.addEventListener('input',function(){var card=input.closest('.ls-promo'),i=Number(card&&card.getAttribute('data-row')),row=lsFlyerRows[i];if(!row)return;var valid=parseDec(input.value)>0;row.precoRevisar=!valid;row.precoConfiavel=valid;input.classList.toggle('ls-price-review',!valid);var note=card.querySelector('.ls-ocr-review,.ls-ocr-price-ok');if(valid&&note){note.className='ls-ocr-price-ok';note.textContent='✓ Valor informado/revisado manualmente; pode entrar na prévia.';}else if(!valid&&note){note.className='ls-ocr-review';note.innerHTML=(row.recorte?'<img src=\"'+row.recorte+'\" alt=\"Recorte da oferta para conferência\">':'')+'<span>⚠ Preço sem confirmação segura. Confira o recorte e preencha o valor antes da locução.</span>';}});});
 }
-function lsSyncFlyerRowsFromDOM_(){var cards=[].slice.call(document.querySelectorAll('#lsOcrRows .ls-promo'));if(!cards.length)return lsFlyerRows;lsFlyerRows=cards.map(function(c){var i=parseInt(c.getAttribute('data-row'),10),base=lsFlyerRows[i]||{},por=c.querySelector('.ls-por').value.trim(),hasPrice=parseDec(por)>0;return Object.assign({},base,{produto:c.querySelector('.ls-prod').value.trim(),codigo:normalizarCodigo(c.querySelector('.ls-code').value),por:por,precoConfiavel:hasPrice,precoRevisar:!hasPrice,tipo:c.querySelector('.ls-type').value,de:'',qtd:parseInt(c.querySelector('.ls-qtd').value,10)||0,modo:c.querySelector('.ls-modo').value,unidade:c.querySelector('.ls-unit').value,validade:c.querySelector('.ls-validade').value.trim(),selecionada:c.querySelector('.ls-ok').checked,narrarDePor:false});});return lsFlyerRows;}
+function lsSyncFlyerRowsFromDOM_(){var cards=[].slice.call(document.querySelectorAll('#lsOcrRows .ls-promo'));if(!cards.length)return lsFlyerRows;lsFlyerRows=cards.map(function(c){var i=parseInt(c.getAttribute('data-row'),10),base=lsFlyerRows[i]||{},por=c.querySelector('.ls-por').value.trim(),hasPrice=parseDec(por)>0,obs=c.querySelector('.ls-observacao');return Object.assign({},base,{produto:c.querySelector('.ls-prod').value.trim(),codigo:normalizarCodigo(c.querySelector('.ls-code').value),por:por,precoConfiavel:hasPrice,precoRevisar:!hasPrice,tipo:c.querySelector('.ls-type').value,de:'',qtd:parseInt(c.querySelector('.ls-qtd').value,10)||0,modo:c.querySelector('.ls-modo').value,unidade:c.querySelector('.ls-unit').value,validade:c.querySelector('.ls-validade').value.trim(),observacao:obs?obs.value.trim():base.observacao||'',selecionada:c.querySelector('.ls-ok').checked,narrarDePor:false});});return lsFlyerRows;}
 function lsClearFlyer(){lsFlyerRows=[];document.getElementById('lsOcrRows').innerHTML='';document.getElementById('lsOcrStatus').textContent='Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.';document.getElementById('lsImportBtn').disabled=true;document.getElementById('lsPreviewFlyerBtn').disabled=true;document.getElementById('lsCampaign').value='';lsScriptEdited=false;lsSaveConfig_();var f=document.getElementById('lsFlyerFile');if(f)f.value='';}
 async function lsCreateFlyerPlates_(){
   lsSyncFlyerRowsFromDOM_();
