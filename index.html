@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.81 — base v8.80 consolidada + packs, Club, setor e abertura -->
+<!-- Arsenal de Ofertas v8.82 — base v8.81 consolidada + tratamento do limite de leitura Gemini -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -10,7 +10,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arsenal de Ofertas | v8.81</title>
+<title>Arsenal de Ofertas | v8.82</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20width%3D%22128%22%20height%3D%22128%22%20viewBox%3D%220%200%20128%20128%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%20%20%3Crect%20width%3D%22128%22%20height%3D%22128%22%20rx%3D%2226%22%20fill%3D%22%23fc0000%22/%3E%0A%0A%20%20%3C%21--%20etiqueta%20amarela%20cheia%20--%3E%0A%20%20%3Cg%20transform%3D%22translate%2818%2C22%29%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M8%206h29.5a7%207%200%200%201%204.95%202.05l29%2029a7%207%200%200%201%200%209.9l-24.5%2024.5a7%207%200%200%201-9.9%200l-29-29A7%207%200%200%201%206%2037.5V13a7%207%200%200%201%202-7z%22%0A%20%20%20%20%20%20%20%20%20%20fill%3D%22%23fedb01%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2223%22%20cy%3D%2223%22%20r%3D%225%22%20fill%3D%22%23ffffff%22/%3E%0A%20%20%20%20%3Ctext%20x%3D%2241%22%20y%3D%2252%22%20font-family%3D%22Arial%2C%20Helvetica%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2230%22%20fill%3D%22%23ffffff%22%20text-anchor%3D%22middle%22%3E%24%3C/text%3E%0A%20%20%3C/g%3E%0A%0A%20%20%3C%21--%20brilhos%20--%3E%0A%20%20%3Cg%20fill%3D%22%23fedb01%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M98%2014%20L101%2021%20L108%2024%20L101%2027%20L98%2034%20L95%2027%20L88%2024%20L95%2021%20Z%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M108%2046%20L110%2051%20L115%2053%20L110%2055%20L108%2060%20L106%2055%20L101%2053%20L106%2051%20Z%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M92%2060%20L93.5%2063.5%20L97%2065%20L93.5%2066.5%20L92%2070%20L90.5%2066.5%20L87%2065%20L90.5%2063.5%20Z%22/%3E%0A%20%20%3C/g%3E%0A%3C/svg%3E%0A">
 <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap">
@@ -465,7 +465,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 </head>
 <body>
-<script>if(String(location.hash||'').toLowerCase()=='#liderstation'){document.documentElement.classList.add('ls-standalone');document.title='Líder Station | Boas Compras | v8.81';}</script>
+<script>if(String(location.hash||'').toLowerCase()=='#liderstation'){document.documentElement.classList.add('ls-standalone');document.title='Líder Station | Boas Compras | v8.82';}</script>
 <div class="wrap">
   <header class="aura-header">
     <div class="aura-header-brand">
@@ -5964,7 +5964,7 @@ document.addEventListener('click',function(e){
 // ============================================================
 // LÍDER STATION — leitura revisável de encartes e rádio interna
 // ============================================================
-console.info('[Líder Station] v8.81 — versão carregada');
+console.info('[Líder Station] v8.82 — versão carregada');
 var lsFlyerRows=[];
 var lsFlyerBusy=false;
 var lsPlayer=null,lsRadioActive=false,lsRadioSpeaking=false,lsCallCount=0,lsSpeakIndex=0,lsPendingAnnouncement=false,lsVolumeTimer=0,lsScriptEdited=false,lsPreferredVoiceUri='',lsActiveJingle=null,lsAudioJobToken=0,lsPlaylistId='',lsPlayerReady_=false,lsStartRequested_=false,lsRadioPhase_='idle',lsPlaylistPrepareTimer_=0;
@@ -6208,7 +6208,7 @@ async function lsGeminiReadPage_(file){
       if(typeof payload==='string'){try{payload=JSON.parse(payload);}catch(e){throw new Error('Resposta do Gemini em JSON inválido.');}}
       if(payload&&payload.ok===false)throw new Error(payload.erro||'Falha na leitura do Gemini.');
       if(!payload||!Array.isArray(payload.ofertas))throw new Error('Resposta do Gemini sem a lista de ofertas. Confira o formato retornado pelo Code.gs.');
-      console.info('[Líder Station Gemini] Página '+file.name,{requestId:requestId,modelo:payload.modelo||payload.modeloSolicitado||'não informado',modeloPrincipal:payload.modeloPrincipal||'',alternativo:payload.usouAlternativo===true,ofertas:payload.ofertas.length,tentativas:payload.tentativasModelos||[]});
+      console.info('[Líder Station Gemini] Página '+file.name,{requestId:requestId,modelo:payload.modelo||payload.modeloSolicitado||'não informado',modeloPrincipal:payload.modeloPrincipal||'',alternativo:payload.usouAlternativo===true,cacheImagem:payload.cacheImagem===true,ofertas:payload.ofertas.length,tentativas:payload.tentativasModelos||[]});
       return payload;
     }
     if(result&&result.tentativasModelos)console.warn('[Líder Station Gemini] Cascata sem sucesso: '+file.name,{requestId:requestId,tentativas:result.tentativasModelos});
@@ -6217,7 +6217,7 @@ async function lsGeminiReadPage_(file){
     if(!result||/^(Timeout ao consultar Apps Script|Falha ao carregar JSONP do Apps Script|Resposta vazia do Apps Script)$/i.test(lastError)){
       await new Promise(function(resolve){setTimeout(resolve,1100);});continue;
     }
-    throw new Error(lastError);
+    var readError=new Error(lastError);readError.codigo=result&&result.codigo;throw readError;
   }
   throw new Error('Tempo limite aguardando o Gemini.'+(lastError?' Último retorno: '+lastError:postError?' Envio sem confirmação de transporte.':'')+' ID: '+requestId);
 }
@@ -6277,7 +6277,7 @@ function lsOfferPackOK_(it){
 async function lsReadFlyerBatch_(input,files){
   var status=document.getElementById('lsOcrStatus'),target=document.getElementById('lsOcrRows'),btn=document.getElementById('lsImportBtn'),previewBtn=document.getElementById('lsPreviewFlyerBtn');
   lsFlyerRows=[];target.innerHTML='';btn.disabled=true;if(previewBtn)previewBtn.disabled=true;lsOcrPageCount_=files.length;lsOcrCurrentPage_=0;document.getElementById('lsCampaign').value='';document.getElementById('lsValidity').value='';lsSaveConfig_();
-  var pagesOK=0,failed=[],failedFiles=[],campaign='',validity='',geminiWorked=false,modelCounts=Object.create(null);
+  var pagesOK=0,failed=[],failedFiles=[],campaign='',validity='',geminiWorked=false,modelCounts=Object.create(null),quotaError='',quotaSkipped=0;
   try{
     for(var p=0;p<files.length;p++){
       lsOcrCurrentPage_=p+1;status.textContent='Analisando página '+(p+1)+' de '+files.length+' com Gemini Vision…';
@@ -6287,8 +6287,12 @@ async function lsReadFlyerBatch_(input,files){
         var rows=(data.ofertas||[]).map(lsGeminiOfferRow_).filter(function(o){return lsFlyerNameValid_(o.produto);});
         if(!rows.length)throw new Error('Nenhuma oferta utilizável encontrada nesta página pelo Gemini.');
         lsMergeFlyerRows_(rows);pagesOK++;var modelName=String(data.modeloSolicitado||data.modelo||'não informado');modelCounts[modelName]=(modelCounts[modelName]||0)+1;
-      }catch(pageErr){failed.push(files[p].name+': '+String(pageErr&&pageErr.message||pageErr));failedFiles.push(files[p]);console.warn('[Líder Station Gemini] Falha na página '+files[p].name,pageErr);}
+      }catch(pageErr){var msg=String(pageErr&&pageErr.message||pageErr);failed.push(files[p].name+': '+msg);console.warn('[Líder Station Gemini] Falha na página '+files[p].name,pageErr);
+        if((pageErr&&pageErr.codigo==='LS_DAILY_LIMIT')||/Limite diário de \d+ páginas atingido/i.test(msg)){quotaError=msg;quotaSkipped=files.length-p;break;}
+        failedFiles.push(files[p]);}
     }
+    // Limite administrativo: não acionar OCR automaticamente nem misturar dados de baixa confiança.
+    if(quotaError){lsDrawFlyerRows_();if(campaign)document.getElementById('lsCampaign').value=campaign;if(validity)document.getElementById('lsValidity').value=validity;lsSaveConfig_();btn.disabled=!lsFlyerRows.length;if(previewBtn)previewBtn.disabled=!lsFlyerRows.length;status.textContent='Gemini: '+pagesOK+' de '+files.length+' página(s) concluída(s). '+quotaError+' '+quotaSkipped+' página(s) interrompida(s) pelo limite'+(failedFiles.length?' e '+failedFiles.length+' com outras falhas':'')+'. OCR local não acionado automaticamente. '+(lsFlyerRows.length?'As ofertas reconhecidas nesta leitura foram mantidas. Confira a seleção antes de narrar.':'Nenhuma oferta nova reconhecida. Reimporte as páginas após liberar o limite.');return;}
     if(!geminiWorked||!lsFlyerRows.length){status.textContent='Gemini não encontrou ofertas utilizáveis. Tentando a leitura local do Edge…';await lsReadFlyerLocal_(input);if(failed.length)status.textContent+=' Gemini: '+failed.join(' | ');return;}
     if(failedFiles.length){var geminiRows=lsFlyerRows.slice();try{status.textContent='Tentando leitura local do Edge nas '+failedFiles.length+' página(s) que o Gemini não processou…';await lsReadFlyerLocal_({files:failedFiles,value:''});var localRows=lsFlyerRows.slice();lsFlyerRows=[];lsMergeFlyerRows_(geminiRows.concat(localRows));}catch(fallbackErr){lsFlyerRows=geminiRows;console.warn('[Líder Station OCR] Alternativa local também falhou:',fallbackErr);}}
     lsDrawFlyerRows_();if(campaign)document.getElementById('lsCampaign').value=campaign;if(validity)document.getElementById('lsValidity').value=validity;lsSaveConfig_();
@@ -6833,7 +6837,7 @@ function lsSpeakSingle_(phrase,opts){
     try{window.speechSynthesis.speak(u);}catch(e){finish(false);}
   });
 }
-// v8.81: cadência de rádio, moeda nativa e blocos contínuos sem perder cancelamento/timeout.
+// v8.82: cadência de rádio, moeda nativa e blocos contínuos sem perder cancelamento/timeout.
 function lsPhoneCadence_(text){
   // Só formata números completos no contexto do contato, sem alterar EAN, preço ou outros dígitos.
   return String(text||'').replace(/(\bwhatsapp\s*[:,]?\s*\d{2},\s*)(\d)(\d{2})(?=,\s*\d{2},\s*\d{2},\s*\d{2}(?!\d))/gi,'$1$2, $3').replace(/(\bwhatsapp\s*[:,]?\s*)(?:\(\s*(\d{2})\s*\)|(\d{2}))\s*(\d{4,5})\s*[-–]?\s*(\d{4})(?!\d)/gi,function(_,prefix,dddA,dddB,first,last){
@@ -6900,9 +6904,9 @@ function lsSpeechChunks_(text,voice,greetingSet){
 async function lsSpeakUtterance_(text,isGreeting){
   if(!window.speechSynthesis)return false;
   var currentJob=lsAudioJobToken,voice=lsSelectedVoice_();
-  if(!voice){console.warn('[Líder Station v8.81] Nenhuma voz pt-BR disponível.');return false;}
+  if(!voice){console.warn('[Líder Station v8.82] Nenhuma voz pt-BR disponível.');return false;}
   var greetingSet=lsGreetingSpeechSet_(voice),chunks=lsSpeechChunks_(text,voice,greetingSet);
-  console.info('[Líder Station v8.81] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
+  console.info('[Líder Station v8.82] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
   for(var i=0;i<chunks.length;i++){
     if(currentJob!==lsAudioJobToken)return false;
     var chunk=chunks[i],isPhone=/\bwhatsapp\b/i.test(chunk);
@@ -7257,7 +7261,7 @@ function lsClearAdvance_(){clearTimeout(lsAdvanceTimer_);lsAdvanceTimer_=0;}
 function lsResetTracking_(){lsEnteringOffer_=false;lsMusicFadePending_=false;lsClearAdvance_();clearInterval(lsTrackWatch_);clearTimeout(lsStartTimeout_);lsTrackWatch_=lsStartTimeout_=0;lsTrack_=lsEndedTrack_=lsOfferRetryEnded_=null;}
 function lsPauseForVoice_(){clearInterval(lsVolumeTimer);try{lsPlayer.setVolume(0);}catch(e){}try{lsPlayer.pauseVideo();}catch(e){console.warn('[Líder Station Rádio] Pausa:',e);}}
 function lsResumeCurrent_(){if(!lsRadioActive)return;try{lsPlayer.setVolume(0);lsPrepareMusicReturn_();lsPlayer.playVideo();}catch(e){lsRadioFailure_('Não foi possível retomar a playlist: '+e.message);}}
-function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.81]',message);}
+function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.82]',message);}
 function lsStartupDeadline_(message,ms){clearTimeout(lsStartTimeout_);lsStartTimeout_=setTimeout(function(){if(lsStartRequested_||lsRadioPhase_==='arming')lsRadioFailure_(message);},ms);}
 function lsOpeningFromPlayer_(){
   if(!lsRadioActive||lsRadioPhase_!=='arming')return;
@@ -7286,7 +7290,7 @@ function lsAdvanceEnded_(ended){
 function lsTransition_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='music')return;
   lsCallCount++;var every=Math.max(1,Number(document.getElementById('lsEvery').value)||1);
-  console.info('[Líder Station Rádio v8.81] Transição:',reason,'·',lsCallCount,'música(s)');
+  console.info('[Líder Station Rádio v8.82] Transição:',reason,'·',lsCallCount,'música(s)');
   if(lsCallCount%every===0){lsClearAdvance_();lsRadioPhase_='offer';lsPendingAnnouncement=true;lsPauseForVoice_();lsRunAutomaticOffer_(reason,ended).catch(function(e){if(lsRadioActive)lsHoldOffer_(ended,'Falha na chamada: '+e.message);});}
   else if(ended){lsClearAdvance_();lsAdvanceTimer_=setTimeout(function(){lsAdvanceTimer_=0;lsAdvanceEnded_(ended);},0);}else{lsPlayer.setVolume(0);lsPrepareMusicReturn_();}
 }
@@ -7350,7 +7354,7 @@ function lsHoldOffer_(ended,message){
 async function lsRunAutomaticOffer_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='offer'||lsRadioSpeaking)return;
   if(lsFlyerBusy){lsHoldOffer_(ended,'Leitura de encarte ainda em andamento.');return;}
-  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.81] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
+  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.82] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
   var blocks=lsBlocks_(false),block=blocks[0],parts=block?lsBuildBlock_(block,true):null,token=++lsAudioJobToken;
   var input=document.getElementById('lsScript');
   function build(){return parts?lsFullScript_(parts):'Líder Station! A rádio do Boas Compras! '+lsTimePhrase_()+' Líder das ofertas! Líder no ar!';}
@@ -7358,14 +7362,14 @@ async function lsRunAutomaticOffer_(reason,ended){
   var total=block?block.items.length:0;
   document.getElementById('lsNow').textContent=block?'No ar — chamada integral ('+total+' ofertas).':'No ar — identificação da rádio e hora certa.';
   document.getElementById('lsRadioStatus').textContent=(reason==='manual'?'Chamada manual.':reason==='troca de faixa'?'Troca de música detectada.':'A música terminou.')+' Preparando '+total+' ofertas e hora certa.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.81] Início da chamada integral:',total,'ofertas ·',reason);
+  console.info('[Líder Station Rádio v8.82] Início da chamada integral:',total,'ofertas ·',reason);
   var ok=await lsVoiceWithBed_(token,build,false);
   if(token!==lsAudioJobToken||!lsRadioActive)return;
   if(!ok){lsHoldOffer_(ended,'A locução não foi concluída.');return;}
   if(block){lsSpeakIndex++;lsCommitCalls_(parts);lsCommitGreeting_(parts.greeting);}
   lsRadioSpeaking=false;lsPendingAnnouncement=false;lsRadioPhase_='music';lsOfferRetryEnded_=null;
   document.getElementById('lsRadioStatus').textContent='Chamada concluída: '+total+' oferta(s). Voltando à playlist.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.81] Chamada concluída:',total,'ofertas.');
+  console.info('[Líder Station Rádio v8.82] Chamada concluída:',total,'ofertas.');
   if(ended)lsAdvanceEnded_(ended);
   else{lsTrack_=lsReadTrack_()||lsTrack_;lsEndedTrack_=null;lsResumeCurrent_();}
 }
