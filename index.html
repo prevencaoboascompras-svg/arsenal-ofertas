@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.37 — prévia de rádio e placas sob confirmação -->
+<!-- Arsenal de Ofertas v8.48 — Líder Station: proteção de leitura Gemini e compatibilidade de resposta -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -544,7 +544,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
       <div class="ls-box">
         <strong>Importar promoções do encarte por foto</strong>
         <p class="ls-note">Envie uma ou várias páginas. Revise os produtos e preços, ajuste a locução e escute a prévia. Nada é gravado nas placas até você clicar em “Criar placas”.</p>
-        <div class="ls-row"><label class="btn btn-green btn-sm" for="lsFlyerFile">Escolher páginas do encarte</label><input id="lsFlyerFile" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none" onchange="lsReadFlyer(this)"><button class="btn btn-sm" onclick="lsClearFlyer()">Limpar leitura</button></div>
+        <div class="ls-row"><label class="btn btn-green btn-sm" id="lsFlyerPickLabel" for="lsFlyerFile">Escolher páginas do encarte</label><input id="lsFlyerFile" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none" onchange="lsReadFlyer(this)"><button class="btn btn-sm" id="lsFlyerClearBtn" onclick="lsClearFlyer()">Limpar leitura</button></div>
         <div class="ls-drop" id="lsOcrStatus" style="margin-top:8px">Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.</div>
         <div id="lsOcrRows" class="ls-promo-list"></div>
         <div class="ls-row ls-preview-row" style="margin-top:9px"><button class="btn btn-sm" id="lsPreviewFlyerBtn" onclick="lsPreviewNext_()" disabled>▶ Ouvir prévia</button><button class="btn btn-green btn-sm" id="lsImportBtn" onclick="lsCreateFlyerPlates_()" disabled>＋ Criar placas</button><span class="ls-note">A prévia da rádio fica neste navegador. As placas só entram na lista de impressão depois de “Criar placas”.</span></div>
@@ -5954,6 +5954,7 @@ document.addEventListener('click',function(e){
 // LÍDER STATION — leitura revisável de encartes e rádio interna
 // ============================================================
 var lsFlyerRows=[];
+var lsFlyerBusy=false;
 var lsPlayer=null,lsRadioActive=false,lsRadioSpeaking=false,lsCallCount=0,lsSpeakIndex=0,lsPendingAnnouncement=false,lsVolumeTimer=0,lsScriptEdited=false,lsPreferredVoiceUri='',lsActiveJingle=null,lsAudioJobToken=0,lsPlaylistId='',lsPlayerReady_=false,lsStartRequested_=false,lsRadioPhase_='idle',lsPlaylistPrepareTimer_=0;
 var lsPlaylistId='',lsRadioPhase_='idle',lsPlayerReady_=false,lsYTApiLoading_=false,lsPlaylistPrepareTimer_=0,lsArmTimer_=0,lsTrackEndedDuringVoice_=false,lsStartupJinglePromise_=null;
 function lsMoney_(v){return String(v||'').replace(/^R\$\s*/i,'').trim().replace('.',',');}
@@ -6176,18 +6177,57 @@ async function lsGeminiReadPage_(file){
   var image=await lsFlyerImageForGemini_(file),requestId='LS'+Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
   if(image.base64.length>6*1024*1024)throw new Error('A página ainda ficou grande após a compressão. Envie uma imagem menor.');
   // no-cors permite o POST simples ao Apps Script; a resposta chega por JSONP.
-  await fetch(cfg.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'lsExtrairEncarteGemini',requestId:requestId,mimeType:image.mimeType,base64:image.base64})});
-  var started=Date.now();
-  while(Date.now()-started<150000){
-    var result=await _gasGetJsonp('lsResultadoEncarteGemini','&requestId='+encodeURIComponent(requestId),15000);
-    if(result&&result.pendente){await new Promise(function(resolve){setTimeout(resolve,1100);});continue;}
-    if(!result||!result.ok)throw new Error(result&&result.erro||'Falha ao receber a leitura do Gemini.');
-    return result;
+  var postError=null;
+  try{
+    await fetchComTimeout(cfg.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'lsExtrairEncarteGemini',requestId:requestId,mimeType:image.mimeType,base64:image.base64})},150000);
+  }catch(err){
+    // Uma falha de transporte não prova que o Apps Script deixou de receber o POST.
+    // Consulta o mesmo ID, sem repetir o envio nem gerar outra cobrança da API.
+    postError=err;console.warn('[Líder Station Gemini] POST sem confirmação de transporte:',requestId,err);
   }
-  throw new Error('A leitura no servidor excedeu o tempo limite. Tente novamente com a página em JPG.');
+  var started=Date.now(),lastError='';
+  while(Date.now()-started<150000){
+    var remaining=150000-(Date.now()-started);
+    var result=await _gasGetJsonp('lsResultadoEncarteGemini','&requestId='+encodeURIComponent(requestId),Math.min(15000,remaining));
+    if(result&&result.pendente){await new Promise(function(resolve){setTimeout(resolve,1100);});continue;}
+    if(result&&result.ok){
+      // Aceita o contrato antigo (ofertas na raiz) e o novo ({ok:true,dados:{...}}).
+      var payload=Object.prototype.hasOwnProperty.call(result,'dados')?result.dados:result;
+      if(typeof payload==='string'){try{payload=JSON.parse(payload);}catch(e){throw new Error('Resposta do Gemini em JSON inválido.');}}
+      if(payload&&payload.ok===false)throw new Error(payload.erro||'Falha na leitura do Gemini.');
+      if(!payload||!Array.isArray(payload.ofertas))throw new Error('Resposta do Gemini sem a lista de ofertas. Confira o formato retornado pelo Code.gs.');
+      return payload;
+    }
+    lastError=String(result&&result.erro||'Resposta vazia do Apps Script');
+    // Falhas transitórias do canal JSONP não devem encerrar uma leitura em curso.
+    if(!result||/^(Timeout ao consultar Apps Script|Falha ao carregar JSONP do Apps Script|Resposta vazia do Apps Script)$/i.test(lastError)){
+      await new Promise(function(resolve){setTimeout(resolve,1100);});continue;
+    }
+    throw new Error(lastError);
+  }
+  throw new Error('Tempo limite aguardando o Gemini.'+(lastError?' Último retorno: '+lastError:postError?' Envio sem confirmação de transporte.':'')+' ID: '+requestId);
 }
 async function lsReadFlyer(input){
+  if(lsFlyerBusy){mostrarToast('Aguarde a conclusão da leitura atual.','warn');return;}
   var files=Array.prototype.slice.call(input&&input.files||[]).filter(function(f){return /^image\//i.test(f.type||'')||/\.(jpe?g|png|webp)$/i.test(f.name||'');});if(!files.length)return;
+  var picker=document.getElementById('lsFlyerFile'),label=document.getElementById('lsFlyerPickLabel'),clear=document.getElementById('lsFlyerClearBtn');
+  var btn=document.getElementById('lsImportBtn'),preview=document.getElementById('lsPreviewFlyerBtn');
+  if(btn&&btn.textContent.trim()==='Criando placas…'){mostrarToast('Aguarde a criação das placas antes de iniciar outra leitura.','warn');if(input)input.value='';return;}
+  lsFlyerBusy=true;
+  try{
+    if(input)input.disabled=true;if(picker)picker.disabled=true;if(clear)clear.disabled=true;
+    if(btn)btn.disabled=true;if(preview)preview.disabled=true;
+    if(label){label.setAttribute('aria-disabled','true');label.style.pointerEvents='none';label.style.opacity='.5';label.textContent='Leitura em andamento…';}
+    // Usa uma cópia dos arquivos: o OCR local pode limpar seu próprio input.
+    await lsReadFlyerBatch_({files:files,value:''},files);
+  }finally{
+    lsFlyerBusy=false;
+    if(input){input.disabled=false;input.value='';}if(picker){picker.disabled=false;picker.value='';}if(clear)clear.disabled=false;
+    if(label){label.removeAttribute('aria-disabled');label.style.pointerEvents='';label.style.opacity='';label.textContent='Escolher páginas do encarte';}
+    if(btn)btn.disabled=!lsFlyerRows.length;if(preview)preview.disabled=!lsFlyerRows.length;
+  }
+}
+async function lsReadFlyerBatch_(input,files){
   var status=document.getElementById('lsOcrStatus'),target=document.getElementById('lsOcrRows'),btn=document.getElementById('lsImportBtn'),previewBtn=document.getElementById('lsPreviewFlyerBtn');
   lsFlyerRows=[];target.innerHTML='';btn.disabled=true;if(previewBtn)previewBtn.disabled=true;lsOcrPageCount_=files.length;lsOcrCurrentPage_=0;document.getElementById('lsCampaign').value='';document.getElementById('lsValidity').value='';lsSaveConfig_();
   var pagesOK=0,failed=[],failedFiles=[],campaign='',validity='',geminiWorked=false;
@@ -6198,15 +6238,16 @@ async function lsReadFlyer(input){
         var data=await lsGeminiReadPage_(files[p]);geminiWorked=true;
         if(!campaign&&data.campanha)campaign=data.campanha;if(!validity&&data.validade)validity=data.validade;
         var rows=(data.ofertas||[]).map(function(o){var observation=String(o.observacao||''),pack=observation.match(/(?:LEVE|NA COMPRA DE|A PARTIR DE)[^\d]{0,24}(\d{1,2})\s*(?:UN|UNIDADES)?/i)||observation.match(/C\s*\/\s*(\d{1,2})\s*UN/i),pay=observation.match(/PAGUE\s*(?:R\$\s*)?(\d{1,3}[,.]\d{2})\s*CADA/i);var unit=String(o.unidade||'CADA').toUpperCase();if(['KG','UN','BDJ','PCT','LT','CADA'].indexOf(unit)<0)unit='CADA';if(pay)unit='CADA';var name=String(o.produto||''),matches=buscarProdutos(name,30).filter(function(m){var a=normalizarTexto(name),b=normalizarTexto(m.nome);return b===a||b.indexOf(a+' ')===0||a.indexOf(b+' ')===0;});var code=matches.length===1?normalizarCodigo(matches[0].cod):'';return {produto:name,codigo:code,de:'',por:String(pay?pay[1].replace('.',','):o.preco||''),precoConfiavel:false,precoRevisar:true,precoCandidato:String(o.preco||''),unidade:unit,tipo:pack?'PACK':'UNITARIA',qtd:pack?Number(pack[1]):0,modo:pay?'apartir':'leve',validade:'',observacao:observation,fala:'',origemLeitura:'Gemini Vision'};}).filter(function(o){return lsFlyerNameValid_(o.produto);});
+        if(!rows.length)throw new Error('Nenhuma oferta utilizável encontrada nesta página pelo Gemini.');
         lsMergeFlyerRows_(rows);pagesOK++;
       }catch(pageErr){failed.push(files[p].name+': '+String(pageErr&&pageErr.message||pageErr));failedFiles.push(files[p]);console.warn('[Líder Station Gemini] Falha na página '+files[p].name,pageErr);}
     }
-    if(!geminiWorked||!lsFlyerRows.length){status.textContent='Gemini não encontrou ofertas utilizáveis. Tentando a leitura local do Edge…';await lsReadFlyerLocal_(input);return;}
+    if(!geminiWorked||!lsFlyerRows.length){status.textContent='Gemini não encontrou ofertas utilizáveis. Tentando a leitura local do Edge…';await lsReadFlyerLocal_(input);if(failed.length)status.textContent+=' Gemini: '+failed.join(' | ');return;}
     if(failedFiles.length){var geminiRows=lsFlyerRows.slice();try{status.textContent='Tentando leitura local do Edge nas '+failedFiles.length+' página(s) que o Gemini não processou…';await lsReadFlyerLocal_({files:failedFiles,value:''});var localRows=lsFlyerRows.slice();lsFlyerRows=[];lsMergeFlyerRows_(geminiRows.concat(localRows));}catch(fallbackErr){lsFlyerRows=geminiRows;console.warn('[Líder Station OCR] Alternativa local também falhou:',fallbackErr);}}
     lsDrawFlyerRows_();if(campaign)document.getElementById('lsCampaign').value=campaign;if(validity)document.getElementById('lsValidity').value=validity;lsSaveConfig_();
     btn.disabled=!lsFlyerRows.length;if(previewBtn)previewBtn.disabled=!lsFlyerRows.length;
     var noPrice=lsFlyerRows.filter(function(r){return !(parseDec(r.por)>0);}).length;
-    status.textContent=lsFlyerRows.length+' oferta(s) lida(s) pelo Gemini em '+pagesOK+' de '+files.length+' página(s). '+(noPrice?noPrice+' sem preço legível. ':'')+'Confira cada produto e preço com a imagem antes de ouvir ou criar placas.'+(failed.length?' '+failed.length+' página(s) falharam.':'');
+    status.textContent=lsFlyerRows.length+' oferta(s) reconhecida(s). Gemini: '+pagesOK+' de '+files.length+' página(s) com ofertas. '+(noPrice?noPrice+' sem preço legível. ':'')+'Confira cada produto e preço com a imagem antes de ouvir ou criar placas.'+(failed.length?' '+failed.length+' página(s) encaminhada(s) à leitura local. Falhas do Gemini: '+failed.join(' | '):'');
     if(!lsFlyerRows.length)status.textContent+=' A leitura local do Edge será usada como alternativa.';
   }catch(err){console.error('[Líder Station Gemini] Falha:',err);status.textContent='Não foi possível consultar o Gemini. Tentando a leitura local do Edge…';await lsReadFlyerLocal_(input);}
 }
@@ -6261,8 +6302,9 @@ function lsDrawFlyerRows_(){
   [].slice.call(el.querySelectorAll('.ls-por')).forEach(function(input){input.addEventListener('input',function(){var card=input.closest('.ls-promo'),i=Number(card&&card.getAttribute('data-row')),row=lsFlyerRows[i];if(!row)return;var valid=parseDec(input.value)>0;row.precoRevisar=!valid;row.precoConfiavel=valid;input.classList.toggle('ls-price-review',!valid);var note=card.querySelector('.ls-ocr-review,.ls-ocr-price-ok');if(valid&&note){note.className='ls-ocr-price-ok';note.textContent='✓ Valor informado/revisado manualmente; pode entrar na prévia.';}else if(!valid&&note){note.className='ls-ocr-review';note.innerHTML=(row.recorte?'<img src=\"'+row.recorte+'\" alt=\"Recorte da oferta para conferência\">':'')+'<span>⚠ Preço sem confirmação segura. Confira o recorte e preencha o valor antes da locução.</span>';}});});
 }
 function lsSyncFlyerRowsFromDOM_(){var cards=[].slice.call(document.querySelectorAll('#lsOcrRows .ls-promo'));if(!cards.length)return lsFlyerRows;lsFlyerRows=cards.map(function(c){var i=parseInt(c.getAttribute('data-row'),10),base=lsFlyerRows[i]||{},por=c.querySelector('.ls-por').value.trim(),hasPrice=parseDec(por)>0,obs=c.querySelector('.ls-observacao');return Object.assign({},base,{produto:c.querySelector('.ls-prod').value.trim(),codigo:normalizarCodigo(c.querySelector('.ls-code').value),por:por,precoConfiavel:hasPrice,precoRevisar:!hasPrice,tipo:c.querySelector('.ls-type').value,de:'',qtd:parseInt(c.querySelector('.ls-qtd').value,10)||0,modo:c.querySelector('.ls-modo').value,unidade:c.querySelector('.ls-unit').value,validade:c.querySelector('.ls-validade').value.trim(),observacao:obs?obs.value.trim():base.observacao||'',selecionada:c.querySelector('.ls-ok').checked,narrarDePor:false});});return lsFlyerRows;}
-function lsClearFlyer(){lsFlyerRows=[];document.getElementById('lsOcrRows').innerHTML='';document.getElementById('lsOcrStatus').textContent='Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.';document.getElementById('lsImportBtn').disabled=true;document.getElementById('lsPreviewFlyerBtn').disabled=true;document.getElementById('lsCampaign').value='';lsScriptEdited=false;lsSaveConfig_();var f=document.getElementById('lsFlyerFile');if(f)f.value='';}
+function lsClearFlyer(){if(lsFlyerBusy){mostrarToast('Aguarde a conclusão da leitura atual.','warn');return;}lsFlyerRows=[];document.getElementById('lsOcrRows').innerHTML='';document.getElementById('lsOcrStatus').textContent='Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.';document.getElementById('lsImportBtn').disabled=true;document.getElementById('lsPreviewFlyerBtn').disabled=true;document.getElementById('lsCampaign').value='';lsScriptEdited=false;lsSaveConfig_();var f=document.getElementById('lsFlyerFile');if(f)f.value='';}
 async function lsCreateFlyerPlates_(){
+  if(lsFlyerBusy){mostrarToast('Aguarde a conclusão da leitura atual.','warn');return;}
   lsSyncFlyerRowsFromDOM_();
   var cards=[].slice.call(document.querySelectorAll('#lsOcrRows .ls-promo'));
   var chosen=cards.filter(function(c){return c.querySelector('.ls-ok').checked;});
@@ -6454,6 +6496,7 @@ function lsLoadDriveJingles_(){var status=document.getElementById('lsJingleStatu
 function lsPlayJingle_(fileId){if(!fileId||!window.Audio)return Promise.resolve(false);return lsGetDriveJingle_(fileId).then(function(url){return new Promise(function(resolve){var done=false,a=new Audio(url),timer=setTimeout(function(){finish(false);},30000);lsActiveJingle=a;function finish(ok){if(done)return;done=true;clearTimeout(timer);a.onended=a.onerror=null;if(!ok){try{a.pause();}catch(e){}}if(lsActiveJingle===a)lsActiveJingle=null;resolve(ok);}a.onended=function(){finish(true);};a.onerror=function(){finish(false);};var p=a.play();if(p&&p.catch)p.catch(function(){finish(false);});});}).catch(function(e){var st=document.getElementById('lsJingleStatus');if(st)st.textContent=e.message||'Falha ao carregar MP3 do Drive.';return false;});}
 function lsStripIdents_(text,opening,closing){var s=String(text||'').trim();if(opening&&s.toLocaleLowerCase().indexOf(opening.toLocaleLowerCase())===0)s=s.slice(opening.length).trim();if(closing&&s.toLocaleLowerCase().slice(-closing.length)===closing.toLocaleLowerCase())s=s.slice(0,-closing.length).trim();return s;}
 async function lsPreviewNext_(){
+  if(lsFlyerBusy){mostrarToast('Aguarde a conclusão da leitura atual.','warn');return;}
   var blocks=lsBlocks_(false),input=document.getElementById('lsScript'),custom=lsScriptEdited,script='';
   if(!window.speechSynthesis){document.getElementById('lsRadioStatus').textContent='Abra a Líder Station no Microsoft Edge para ouvir a prévia com a voz padrão.';return;}
   if(!blocks.length){
