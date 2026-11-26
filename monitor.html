@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><title>Líder Station Monitor | AURA</title><style>
+*{box-sizing:border-box}body{margin:0;background:#141415;color:#fafafa;font:15px/1.5 system-ui,Segoe UI,sans-serif;min-height:100vh}main{max-width:750px;margin:0 auto;padding:28px 20px}header{border-bottom:1px solid #393939;padding-bottom:20px;display:flex;align-items:center;gap:16px}header svg{width:54px;height:54px;color:#ffdb18}h1{margin:0;font-size:clamp(22px,5vw,32px);letter-spacing:-.04em;color:#ffdb18}p{margin:6px 0;color:#c2c2c2}small{color:#aaa}.tag{font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:#ffdb18}section{border:1px solid #373737;background:#222224;border-radius:14px;padding:22px;margin-top:18px}h2{font-size:15px;margin:0 0 12px}label{display:block;font-size:13px;color:#c2c2c2;margin:8px 0}input[type=text]{width:100%;font:14px monospace;background:#171717;color:#fff;border:1px solid #666;padding:12px;border-radius:7px}button{font:inherit;font-weight:700;border:0;border-radius:8px;padding:11px 14px;cursor:pointer;background:#ffdb18;color:#202020}button.secondary{background:#383838;color:#fff}button:disabled{opacity:.45;cursor:default}button[hidden]{display:none}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.status{font-weight:650;min-height:40px;color:#ffe46d;padding-top:10px}.bar{height:12px;background:#111;border-radius:8px;overflow:hidden;margin:10px 0}.bar div{width:0;height:100%;background:#55c68c;transition:width .15s}input[type=range]{width:100%;accent-color:#ffdb18}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.metric{padding:10px 0;border-bottom:1px solid #3a3a3a}.metric span{display:block;font-size:12px;color:#aaa}.metric strong{overflow-wrap:anywhere}.wide{grid-column:1/-1}footer{padding:18px 0;font-size:12px;color:#aaa}@media(max-width:480px){section{padding:16px}.grid{grid-template-columns:1fr}}
+</style></head><body><main><header><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><rect x="5" y="16" width="38" height="25" rx="5"/><path d="m9 16 29-11M11 24h12m-12 6h12m-12 5h12"/><circle cx="34" cy="28" r="5"/></svg><div><div class="tag">AURA • Monitoramento interno</div><h1>LÍDER STATION</h1><p>A rádio do Boas Compras</p></div></header><section><h2>Conectar à rádio da loja</h2><label for="code">Código temporário de pareamento</label><input id="code" type="text" maxlength="32" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Cole o código gerado no Arsenal"><div class="actions"><button id="connect">Ouvir ao vivo</button><button id="disconnect" class="secondary" disabled>Desconectar</button><button id="resume" hidden>Ativar som</button></div><div id="status" class="status" role="status" aria-live="polite">Aguardando conexão.</div><small>Somente áudio. Conexão direta entre computadores da rede; o código expira em até três minutos.</small></section><section><h2>Áudio recebido</h2><div class="bar" role="presentation"><div id="meter"></div></div><p id="level">Sem sinal</p><label for="volume">Volume do notebook — <span id="pct">70%</span></label><input id="volume" type="range" min="0" max="100" value="70"><audio id="audio" autoplay playsinline></audio><small>O volume deste monitor não altera o som da loja.</small></section><section><h2>Estado informado pelo Arsenal</h2><div class="grid"><div class="metric"><span>Programação</span><strong id="phase">Desconectado</strong></div><div class="metric"><span>Ofertas</span><strong id="offers">—</strong></div><div class="metric wide"><span>Faixa / atividade</span><strong id="track">—</strong></div><div class="metric wide"><span>Último status</span><strong id="detail">—</strong></div></div><p id="last">—</p></section><footer>Monitor da Líder Station • v1.0 • Não inicia, altera ou interrompe a programação da loja. Não confirma a saída física do amplificador.</footer></main><script>
+const DEFAULT_API="https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec";
+// Sinalização curta; mídia WebRTC direta, sem STUN/TURN nem servidor de áudio.
+const LSM = (()=>{
+  const validCode=c=>/^[a-f0-9]{32}$/.test(c);
+  const validApi=u=>/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u);
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const code=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
+  function read(api,c,part){
+    if(!validApi(api)||!validCode(c))return Promise.reject(new Error('Endereço ou código inválido.'));
+    return new Promise((resolve,reject)=>{
+      const cb='__lsMonitor_'+code(),s=document.createElement('script');let done=false,t;
+      function finish(err,r){if(done)return;done=true;clearTimeout(t);s.remove();window[cb]=()=>{};setTimeout(()=>{delete window[cb]},60000);err?reject(err):resolve(r);}
+      window[cb]=r=>{if(!r||!r.ok)finish(new Error(r&&r.erro||'Servidor de pareamento não atualizado.'));else finish(null,r);};
+      s.onerror=()=>finish(new Error('Falha ao consultar o Apps Script.'));
+      s.src=api+'?'+new URLSearchParams({action:'lsMonitorSignal',code:c,part,callback:cb,_:String(Date.now())});
+      t=setTimeout(()=>finish(new Error('Tempo esgotado na sinalização.')),12000);document.head.appendChild(s);
+    });
+  }
+  async function write(api,c,desc){
+    if(!validApi(api)||!validCode(c))throw new Error('Endereço ou código inválido.');
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    try{await fetch(api,{method:'POST',mode:'no-cors',credentials:'omit',cache:'no-store',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'lsMonitorSignal',code:c,part:desc.type,description:{type:desc.type,sdp:desc.sdp}}),signal:controller.signal});}finally{clearTimeout(timer);}
+    // Resposta opaca do POST: confirmação real pelo cache, não pelo HTTP.
+    for(let i=0;i<4;i++){const r=await read(api,c,desc.type);if(r.description&&r.description.sdp===desc.sdp)return;await sleep(700);}
+    throw new Error('O servidor não confirmou o pareamento. Verifique a implantação v8.63.');
+  }
+  async function waitDescription(api,c,part,alive,until){
+    while(alive()&&Date.now()<until){try{const r=await read(api,c,part);if(r.description)return r.description;}catch(e){if(!alive())break;}await sleep(2500);}
+    throw new Error('Pareamento expirado ou interrompido. Gere um novo código na loja.');
+  }
+  function gather(pc){return new Promise((resolve,reject)=>{
+    if(pc.iceGatheringState==='complete')return resolve();
+    let t;const check=()=>{if(pc.iceGatheringState==='complete'){clearTimeout(t);pc.removeEventListener('icegatheringstatechange',check);resolve();}};
+    pc.addEventListener('icegatheringstatechange',check);t=setTimeout(()=>{pc.removeEventListener('icegatheringstatechange',check);reject(new Error('Não foi possível reunir os endereços da rede local.'));},12000);check();
+  });}
+  const peer=()=>new RTCPeerConnection({iceServers:[]});
+  return {code,validCode,validApi,read,write,waitDescription,gather,peer};
+})();
+
+(()=>{
+ const $=id=>document.getElementById(id);let session=null;
+ const params=new URLSearchParams(location.hash.slice(1));const supplied=params.get('api');
+ const api=LSM.validApi(supplied||'')?supplied:DEFAULT_API;
+ $('code').value=params.get('code')||'';
+ if(location.hash)history.replaceState(null,'',location.pathname+location.search);
+ const phaseNames={idle:'Rádio parada',arming:'Preparando playlist',opening:'Abertura e hora certa',music:'Programação musical',offer:'Locução de ofertas', 'offer-error':'Falha na locução — rádio pausada'};
+ function status(t){$('status').textContent=t;}
+ function cleanup(s,reason,sendBye=false){
+   if(session!==s)return;session=null;clearInterval(s.tick);clearTimeout(s.deadline);clearTimeout(s.disconnect);
+   if(sendBye&&s.channel&&s.channel.readyState==='open')try{s.channel.send('bye')}catch(e){}
+   if(s.pc)try{s.pc.close()}catch(e){}if(s.ctx)try{s.ctx.close()}catch(e){}
+   $('audio').pause();$('audio').srcObject=null;$('resume').hidden=true;$('connect').disabled=false;$('disconnect').disabled=true;$('code').disabled=false;
+   $('meter').style.width='0%';$('level').textContent='Sem sinal';$('phase').textContent='Desconectado';$('track').textContent='—';$('offers').textContent='—';$('detail').textContent='—';$('last').textContent='—';status(reason||'Monitoramento encerrado.');
+ }
+ function update(s){
+   if(session!==s)return;
+   if(s.last&&Date.now()-s.last>10000){$('last').textContent='Sem atualização recente';$('phase').textContent='Estado da rádio desatualizado';}
+   if(!s.analyser)return;
+   s.analyser.getFloatTimeDomainData(s.samples);let sum=0;for(const v of s.samples)sum+=v*v;
+   const rms=Math.sqrt(sum/s.samples.length),db=20*Math.log10(Math.max(rms,0.000001));
+   $('meter').style.width=Math.max(0,Math.min(100,(db+60)/60*100))+'%';
+   $('level').textContent=rms<0.001?'Sem sinal audível agora':db.toFixed(0)+' dBFS · sinal recebido';
+ }
+ async function play(s){if(session!==s)return;try{if(s.ctx&&s.ctx.state==='suspended')await s.ctx.resume();await $('audio').play();if(session===s)$('resume').hidden=true;}catch(e){if(session===s)$('resume').hidden=false;}}
+ async function connect(){
+   if(session)return;const c=$('code').value.trim().toLowerCase();if(!LSM.validCode(c)){status('Cole o código de 32 caracteres gerado no computador da loja.');return;}
+   const s={};session=s;$('connect').disabled=true;$('disconnect').disabled=false;$('code').disabled=true;status('Buscando a transmissão da loja…');
+   try{
+     if(!window.RTCPeerConnection)throw new Error('Use um navegador atualizado, como o Edge.');
+     const AC=window.AudioContext||window.webkitAudioContext;if(AC){try{s.ctx=new AC();s.ctx.resume().catch(()=>{});}catch(e){}}
+     const r=await LSM.read(api,c,'offer');if(session!==s)return;if(!r.description)throw new Error('Código não encontrado ou expirado. Gere outro no PC da loja.');
+     s.pc=LSM.peer();const pc=s.pc;
+     pc.ontrack=e=>{if(session!==s||e.track.kind!=='audio')return;const stream=new MediaStream([e.track]);$('audio').srcObject=stream;
+       if(s.ctx){try{s.source=s.ctx.createMediaStreamSource(stream);s.analyser=s.ctx.createAnalyser();s.analyser.fftSize=1024;s.samples=new Float32Array(1024);s.source.connect(s.analyser);}catch(e){}}
+       play(s);
+     };
+     pc.ondatachannel=e=>{if(session!==s||e.channel.label!=='lider-status')return;s.channel=e.channel;
+       s.channel.onmessage=ev=>{if(session!==s)return;try{const d=JSON.parse(ev.data);s.last=Date.now();$('phase').textContent=phaseNames[d.phase]||'Estado não identificado';$('track').textContent=d.track||d.now||'—';$('offers').textContent=Number.isFinite(d.total)?d.total+' selecionadas':'—';$('detail').textContent=d.detail||'—';$('last').textContent='Atualizado às '+new Date(s.last).toLocaleTimeString('pt-BR');}catch(e){}};
+       s.channel.onclose=()=>{if(session===s)cleanup(s,'A loja encerrou a transmissão. Gere um novo código.');};
+     };
+     pc.onconnectionstatechange=()=>{if(session!==s)return;const state=pc.connectionState;if(state==='connected'){clearTimeout(s.deadline);clearTimeout(s.disconnect);status('Conectado à loja — áudio ao vivo.');play(s);}else if(state==='failed'||state==='closed'){cleanup(s,'Conexão encerrada. Confira a rede local e gere outro código.');}else if(state==='disconnected'){status('Conexão instável — aguardando recuperação.');clearTimeout(s.disconnect);s.disconnect=setTimeout(()=>cleanup(s,'Conexão perdida. Gere outro código.'),12000);}};
+     await pc.setRemoteDescription(r.description);if(session!==s)return;await pc.setLocalDescription(await pc.createAnswer());await LSM.gather(pc);if(session!==s)return;
+     await LSM.write(api,c,pc.localDescription);if(session!==s)return;
+     if(pc.connectionState!=='connected'){status('Pareado — estabelecendo conexão de áudio…');s.deadline=setTimeout(()=>cleanup(s,'Não conectou. Verifique se o Wi-Fi e o cabo estão na mesma rede e se o firewall permite WebRTC.'),35000);}
+     s.tick=setInterval(()=>update(s),250);
+   }catch(e){if(session===s)cleanup(s,e.message||String(e));}
+ }
+ $('connect').addEventListener('click',connect);$('disconnect').addEventListener('click',()=>cleanup(session,'Monitoramento encerrado.',true));$('resume').addEventListener('click',()=>session&&play(session));
+ $('volume').addEventListener('input',e=>{$('audio').volume=Number(e.target.value)/100;$('pct').textContent=e.target.value+'%';});$('audio').volume=.7;
+ $('code').addEventListener('keydown',e=>{if(e.key==='Enter')connect()});window.addEventListener('pagehide',()=>{if(session)cleanup(session,'',true)});
+})();
+
+</script></body></html>
