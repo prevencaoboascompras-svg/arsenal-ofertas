@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.82 — base v8.81 consolidada + tratamento do limite de leitura Gemini -->
+<!-- Arsenal de Ofertas v8.84 — base v8.83 consolidada + frequência de chamadas Club -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -10,7 +10,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arsenal de Ofertas | v8.82</title>
+<title>Arsenal de Ofertas | v8.84</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20width%3D%22128%22%20height%3D%22128%22%20viewBox%3D%220%200%20128%20128%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%20%20%3Crect%20width%3D%22128%22%20height%3D%22128%22%20rx%3D%2226%22%20fill%3D%22%23fc0000%22/%3E%0A%0A%20%20%3C%21--%20etiqueta%20amarela%20cheia%20--%3E%0A%20%20%3Cg%20transform%3D%22translate%2818%2C22%29%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M8%206h29.5a7%207%200%200%201%204.95%202.05l29%2029a7%207%200%200%201%200%209.9l-24.5%2024.5a7%207%200%200%201-9.9%200l-29-29A7%207%200%200%201%206%2037.5V13a7%207%200%200%201%202-7z%22%0A%20%20%20%20%20%20%20%20%20%20fill%3D%22%23fedb01%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2223%22%20cy%3D%2223%22%20r%3D%225%22%20fill%3D%22%23ffffff%22/%3E%0A%20%20%20%20%3Ctext%20x%3D%2241%22%20y%3D%2252%22%20font-family%3D%22Arial%2C%20Helvetica%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2230%22%20fill%3D%22%23ffffff%22%20text-anchor%3D%22middle%22%3E%24%3C/text%3E%0A%20%20%3C/g%3E%0A%0A%20%20%3C%21--%20brilhos%20--%3E%0A%20%20%3Cg%20fill%3D%22%23fedb01%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M98%2014%20L101%2021%20L108%2024%20L101%2027%20L98%2034%20L95%2027%20L88%2024%20L95%2021%20Z%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M108%2046%20L110%2051%20L115%2053%20L110%2055%20L108%2060%20L106%2055%20L101%2053%20L106%2051%20Z%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M92%2060%20L93.5%2063.5%20L97%2065%20L93.5%2066.5%20L92%2070%20L90.5%2066.5%20L87%2065%20L90.5%2063.5%20Z%22/%3E%0A%20%20%3C/g%3E%0A%3C/svg%3E%0A">
 <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap">
@@ -465,7 +465,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 </head>
 <body>
-<script>if(String(location.hash||'').toLowerCase()=='#liderstation'){document.documentElement.classList.add('ls-standalone');document.title='Líder Station | Boas Compras | v8.82';}</script>
+<script>if(String(location.hash||'').toLowerCase()=='#liderstation'){document.documentElement.classList.add('ls-standalone');document.title='Líder Station | Boas Compras | v8.84';}</script>
 <div class="wrap">
   <header class="aura-header">
     <div class="aura-header-brand">
@@ -5964,7 +5964,7 @@ document.addEventListener('click',function(e){
 // ============================================================
 // LÍDER STATION — leitura revisável de encartes e rádio interna
 // ============================================================
-console.info('[Líder Station] v8.82 — versão carregada');
+console.info('[Líder Station] v8.84 — versão carregada');
 var lsFlyerRows=[];
 var lsFlyerBusy=false;
 var lsPlayer=null,lsRadioActive=false,lsRadioSpeaking=false,lsCallCount=0,lsSpeakIndex=0,lsPendingAnnouncement=false,lsVolumeTimer=0,lsScriptEdited=false,lsPreferredVoiceUri='',lsActiveJingle=null,lsAudioJobToken=0,lsPlaylistId='',lsPlayerReady_=false,lsStartRequested_=false,lsRadioPhase_='idle',lsPlaylistPrepareTimer_=0;
@@ -6134,10 +6134,9 @@ async function lsReadFlyerCells_(worker,image,data){
     var priceConflict=!!(positionedPrice&&chosen&&positionedPrice!==chosen),priceAgrees=!!(positionedPrice&&chosen&&positionedPrice===chosen);
     var trustedPrice=!priceConflict&&!!chosen&&chosenCount>=2&&(priceAgrees||!positionedPrice),por=trustedPrice?chosen:'';
     var priceText=candidates.map(function(c){return c.value;}).join(' '),promoText=cellText+'\n'+priceText,packQty=0,modo='leve',tipo='UNITARIA';
-    var pack=promoText.match(/(?:LEVE|LEVANDO|A PARTIR DE|NA COMPRA DE)\s*(\d{1,2})/i)||promoText.match(/LEVE[^\d]{0,30}C\s*\/\s*(\d{1,2})\s*UN/i),pagamento=promoText.match(/PAGUE\s*(?:R\$\s*)?(\d{1,3}[,.]\s*\d{2})\s*CADA/i);
-    if(pack){packQty=Number(pack[1]||pack[2])||0;tipo='PACK';var rule=lsFlyerPackRule_({observacao:cellText,qtdPack:packQty});modo=rule.modo;}
+    var rule=lsFlyerPackRule_({observacao:cellText,produto:name});packQty=rule.qtd;tipo=rule.tipo;modo=rule.modo;
     var unit=/\b(KG|QUILO)\b/i.test(promoText)?'KG':(/\b(BDJ|BANDEJA)\b/i.test(promoText)?'BDJ':(/\b(PCT|PACOTE)\b/i.test(promoText)?'PCT':'CADA'));
-    out.push({produto:name,codigo:'',de:'',por:por,precoConfiavel:trustedPrice,precoRevisar:!trustedPrice,precoCandidato:chosen||positionedPrice||'',recorte:recorte,unidade:unit,tipo:tipo,qtd:packQty,modo:modo,validade:'',fala:''});
+    out.push({produto:name,codigo:'',de:'',por:por,precoConfiavel:trustedPrice,precoRevisar:!trustedPrice,precoCandidato:chosen||positionedPrice||'',recorte:recorte,unidade:unit,tipo:tipo,qtd:packQty,modo:modo,club:rule.club,validade:'',fala:''});
   }
   return out;
 }
@@ -6242,19 +6241,36 @@ async function lsReadFlyer(input){
   }
 }
 // O preço é o valor impresso. O sufixo da QUANTIDADE (2UN) não prova preço unitário.
+// Quantidade promocional em unidades: nunca capture o prefixo numérico de peso/volume.
+function lsPackEvidence_(o){
+  function norm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();}
+  var source=norm(o.condicaoPack),obs=norm(o.observacao),name=norm(o.produto||o.nome);
+  var texts=[source,obs,name],qty=0,measure=false;
+  var prefix='\\b(?:LEVE|LEVANDO|NA COMPRA DE|A PARTIR DE)\\s*(?:(?:NA|NO)\\s+(?:CAIXA|PACOTE)\\s+C\\s*\\/?\\s*)?';
+  var unitRe=new RegExp(prefix+'(\\d{1,3})(?![\\d.,])\\s*(?:UN(?:ID(?:ADE(?:S)?)?)?|UND|PCT|PACOTES?|CAIXAS?)\\b','i');
+  var bareRe=new RegExp(prefix+'(\\d{1,3})(?!\\d|[.,]\\d)\\s*[,;:]?\\s*(?=POR\\b|PAGUE\\b|CADA\\b|R\\$|$)','i');
+  var measureRe=new RegExp(prefix+'\\d+(?:[.,]\\d+)?\\s*(?:KG|G|GR|GRAMAS?|QUILOS?|QUILOGRAMAS?|ML|L|LT|LITROS?|MG|M|METROS?)\\b','i');
+  texts.forEach(function(t){if(!t)return;var m=t.match(unitRe)||t.match(bareRe);if(!qty&&m&&Number(m[1])>=2)qty=Number(m[1]);if(measureRe.test(t))measure=true;});
+  var given=Number(o.qtdPack),weights=Array.from(name.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(?:KG|G|GR|GRAMAS?|QUILOS?|QUILOGRAMAS?|ML|L|LT|LITROS?|MG|M|METROS?)\b/g));
+  var same=weights.some(function(m){return Number(m[1].replace(',','.'))===given;});
+  var label=norm(o.rotuloPreco),unit=norm(o.unidade);
+  // Evidência explícita de pack real tem prioridade, mesmo se a quantidade coincidir com o peso.
+  return {qty:qty,measure:measure,sameMeasure:same,normal:!qty&&label!=='TOTAL'&&(measure||(same&&(label==='UN'||label==='CADA'||unit==='UN'||unit==='UND'||unit==='CADA')))};
+}
 function lsFlyerPackRule_(o){
-  var obs=String(o.observacao||''),name=String(o.produto||''),text=(obs+' '+name).replace(/\s+/g,' '),n=normalizarTexto(text);
-  var match=n.match(/\b(?:LEVE|LEVANDO|NA COMPRA DE|A PARTIR DE)\s*(?:(?:NA|NO)\s+(?:CAIXA|PACOTE)\s+C\s*)?(\d{1,3})(?!\d)/);
-  var type=String(o.tipoPack||'').trim().toLowerCase(),qty=Number(o.qtdPack),label=String(o.rotuloPreco||'').toUpperCase().trim();
-  if(!Number.isInteger(qty)||qty<2||qty>999)qty=match?Number(match[1]):0;
-  var condition=qty>=2||/^(cada|total|indeterminado)$/.test(type);
+  var obs=String(o.observacao||''),name=String(o.produto||''),text=(String(o.condicaoPack||'')+' '+obs+' '+name).replace(/\s+/g,' '),n=normalizarTexto(text);
+  var evidence=lsPackEvidence_(o),type=String(o.tipoPack||'').trim().toLowerCase(),qty=Number(o.qtdPack),label=String(o.rotuloPreco||'').toUpperCase().trim();
+  if(evidence.normal){type='nenhum';qty=0;}
+  else if(evidence.qty){if(Number.isInteger(qty)&&qty>=2&&qty!==evidence.qty)type='indeterminado';qty=evidence.qty;}
+  else if(!Number.isInteger(qty)||qty<2||qty>999)qty=0;
+  var condition=!evidence.normal&&(qty>=2||/^(cada|total|indeterminado)$/.test(type));
   var each=label==='CADA'||label==='UN'||/(?:\d+[,.]\s*\d{2})\s*(?:CADA|UN(?:IDADE)?)(?![\p{L}\d])/iu.test(text)||/\b(?:PRECO|VALOR)\s+UNITARIO\b|\bA PARTIR DE\b|\bCADA UNIDADE\b/.test(n);
   var total=label==='TOTAL'||/\b(?:NO TOTAL|TOTAL DO PACK|PRECO TOTAL|VALOR TOTAL)\b/.test(n);
   var closed=/\bLEVE\s*\d{1,3}\s*(?:UN(?:IDADES?)?\s*)?POR\s*(?:R\$\s*)?\d+[,.]\s*\d{2}/i.test(text);
   var mode='leve';
   if(condition){
     // Evidência explícita do rótulo prevalece; conflito ou incerteza exige escolha humana.
-    if((each&&total)||qty<2)mode='';
+    if((each&&total)||qty<2||!evidence.qty||type==='indeterminado')mode='';
     else if(each)mode='apartir';else if(total)mode='leve';
     else if(type==='cada')mode='apartir';else if(type==='total'||(closed&&type!=='indeterminado'))mode='leve';else mode='';
   }
@@ -6263,6 +6279,7 @@ function lsFlyerPackRule_(o){
 function lsGeminiOfferRow_(o){
   var observation=String(o.observacao||''),rule=lsFlyerPackRule_(o),unit=String(o.unidade||'CADA').toUpperCase();
   if(['KG','UN','BDJ','PCT','LT','CADA'].indexOf(unit)<0)unit='CADA';
+  var priceLabel=String(o.rotuloPreco||'').trim().toUpperCase();if(priceLabel==='UN'||priceLabel==='CADA')unit=priceLabel;
   if(unit==='UN')unit='UND';
   var name=String(o.produto||'').replace(/\b(?:LEVE|LEVANDO|PAGUE|A PARTIR DE|NA COMPRA DE|NO CLUB(?:E)?)\b[\s\S]*$/i,'').trim();
   var matches=buscarProdutos(name,30).filter(function(m){var a=normalizarTexto(name),b=normalizarTexto(m.nome);return b===a||b.indexOf(a+' ')===0||a.indexOf(b+' ')===0;});
@@ -6318,9 +6335,9 @@ function lsParseFlyer_(text){
     if(name.replace(/[^A-Za-zÀ-ÿ]/g,'').length<3){var prev=lines[i-1]||'';if(prev&&!((prev.match(re)||[]).length)&&!/NO CLUB|OFERTAS VALIDAS|BOAS COMPRAS/i.test(prev))name=prev+' '+name;}
     name=lsFlyerNameValid_(name);if(!name)continue;
     var promoText=((lines[i-1]||'')+' '+line+' '+(lines[i+1]||'')).toUpperCase();
-    var pack=promoText.match(/(?:LEVE|LEVANDO|A PARTIR DE|NA COMPRA DE)\s*(\d{1,2})/i)||promoText.match(/LEVE[^\d]{0,30}C\s*\/\s*(\d{1,2})\s*UN/i),tipo=pack?'PACK':(/\bCLUB\b/i.test(promoText)&&!/\bNO\s+CLUB\b/i.test(promoText)?'CLUB':'UNITARIA'),qtd=pack?Number(pack[1]):0,modo=pack?lsFlyerPackRule_({observacao:line,qtdPack:qtd}).modo:'leve';
+    var rule=lsFlyerPackRule_({observacao:promoText,produto:name}),tipo=rule.tipo,qtd=rule.qtd,modo=rule.modo;
     var unidade=(/\b(KG|QUILO|QUILOGRAMA)\b/i.test(promoText)?'KG':(/\b(LT|LITRO)\b/i.test(promoText)?'LT':'CADA'));
-    var vals=prices.map(lsMoney_),row={produto:name,codigo:'',de:vals.length>1?vals[0]:'',por:vals[vals.length-1],unidade:unidade,tipo:tipo,qtd:qtd,modo:modo,validade:'',fala:''};row.fala=lsBuildScript_(row);out.push(row);
+    var vals=prices.map(lsMoney_),row={produto:name,codigo:'',de:vals.length>1?vals[0]:'',por:vals[vals.length-1],unidade:unidade,tipo:tipo,qtd:qtd,modo:modo,club:rule.club,validade:'',fala:''};row.fala=lsBuildScript_(row);out.push(row);
   }
   // Quando os números estilizados do encarte escapam ao OCR, ainda lista os nomes
   // reconhecíveis para que o operador complete preço e produto antes de criar placas.
@@ -6497,7 +6514,43 @@ function lsNomeParaLocucao_(it){
   if(cod&&nomeBanco&&key===lsKeyProduto_(nomeBanco)&&bancoLeitura[cod])return bancoLeitura[cod];
   return original;
 }
-function lsBuildScript_(it,index){
+// A condição Club continua no cadastro. A frequência é controlada apenas na chamada integral.
+var LS_CLUB_PHRASES = [
+  'Exclusivo no Clube Boas Compras!',
+  'Aproveite com o seu Clube Boas Compras!',
+  'Oferta especial do Clube Boas Compras!'
+];
+function lsIsClubOffer_(it){
+  return !!it&&(it.radioClub===true||it.club===true||it.radioTipoPromocao==='CLUB'||it.tipo==='CLUB'||it.tipoPromocao==='CLUB'||it.clube===true);
+}
+function lsCreateClubTracker_(cycle,mixed){
+  return {totalClubItems:0,lastMentionAt:0,mentionedInSector:Object.create(null),lastPhraseIdx:(Math.max(0,Math.floor(Number(cycle)||0))%LS_CLUB_PHRASES.length)-1,mixed:!!mixed};
+}
+function lsNextClubCallout_(isClub,tracker,sector){
+  if(!isClub||!tracker)return '';
+  tracker.totalClubItems++;
+  var key=String(sector||'');
+  if(tracker.mentionedInSector[key]||(tracker.lastMentionAt&&tracker.totalClubItems-tracker.lastMentionAt<4))return '';
+  tracker.mentionedInSector[key]=true;
+  var first=!tracker.lastMentionAt;
+  tracker.lastMentionAt=tracker.totalClubItems;
+  // A primeira frase delimita claramente a abrangência da condição Club.
+  if(first)return tracker.mixed?'As próximas ofertas são exclusivas no Clube Boas Compras!':'Todas as ofertas desta chamada são exclusivas no Clube Boas Compras!';
+  var idx=(tracker.lastPhraseIdx+1)%LS_CLUB_PHRASES.length;
+  tracker.lastPhraseIdx=idx;
+  return LS_CLUB_PHRASES[idx];
+}
+function lsClubSpeechGroups_(groups){
+  var club=[],regular=[];
+  groups.forEach(function(g){
+    var a=g.items.filter(lsIsClubOffer_),b=g.items.filter(function(it){return !lsIsClubOffer_(it);});
+    if(a.length)club.push({category:g.category,items:a,clubSection:true});
+    if(b.length)regular.push({category:g.category,items:b,clubSection:false});
+  });
+  // Agrupa somente na locução, sem tocar na ordem ou nas marcações da interface.
+  return {mixed:!!(club.length&&regular.length),groups:club.concat(regular)};
+}
+function lsBuildScript_(it,index,suppressClub){
   var nome=lsNomeNatural_(lsNomeParaLocucao_(it)).replace(/^laranja suco(?=$|[ ,])/i,'Laranja para suco');
   var eggTray=/ovos brancos, bandeja com \d+ unidades?/i.test(nome);
   if(!eggTray&&!/\d+\s+unidades?$/i.test(nome))nome=nome.replace(/\s+(?:UNIDADE|UNIDADES|UND|UN|CADA)$/i,'');
@@ -6528,7 +6581,7 @@ function lsBuildScript_(it,index){
   else if(variant===3){oferta='aproveite por '+preco+suffix;}
   else if(variant===4){oferta='por '+preco+suffix;}
   else{oferta='apenas '+preco+suffix;}
-  var club=(it.radioClub===true||it.club===true||it.radioTipoPromocao==='CLUB'||it.tipo==='CLUB')?' Oferta especial para clientes do Club Boas Compras!':'';
+  var club=!suppressClub&&lsIsClubOffer_(it)?' Oferta especial para clientes do Club Boas Compras!':'';
   return nome+', '+(isPack?oferta.charAt(0).toLocaleLowerCase('pt-BR')+oferta.slice(1):oferta)+'!'+club;
 }
 function lsIntro_(cat){
@@ -6777,10 +6830,14 @@ function lsBuildBlock_(block,isLast){
   var greet=lsPickShortGreeting_();
   var lines=[],groups=block.groups||[{category:block.category,items:block.items}];
   var total=groups.reduce(function(n,g){return n+g.items.length;},0),calls=lsSectorCallsForBlock_(total,lsSpeakIndex,null,groups),read=0,callIndex=0;
-  groups.forEach(function(g,i){
+  var speechGroups=lsClubSpeechGroups_(groups),clubTracker=lsCreateClubTracker_(lsSpeakIndex,speechGroups.mixed),regularStarted=false;
+  speechGroups.groups.forEach(function(g,i){
     if(i===0){lines.push(greet&&greet.position==='open'?greet.text:lsIntro_(g.category));}
-    else lines.push('Confira também as ofertas de '+g.category.toLowerCase()+'!');
-    g.items.forEach(function(it){var phrase=lsOfferPriceOK_(it)?String(lsBuildScript_(it,read+lsSpeakIndex)||'').trim():lsTextSpeak_(lsNomeParaLocucao_(it))+': preço pendente de conferência';lines.push(phrase.replace(/[.!?…]+$/,'')+'!');
+    if(speechGroups.mixed&&!g.clubSection&&!regularStarted){lines.push('Agora, ofertas para todos os clientes!');regularStarted=true;}
+    if(i!==0)lines.push('Confira também as ofertas de '+g.category.toLowerCase()+'!');
+    g.items.forEach(function(it){var valid=lsOfferPriceOK_(it)&&lsOfferPackOK_(it),callout=lsNextClubCallout_(valid&&lsIsClubOffer_(it),clubTracker,g.category);
+      if(callout)lines.push(callout);
+      var phrase=valid?String(lsBuildScript_(it,read+lsSpeakIndex,true)||'').trim():lsTextSpeak_(lsNomeParaLocucao_(it))+': preço ou condição de pack pendente de conferência';lines.push(phrase.replace(/[.!?…]+$/,'')+'!');
       read++;
       // Mantém o último convite para depois da validade, sem interromper produtos.
       if(callIndex<calls.length-1&&read<total&&read>=Math.ceil(total*(callIndex+1)/calls.length))lines.push(lsCommercialSegue_(calls[callIndex++],false));
@@ -6837,7 +6894,7 @@ function lsSpeakSingle_(phrase,opts){
     try{window.speechSynthesis.speak(u);}catch(e){finish(false);}
   });
 }
-// v8.82: cadência de rádio, moeda nativa e blocos contínuos sem perder cancelamento/timeout.
+// v8.84: cadência de rádio, moeda nativa e blocos contínuos sem perder cancelamento/timeout.
 function lsPhoneCadence_(text){
   // Só formata números completos no contexto do contato, sem alterar EAN, preço ou outros dígitos.
   return String(text||'').replace(/(\bwhatsapp\s*[:,]?\s*\d{2},\s*)(\d)(\d{2})(?=,\s*\d{2},\s*\d{2},\s*\d{2}(?!\d))/gi,'$1$2, $3').replace(/(\bwhatsapp\s*[:,]?\s*)(?:\(\s*(\d{2})\s*\)|(\d{2}))\s*(\d{4,5})\s*[-–]?\s*(\d{4})(?!\d)/gi,function(_,prefix,dddA,dddB,first,last){
@@ -6904,9 +6961,9 @@ function lsSpeechChunks_(text,voice,greetingSet){
 async function lsSpeakUtterance_(text,isGreeting){
   if(!window.speechSynthesis)return false;
   var currentJob=lsAudioJobToken,voice=lsSelectedVoice_();
-  if(!voice){console.warn('[Líder Station v8.82] Nenhuma voz pt-BR disponível.');return false;}
+  if(!voice){console.warn('[Líder Station v8.84] Nenhuma voz pt-BR disponível.');return false;}
   var greetingSet=lsGreetingSpeechSet_(voice),chunks=lsSpeechChunks_(text,voice,greetingSet);
-  console.info('[Líder Station v8.82] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
+  console.info('[Líder Station v8.84] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
   for(var i=0;i<chunks.length;i++){
     if(currentJob!==lsAudioJobToken)return false;
     var chunk=chunks[i],isPhone=/\bwhatsapp\b/i.test(chunk);
@@ -7261,7 +7318,7 @@ function lsClearAdvance_(){clearTimeout(lsAdvanceTimer_);lsAdvanceTimer_=0;}
 function lsResetTracking_(){lsEnteringOffer_=false;lsMusicFadePending_=false;lsClearAdvance_();clearInterval(lsTrackWatch_);clearTimeout(lsStartTimeout_);lsTrackWatch_=lsStartTimeout_=0;lsTrack_=lsEndedTrack_=lsOfferRetryEnded_=null;}
 function lsPauseForVoice_(){clearInterval(lsVolumeTimer);try{lsPlayer.setVolume(0);}catch(e){}try{lsPlayer.pauseVideo();}catch(e){console.warn('[Líder Station Rádio] Pausa:',e);}}
 function lsResumeCurrent_(){if(!lsRadioActive)return;try{lsPlayer.setVolume(0);lsPrepareMusicReturn_();lsPlayer.playVideo();}catch(e){lsRadioFailure_('Não foi possível retomar a playlist: '+e.message);}}
-function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.82]',message);}
+function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.84]',message);}
 function lsStartupDeadline_(message,ms){clearTimeout(lsStartTimeout_);lsStartTimeout_=setTimeout(function(){if(lsStartRequested_||lsRadioPhase_==='arming')lsRadioFailure_(message);},ms);}
 function lsOpeningFromPlayer_(){
   if(!lsRadioActive||lsRadioPhase_!=='arming')return;
@@ -7290,7 +7347,7 @@ function lsAdvanceEnded_(ended){
 function lsTransition_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='music')return;
   lsCallCount++;var every=Math.max(1,Number(document.getElementById('lsEvery').value)||1);
-  console.info('[Líder Station Rádio v8.82] Transição:',reason,'·',lsCallCount,'música(s)');
+  console.info('[Líder Station Rádio v8.84] Transição:',reason,'·',lsCallCount,'música(s)');
   if(lsCallCount%every===0){lsClearAdvance_();lsRadioPhase_='offer';lsPendingAnnouncement=true;lsPauseForVoice_();lsRunAutomaticOffer_(reason,ended).catch(function(e){if(lsRadioActive)lsHoldOffer_(ended,'Falha na chamada: '+e.message);});}
   else if(ended){lsClearAdvance_();lsAdvanceTimer_=setTimeout(function(){lsAdvanceTimer_=0;lsAdvanceEnded_(ended);},0);}else{lsPlayer.setVolume(0);lsPrepareMusicReturn_();}
 }
@@ -7354,7 +7411,7 @@ function lsHoldOffer_(ended,message){
 async function lsRunAutomaticOffer_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='offer'||lsRadioSpeaking)return;
   if(lsFlyerBusy){lsHoldOffer_(ended,'Leitura de encarte ainda em andamento.');return;}
-  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.82] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
+  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.84] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
   var blocks=lsBlocks_(false),block=blocks[0],parts=block?lsBuildBlock_(block,true):null,token=++lsAudioJobToken;
   var input=document.getElementById('lsScript');
   function build(){return parts?lsFullScript_(parts):'Líder Station! A rádio do Boas Compras! '+lsTimePhrase_()+' Líder das ofertas! Líder no ar!';}
@@ -7362,14 +7419,14 @@ async function lsRunAutomaticOffer_(reason,ended){
   var total=block?block.items.length:0;
   document.getElementById('lsNow').textContent=block?'No ar — chamada integral ('+total+' ofertas).':'No ar — identificação da rádio e hora certa.';
   document.getElementById('lsRadioStatus').textContent=(reason==='manual'?'Chamada manual.':reason==='troca de faixa'?'Troca de música detectada.':'A música terminou.')+' Preparando '+total+' ofertas e hora certa.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.82] Início da chamada integral:',total,'ofertas ·',reason);
+  console.info('[Líder Station Rádio v8.84] Início da chamada integral:',total,'ofertas ·',reason);
   var ok=await lsVoiceWithBed_(token,build,false);
   if(token!==lsAudioJobToken||!lsRadioActive)return;
   if(!ok){lsHoldOffer_(ended,'A locução não foi concluída.');return;}
   if(block){lsSpeakIndex++;lsCommitCalls_(parts);lsCommitGreeting_(parts.greeting);}
   lsRadioSpeaking=false;lsPendingAnnouncement=false;lsRadioPhase_='music';lsOfferRetryEnded_=null;
   document.getElementById('lsRadioStatus').textContent='Chamada concluída: '+total+' oferta(s). Voltando à playlist.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.82] Chamada concluída:',total,'ofertas.');
+  console.info('[Líder Station Rádio v8.84] Chamada concluída:',total,'ofertas.');
   if(ended)lsAdvanceEnded_(ended);
   else{lsTrack_=lsReadTrack_()||lsTrack_;lsEndedTrack_=null;lsResumeCurrent_();}
 }
