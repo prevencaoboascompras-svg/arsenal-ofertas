@@ -1015,22 +1015,44 @@ var TEMAS_PLACA={
     templatePack:'template pack-ano novo.jpg',
     corTexto:'#10264B',corValor:'#ffffff',corUnidade:'#FFD600',
     corBadgePreco:'#09214A',usaBadgeFundo:false
+  },
+  black_friday:{
+    label:'Black Friday',
+    templatePlaca:'black-oferta.jpg',
+    templatePack:'black-pack.jpg',
+    corTexto:'#000000',corValor:'#ffffff',corUnidade:'#FFD600',
+    corBadgePreco:'#000000',usaBadgeFundo:false
   }
 };
 
 // ============================================================
 // TEMA AUTOMÁTICO
-// Prioridade por data: Natal (15/11–25/12), Ano Novo (26/12–01/01),
+// Prioridade por data: Black Friday (última sexta-feira de novembro
+// e o sábado seguinte), Natal (15/11–25/12), Ano Novo (26/12–01/01),
 // Semana Farroupilha (10/09–20/09); fora desses períodos, usa o setor
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.46-lider-station-ocr-geometry-price-review';
+var AURA_ARSENAL_BUILD='v8.87-lider-station-black-friday-automatic-theme';
 var temaAutomaticoAtual='padrao';
 
+function lsUltimaSextaDeNovembro_(ano){
+  var d=new Date(ano,10,30); // novembro (0-indexado)
+  while(d.getDay()!==5){ d.setDate(d.getDate()-1); }
+  return d;
+}
+function lsEhBlackFridayOuSabado_(data){
+  var d=data instanceof Date?new Date(data.getTime()):new Date();
+  if(d.getMonth()!==10)return false; // novembro
+  var bf=lsUltimaSextaDeNovembro_(d.getFullYear());
+  var bfSabado=new Date(bf.getTime());
+  bfSabado.setDate(bfSabado.getDate()+1);
+  return d.toDateString()===bf.toDateString() || d.toDateString()===bfSabado.toDateString();
+}
 function temaSazonalPorData_(data){
   var d=data instanceof Date?data:new Date();
   var mes=d.getMonth(),dia=d.getDate();
+  if(lsEhBlackFridayOuSabado_(d))return 'black_friday';
   if((mes===10&&dia>=15)||(mes===11&&dia<=25))return 'natal';
   if((mes===11&&dia>=26)||(mes===0&&dia<=1))return 'ano_novo';
   return '';
@@ -1047,6 +1069,7 @@ function periodoTemaPorData_(data){
 }
 function textoTemaAuto_(){
   var sazonal=temaSazonalPorData_(new Date());
+  if(sazonal==='black_friday')return 'Automático — Black Friday (última sexta e sábado de novembro)';
   if(sazonal==='natal')return 'Automático — Natal (15/11–25/12)';
   if(sazonal==='ano_novo')return 'Automático — Ano Novo (26/12–01/01)';
   if(estaNoPeriodoFarroupilha_(new Date()))return 'Automático — Semana Farroupilha (10–20/09)';
