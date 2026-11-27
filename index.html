@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Arsenal de Ofertas v8.88 — base v8.87 consolidada + dicionário fonético Black Friday -->
+<!-- Arsenal de Ofertas v8.89 — base v8.88 consolidada + programação por página de encarte -->
 <html lang="pt-BR">
 <head>
 <link rel="preconnect" href="https://script.google.com" crossorigin>
@@ -10,7 +10,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arsenal de Ofertas | v8.88</title>
+<title>Arsenal de Ofertas | v8.89</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20width%3D%22128%22%20height%3D%22128%22%20viewBox%3D%220%200%20128%20128%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%20%20%3Crect%20width%3D%22128%22%20height%3D%22128%22%20rx%3D%2226%22%20fill%3D%22%23fc0000%22/%3E%0A%0A%20%20%3C%21--%20etiqueta%20amarela%20cheia%20--%3E%0A%20%20%3Cg%20transform%3D%22translate%2818%2C22%29%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M8%206h29.5a7%207%200%200%201%204.95%202.05l29%2029a7%207%200%200%201%200%209.9l-24.5%2024.5a7%207%200%200%201-9.9%200l-29-29A7%207%200%200%201%206%2037.5V13a7%207%200%200%201%202-7z%22%0A%20%20%20%20%20%20%20%20%20%20fill%3D%22%23fedb01%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2223%22%20cy%3D%2223%22%20r%3D%225%22%20fill%3D%22%23ffffff%22/%3E%0A%20%20%20%20%3Ctext%20x%3D%2241%22%20y%3D%2252%22%20font-family%3D%22Arial%2C%20Helvetica%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2230%22%20fill%3D%22%23ffffff%22%20text-anchor%3D%22middle%22%3E%24%3C/text%3E%0A%20%20%3C/g%3E%0A%0A%20%20%3C%21--%20brilhos%20--%3E%0A%20%20%3Cg%20fill%3D%22%23fedb01%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M98%2014%20L101%2021%20L108%2024%20L101%2027%20L98%2034%20L95%2027%20L88%2024%20L95%2021%20Z%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M108%2046%20L110%2051%20L115%2053%20L110%2055%20L108%2060%20L106%2055%20L101%2053%20L106%2051%20Z%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M92%2060%20L93.5%2063.5%20L97%2065%20L93.5%2066.5%20L92%2070%20L90.5%2066.5%20L87%2065%20L90.5%2063.5%20Z%22/%3E%0A%20%20%3C/g%3E%0A%3C/svg%3E%0A">
 <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap">
@@ -465,7 +465,7 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 </head>
 <body>
-<script>if(String(location.hash||'').toLowerCase()=='#liderstation'){document.documentElement.classList.add('ls-standalone');document.title='Líder Station | Boas Compras | v8.88';}</script>
+<script>if(String(location.hash||'').toLowerCase()=='#liderstation'){document.documentElement.classList.add('ls-standalone');document.title='Líder Station | Boas Compras | v8.89';}</script>
 <div class="wrap">
   <header class="aura-header">
     <div class="aura-header-brand">
@@ -555,15 +555,15 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
         <div class="ls-row"><button class="btn btn-green btn-sm" id="lsStartBtn" onclick="lsStartRadio()">▶ Iniciar rádio</button><button class="btn btn-sm" onclick="lsStopRadio()">■ Parar</button><button class="btn btn-sm" onclick="lsPreviewNext_()">♫ Ouvir prévia</button><button class="btn btn-sm" onclick="lsSpeakNext(true)">▶ Chamar oferta agora</button></div>
         <div class="ls-box" style="margin:10px 0;padding:10px"><strong>🎧 Monitor interno — áudio ao vivo</strong><p class="ls-note">Compartilhe apenas a aba da rádio com áudio. Se a voz neural não for capturada, teste a tela inteira com áudio do sistema somente no PC dedicado, sem notificações ou outros sons privados. Nenhuma imagem é transmitida. A rádio e o monitor são independentes.</p><div class="ls-row"><button class="btn btn-green btn-sm" type="button" id="lsMonitorStart">Ativar monitoramento</button><button class="btn btn-sm" type="button" id="lsMonitorStop" disabled>Encerrar monitoramento</button><a class="btn btn-sm" href="monitor.html" target="_blank" rel="noopener noreferrer">Abrir página do monitor</a></div><div class="ls-row"><div class="ls-field"><label for="lsMonitorCode">Código temporário (privado)</label><input id="lsMonitorCode" readonly autocomplete="off" placeholder="Gerado após autorizar o áudio"></div><button class="btn btn-sm" type="button" id="lsMonitorCopy" disabled>Copiar link privado</button></div><div class="ls-status" id="lsMonitorStatus" role="status" aria-live="polite">Monitoramento desligado.</div></div>
         <div class="ls-player" id="lsPlayer"><span>Adicione uma playlist e inicie a transmissão</span></div><div class="ls-now" id="lsNow">Aguardando início.</div>
-        <div class="ls-row"><div class="ls-field"><label for="lsVoice">Voz neural pt-BR</label><select id="lsVoice"></select><span class="ls-note">Padrão no Microsoft Edge: Antonio Online Natural. Uma prévia da voz pode ser ouvida antes de chamar a oferta.</span></div><div class="ls-field"><label for="lsEvery">Programação fixa</label><select id="lsEvery" disabled><option value="1" selected>1 música + 1 setor de ofertas</option></select><span class="ls-note">Um setor inteiro por intervalo. Ao terminar todos, a fila recomeça.</span></div></div>
+        <div class="ls-row"><div class="ls-field"><label for="lsVoice">Voz neural pt-BR</label><select id="lsVoice"></select><span class="ls-note">Padrão no Microsoft Edge: Antonio Online Natural. Uma prévia da voz pode ser ouvida antes de chamar a oferta.</span></div><div class="ls-field"><label for="lsEvery">Programação fixa</label><select id="lsEvery" disabled><option value="1" selected>1 música + 1 página do encarte</option></select><span class="ls-note">Uma página inteira por intervalo. Ao terminar todas, a fila recomeça.</span></div></div>
         <div class="ls-row"><div class="ls-field"><label for="lsMusicVolume">Volume normal da música</label><input id="lsMusicVolume" type="range" min="0" max="100" value="70" oninput="lsSetMusicVolume_(this.value)"></div><div class="ls-field" style="display:none"><label for="lsDuckVolume">Volume durante a voz (ducking)</label><input id="lsDuckVolume" type="range" min="15" max="20" value="18" oninput="document.getElementById('lsDuckPct').textContent=this.value+'%'"><span id="lsDuckPct" class="ls-note">18%</span></div></div>
         <div class="ls-row"><div class="ls-field"><label for="lsCampaign">Campanha identificada no encarte</label><input id="lsCampaign" placeholder="Será lida do cabeçalho; revise se necessário"></div><div class="ls-field"><label for="lsValidity">Validade / condição</label><input id="lsValidity" placeholder="Informe após conferir o rodapé do encarte"></div></div>
         <div class="ls-field"><label for="lsServices">Serviços para mencionar ao final da chamada (opcional)</label><input id="lsServices" value="Parcelamos nos cartões em até 10 vezes e aceitamos B-P-F. Tele-entrega pelo WhatsApp (51) 99680-6917."></div>
         <div class="ls-row"><div class="ls-field"><label for="lsJingleOpen">Trilha instrumental MP3 (Drive)</label><select id="lsJingleOpen"><option value="">Carregue a lista do Drive</option></select></div><div class="ls-field"><label for="lsBedVolume">Volume da trilha durante a locução</label><input id="lsBedVolume" type="range" min="0" max="50" value="15" oninput="lsSetBedVolume_(this.value)"><span id="lsBedPct" class="ls-note">15%</span></div></div>
         <div class="ls-row"><button class="btn btn-sm" type="button" onclick="lsLoadDriveJingles_()">↻ Buscar trilhas no Drive</button><span class="ls-note" id="lsJingleStatus">Os MP3 são carregados da pasta configurada no Drive.</span></div>
         <div class="ls-note">A trilha toca em repetição por baixo da voz, da abertura até o encerramento. As frases da rádio, a hora certa e as ofertas continuam sendo narradas. Ao terminar, a trilha desaparece suavemente e a playlist retorna.</div>
-        <div class="ls-field"><label style="display:flex;align-items:center;gap:8px"><input id="lsSectorCalls" type="checkbox" checked style="width:auto;height:auto;accent-color:var(--green)" onchange="lsSaveSectorCalls_()"> Chamadas comerciais inteligentes</label><span class="ls-note">Chamadas baseadas nos áudios do Boas Compras, selecionadas pelo horário, dia, setor e calendário (Black Friday 26–27/11/2026, Arrastão na semana da primeira sexta e sábado, Natal 1–25/12 e Ano Novo 26–31/12). Evita repetir frases recentes quando há alternativas. Todas as ofertas com preço válido são narradas ao longo do ciclo, um setor por música.</span></div>
-        <div class="ls-field"><label for="lsPreviewSector">Setor para prévia (não altera a fila da rádio)</label><select id="lsPreviewSector" onfocus="lsRefreshPreviewSectors_()" onchange="lsScriptEdited=false;document.getElementById('lsScript').value=''"><option value="">Próximo setor da fila</option></select><label for="lsScript">Prévia do bloco de ofertas (editável)</label><textarea id="lsScript" class="ls-script" lang="pt-BR" spellcheck="true" placeholder="Leia um encarte ou selecione ofertas já salvas para montar a prévia." oninput="lsScriptEdited=true"></textarea><span class="ls-note">Revise e edite o texto, use “Ouvir prévia” para conferir a locução e “Chamar oferta agora” para transmitir. A rádio anuncia um setor completo por música, em rotação, inclusive ao avançar manualmente. Todas as ofertas válidas entram ao longo do ciclo. Preços pendentes não são anunciados até a correção.</span></div>
+        <div class="ls-field"><label style="display:flex;align-items:center;gap:8px"><input id="lsSectorCalls" type="checkbox" checked style="width:auto;height:auto;accent-color:var(--green)" onchange="lsSaveSectorCalls_()"> Chamadas comerciais inteligentes</label><span class="ls-note">Chamadas baseadas nos áudios do Boas Compras, selecionadas pelo horário, dia, setor e calendário (Black Friday 26–27/11/2026, Arrastão na semana da primeira sexta e sábado, Natal 1–25/12 e Ano Novo 26–31/12). Evita repetir frases recentes quando há alternativas. Todas as ofertas com preço válido são narradas ao longo do ciclo, uma página por música.</span></div>
+        <div class="ls-field"><label for="lsPreviewPage">Página para prévia (não altera a fila da rádio)</label><select id="lsPreviewPage" onfocus="lsRefreshPreviewPages_()" onchange="lsScriptEdited=false;document.getElementById('lsScript').value=''"><option value="">Próxima página da fila</option></select><label for="lsScript">Prévia do bloco de ofertas (editável)</label><textarea id="lsScript" class="ls-script" lang="pt-BR" spellcheck="true" placeholder="Leia um encarte ou selecione ofertas já salvas para montar a prévia." oninput="lsScriptEdited=true"></textarea><span class="ls-note">Revise e edite o texto, use “Ouvir prévia” para conferir a locução e “Chamar oferta agora” para transmitir. A rádio anuncia uma página completa por música, em rotação, inclusive ao avançar manualmente. Todas as ofertas válidas entram ao longo do ciclo. Preços pendentes não são anunciados até a correção.</span></div>
         <div class="ls-box" style="margin:10px 0;padding:10px" id="lsPreviewExport"><strong>Prévia para aprovação da gestão</strong><p class="ls-note">Grava a voz Microsoft Antônio e a trilha selecionada, em tempo real, com a rádio parada. No Edge/Windows, selecione a tela inteira e marque compartilhar áudio do sistema. Feche outras fontes de som e silencie notificações. Apenas o áudio é salvo localmente; nenhuma imagem ou áudio é enviado ao servidor.</p><div class="ls-row"><button type="button" class="btn btn-green btn-sm" id="lsRecordPreviewBtn" onclick="lsRecordPreview_()">⏺ Gravar prévia para baixar</button><button type="button" class="btn btn-sm" id="lsCancelPreviewRecordBtn" onclick="lsCancelPreviewRecording_()" disabled>Cancelar gravação</button></div><details id="lsLibraryPanel" style="margin-top:12px;padding:10px;border:1px solid var(--bd);border-radius:8px" open><summary style="cursor:pointer;font-weight:700">🎙 Biblioteca de chamadas e saudações — ouvir e baixar</summary>
 <p class="ls-note">Ouça qualquer chamada, inclusive Black Friday, Arrastão, Natal e Ano Novo fora da vigência, e todas as saudações de manhã, tarde e noite (abertura e retorno à música). Não precisa importar encarte. A prévia não altera a programação, o calendário, o intervalo das saudações nem o histórico da rádio.</p>
 <div class="ls-field"><label for="lsLibraryChoice">Selecione uma chamada, saudação ou grupo</label><select id="lsLibraryChoice" onchange="lsLibraryRender_()"></select></div>
@@ -572,12 +572,12 @@ html.ls-standalone #liderStation{display:block;width:100%;min-height:calc(100vh 
 <div class="ls-field"><label for="lsLibraryText">Textos para conferência (somente leitura)</label><textarea id="lsLibraryText" class="ls-script" readonly rows="6" style="min-height:130px"></textarea></div>
 <div class="ls-row"><button type="button" class="btn btn-sm" id="lsLibraryListen" onclick="lsListenLibrary_()">▶ Ouvir seleção</button><button type="button" class="btn btn-green btn-sm" id="lsLibraryRecord" onclick="lsRecordLibrary_()">⏺ Gravar seleção para baixar</button><button type="button" class="btn btn-sm" id="lsLibraryStop" onclick="lsStopLibraryPreview_()" disabled>■ Parar prévia</button></div>
 <p class="ls-note">Para gravar, selecione a tela inteira e compartilhe o áudio do sistema no Edge. O resultado aparece no player abaixo; baixe cada seleção ou grave toda a biblioteca em um único arquivo. Rádio e monitor devem estar parados.</p></details><div id="lsRecordPreviewStatus" class="ls-status" role="status" aria-live="polite">Aguardando gravação.</div><div id="lsRecordedResult" hidden style="margin-top:8px"><div id="lsRecordedLabel" class="ls-note" style="margin-bottom:5px"></div><audio id="lsRecordedAudio" controls preload="metadata" style="width:100%"></audio><div class="ls-row"><a id="lsRecordedDownload" class="btn btn-green btn-sm" download>⬇ Baixar locução</a><button type="button" class="btn btn-sm" id="lsRecordedWav" onclick="lsDownloadPreviewWav_()">Baixar WAV</button></div><p class="ls-note">Confira se a voz, as ofertas e a trilha estão audíveis no arquivo antes de enviar à gestão. A gravação é local e ficará disponível até recarregar a página.</p></div></div>
-        <div class="ls-note">A narração transforma valores, medidas e siglas em fala natural. A playlist fica pausada até concluir todas as ofertas do setor atual. Se a voz falhar, use Chamar oferta agora para repetir ou Parar. O botão manual retoma a música atual. O início do áudio depende do primeiro clique do operador.</div>
+        <div class="ls-note">A narração transforma valores, medidas e siglas em fala natural. A playlist fica pausada até concluir todas as ofertas da página atual. Se a voz falhar, use Chamar oferta agora para repetir ou Parar. O botão manual retoma a música atual. O início do áudio depende do primeiro clique do operador.</div>
         <div class="ls-status" id="lsRadioStatus"></div>
         <div id="lsPricePending" role="status" aria-live="polite" hidden style="margin-top:8px;padding:10px;border:1px solid #d99a29;border-radius:8px;color:var(--tx);background:var(--bg2);font-size:12px;overflow-wrap:anywhere"></div>
       </div>
     </div>
-    <div class="ls-box" style="margin-top:12px"><div class="ls-row"><strong style="flex:0 0 auto">Ofertas disponíveis para a rádio</strong><button class="btn btn-sm" style="flex:0 0 auto" onclick="lsRenderQueue()">Atualizar lista</button></div><div id="lsQueue" class="ls-promo-list"></div></div>
+    <div class="ls-box" style="margin-top:12px"><div class="ls-row"><strong style="flex:0 0 auto">Ofertas disponíveis para a rádio</strong><button class="btn btn-sm" style="flex:0 0 auto" onclick="lsRenderQueue()">Atualizar lista</button></div><div id="lsQueue" class="ls-promo-list"></div><p class="ls-note">Placas antigas ou avulsas sem identificação de página formam um bloco separado. Para recuperar as páginas originais, importe novamente as imagens.</p></div>
   </section>
 
   <div class="cfg" id="cfg">
@@ -1033,7 +1033,7 @@ var TEMAS_PLACA={
 // confirmado para o código na AURA; sem setor confirmado, usa Padrão.
 // O usuário pode trocar manualmente no seletor a qualquer momento.
 // ============================================================
-var AURA_ARSENAL_BUILD='v8.88-lider-station-fonetica-black-friday';
+var AURA_ARSENAL_BUILD='v8.89-lider-station-paginas-encarte';
 var temaAutomaticoAtual='padrao';
 
 function lsUltimaSextaDeNovembro_(ano){
@@ -5987,10 +5987,25 @@ document.addEventListener('click',function(e){
 // ============================================================
 // LÍDER STATION — leitura revisável de encartes e rádio interna
 // ============================================================
-console.info('[Líder Station] v8.88 — versão carregada');
+console.info('[Líder Station] v8.89 — versão carregada');
 var lsFlyerRows=[];
+var lsFlyerPageFiles_=new Map();
+function lsRegisterFlyerPages_(files){
+  var batch=String(Date.now())+'-'+Math.random().toString(36).slice(2);
+  lsFlyerPageFiles_=new Map();
+  files.forEach(function(file,i){lsFlyerPageFiles_.set(file,{radioPageId:batch+':'+(i+1),radioPageBatch:batch,radioPageNumber:i+1,radioPageName:String(file.name||'')});});
+  lsLastPage_=null;lsSpeakIndex=0;lsScriptEdited=false;
+  var preview=document.getElementById('lsPreviewPage');if(preview)preview.value='';
+  var script=document.getElementById('lsScript');if(script)script.value='';
+}
+function lsPageMeta_(it){return {radioPageId:String(it.radioPageId||''),radioPageBatch:String(it.radioPageBatch||''),radioPageNumber:Number(it.radioPageNumber)||0,radioPageName:String(it.radioPageName||''),radioPageItem:Number(it.radioPageItem)||0};}
+function lsPageLabel_(it){return it.radioPageId?'Página '+it.radioPageNumber+(it.radioPageName?' — '+it.radioPageName:''):'Sem página de origem';}
+function lsPageOrder_(a,b){
+  if(!a.radioPageId||!b.radioPageId)return Number(!a.radioPageId)-Number(!b.radioPageId);
+  return String(a.radioPageBatch||'').localeCompare(String(b.radioPageBatch||''))||Number(a.radioPageNumber)-Number(b.radioPageNumber)||Number(a.radioPageItem||0)-Number(b.radioPageItem||0);
+}
 var lsFlyerBusy=false;
-var lsPlayer=null,lsRadioActive=false,lsRadioSpeaking=false,lsCallCount=0,lsSpeakIndex=0,lsLastSector_=null,lsPendingAnnouncement=false,lsVolumeTimer=0,lsScriptEdited=false,lsPreferredVoiceUri='',lsActiveJingle=null,lsAudioJobToken=0,lsPlaylistId='',lsPlayerReady_=false,lsStartRequested_=false,lsRadioPhase_='idle',lsPlaylistPrepareTimer_=0;
+var lsPlayer=null,lsRadioActive=false,lsRadioSpeaking=false,lsCallCount=0,lsSpeakIndex=0,lsLastPage_=null,lsPendingAnnouncement=false,lsVolumeTimer=0,lsScriptEdited=false,lsPreferredVoiceUri='',lsActiveJingle=null,lsAudioJobToken=0,lsPlaylistId='',lsPlayerReady_=false,lsStartRequested_=false,lsRadioPhase_='idle',lsPlaylistPrepareTimer_=0;
 var lsPlaylistId='',lsRadioPhase_='idle',lsPlayerReady_=false,lsYTApiLoading_=false,lsPlaylistPrepareTimer_=0,lsArmTimer_=0,lsTrackEndedDuringVoice_=false,lsStartupJinglePromise_=null;
 function lsMoney_(v){return String(v||'').replace(/^R\$\s*/i,'').trim().replace('.',',');}
 function lsEscape_(s){return typeof escapeHtml==='function'?escapeHtml(String(s||'')):String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -6057,9 +6072,10 @@ function lsExtractCampaign_(text){
   for(var i=0;i<rules.length;i++)if(rules[i].re.test(head))return rules[i].value;
   return '';
 }
-function lsMergeFlyerRows_(rows){
-  var combined=lsFlyerRows.concat(rows||[]),seen={};
-  lsFlyerRows=combined.filter(function(x){var key=normalizarTexto(x.produto)+'|'+String(x.por||'').replace(',','.');if(seen[key])return false;seen[key]=1;return true;});
+function lsMergeFlyerRows_(rows,file){
+  var page=file&&lsFlyerPageFiles_.get(file),combined=lsFlyerRows.concat((rows||[]).map(function(row,i){return page?Object.assign({},row,page,{radioPageItem:i+1}):row;})),seen=Object.create(null);
+  // A mesma oferta em páginas diferentes continua pertencendo a ambas.
+  lsFlyerRows=combined.filter(function(x){var key=JSON.stringify([x.radioPageId||'',normalizarTexto(x.produto),String(x.por||'').replace(',','.'),x.tipo||'',x.qtd||0,x.modo||'',!!x.club,x.unidade||'']);if(seen[key])return false;seen[key]=1;return true;}).sort(lsPageOrder_);
 }
 function lsCropOcrColumn_(image,side){var half=Math.floor(image.width/2),overlap=Math.max(8,Math.round(image.width*.012)),x=side===0?0:Math.max(0,half-overlap),w=side===0?Math.min(image.width,half+overlap):image.width-x,canvas=document.createElement('canvas');canvas.width=w;canvas.height=image.height;canvas.getContext('2d').drawImage(image,x,0,w,image.height,0,0,w,image.height);return canvas;}
 function lsFlyerProductClue_(text){return /CAFE|PRESIDENTE|MASSA|DOMELLY|CAJAMAR|BISCOITO|ROSQUIN|CARNE|OSSINHO|PALETA|PATINHO|COXAO|PORCO|BATATA|BEM BRASIL|PAO|QUEIJO|SABAO|GOTA LIMPA|SUCO|DKLOSS|D KLOSS|AGUA|FLUA|FRUKI|FRUKITO|ARROZ|FEIJAO|ACUCAR|FARINHA|OLEO|LEITE|MARGARINA|DORIANA|SEARA|MANGA|LARANJA|BROCOL|REPOLHO|OVO|MOSTARDA|AGRIAO|RUCULA|TEMPERO|SALSINHA|ESPINAFRE|MORANGA|ALFACE|CENOURA|MILHO|MACA|MAMAO|MORANGUINHO|PESSEGO|MORANGO|HORTIFRUTI|PRESUNTO|LINGUICA|FRANGO|PAPEL|PLUSH|DESINFET|AMACIANTE|BRILHA SUL|DETERGENTE|IOGURTE|CERVEJA|VINHO|REFRIGERANTE/.test(normalizarTexto(text||''));}
@@ -6188,7 +6204,7 @@ async function lsReadFlyerLocal_(input){
           // A leitura regional é a fonte principal; páginas e colunas só complementam preços confiáveis.
           rows=lsCombineFlyerCandidates_([{rows:layoutRows,rank:3},{rows:splitRows,rank:2},{rows:fullRows,rank:1}]);
         }
-        lsMergeFlyerRows_(rows);pagesOK++;
+        lsMergeFlyerRows_(rows,files[i]);pagesOK++;
       }catch(pageErr){pagesFailed.push(files[i].name+': '+String(pageErr&&pageErr.message||pageErr));console.error('[Líder Station OCR] Falha na página '+files[i].name,pageErr);}
     }
     lsDrawFlyerRows_();
@@ -6250,6 +6266,7 @@ async function lsReadFlyer(input){
   var btn=document.getElementById('lsImportBtn'),preview=document.getElementById('lsPreviewFlyerBtn');
   if(btn&&btn.textContent.trim()==='Criando placas…'){mostrarToast('Aguarde a criação das placas antes de iniciar outra leitura.','warn');if(input)input.value='';return;}
   lsFlyerBusy=true;
+  lsRegisterFlyerPages_(files);
   try{
     if(input)input.disabled=true;if(picker)picker.disabled=true;if(clear)clear.disabled=true;
     if(btn)btn.disabled=true;if(preview)preview.disabled=true;
@@ -6326,7 +6343,7 @@ async function lsReadFlyerBatch_(input,files){
         if(!campaign&&data.campanha)campaign=data.campanha;if(!validity&&data.validade)validity=data.validade;
         var rows=(data.ofertas||[]).map(lsGeminiOfferRow_).filter(function(o){return lsFlyerNameValid_(o.produto);});
         if(!rows.length)throw new Error('Nenhuma oferta utilizável encontrada nesta página pelo Gemini.');
-        lsMergeFlyerRows_(rows);pagesOK++;var modelName=String(data.modeloSolicitado||data.modelo||'não informado');modelCounts[modelName]=(modelCounts[modelName]||0)+1;
+        lsMergeFlyerRows_(rows,files[p]);pagesOK++;var modelName=String(data.modeloSolicitado||data.modelo||'não informado');modelCounts[modelName]=(modelCounts[modelName]||0)+1;
       }catch(pageErr){var msg=String(pageErr&&pageErr.message||pageErr);failed.push(files[p].name+': '+msg);console.warn('[Líder Station Gemini] Falha na página '+files[p].name,pageErr);
         if((pageErr&&pageErr.codigo==='LS_DAILY_LIMIT')||/Limite diário de \d+ páginas atingido/i.test(msg)){quotaError=msg;quotaSkipped=files.length-p;break;}
         failedFiles.push(files[p]);}
@@ -6383,7 +6400,7 @@ function lsParseFlyer_(text){
 function lsDrawFlyerRows_(){
   var el=document.getElementById('lsOcrRows');if(!el)return;
   if(!lsFlyerRows.length){el.innerHTML='<div class="ls-note">Nenhuma promoção reconhecida. Tente outra foto ou ajuste iluminação e foco.</div>';lsRadioPriceReview_();return;}
-  el.innerHTML=lsFlyerRows.map(function(r,i){return '<div class="ls-promo" data-row="'+i+'">'+
+  el.innerHTML=lsFlyerRows.map(function(r,i){var header=i===0||lsFlyerRows[i-1].radioPageId!==r.radioPageId?'<div style="padding:9px 10px;font-weight:700;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;overflow-wrap:anywhere">'+lsEscape_(lsPageLabel_(r))+'</div>':'';return header+'<div class="ls-promo" data-row="'+i+'">'+
     '<input type="checkbox" '+(r.selecionada===false?'':'checked')+' class="ls-ok" aria-label="Incluir oferta na rádio e criar placa">'+
     '<input class="ls-prod" value="'+lsEscape_(r.produto)+'" aria-label="Produto" title="Produto lido">'+
     '<input class="ls-code" value="'+lsEscape_(r.codigo)+'" placeholder="Código/EAN" aria-label="Código/EAN">'+
@@ -6394,7 +6411,7 @@ function lsDrawFlyerRows_(){
   lsRadioPriceReview_();
 }
 function lsSyncFlyerRowsFromDOM_(){var cards=[].slice.call(document.querySelectorAll('#lsOcrRows .ls-promo'));if(!cards.length)return lsFlyerRows;lsFlyerRows=cards.map(function(c){var i=parseInt(c.getAttribute('data-row'),10),base=lsFlyerRows[i]||{},por=c.querySelector('.ls-por').value.trim(),hasPrice=parseDec(por)>0,obs=c.querySelector('.ls-observacao');return Object.assign({},base,{produto:c.querySelector('.ls-prod').value.trim(),codigo:normalizarCodigo(c.querySelector('.ls-code').value),por:por,precoConfiavel:hasPrice,precoRevisar:!hasPrice,tipo:c.querySelector('.ls-type').value,de:'',qtd:parseInt(c.querySelector('.ls-qtd').value,10)||0,modo:c.querySelector('.ls-modo').value,club:c.querySelector('.ls-club').checked||c.querySelector('.ls-type').value==='CLUB',unidade:c.querySelector('.ls-unit').value,validade:c.querySelector('.ls-validade').value.trim(),observacao:obs?obs.value.trim():base.observacao||'',selecionada:c.querySelector('.ls-ok').checked,narrarDePor:false});});return lsFlyerRows;}
-function lsClearFlyer(){if(lsFlyerBusy){mostrarToast('Aguarde a conclusão da leitura atual.','warn');return;}lsFlyerRows=[];document.getElementById('lsOcrRows').innerHTML='';document.getElementById('lsOcrStatus').textContent='Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.';document.getElementById('lsImportBtn').disabled=true;document.getElementById('lsPreviewFlyerBtn').disabled=true;document.getElementById('lsCampaign').value='';lsScriptEdited=false;lsSaveConfig_();var f=document.getElementById('lsFlyerFile');if(f)f.value='';lsRadioPriceReview_();}
+function lsClearFlyer(){if(lsFlyerBusy){mostrarToast('Aguarde a conclusão da leitura atual.','warn');return;}lsFlyerRows=[];lsFlyerPageFiles_.clear();lsLastPage_=null;lsSpeakIndex=0;document.getElementById('lsOcrRows').innerHTML='';document.getElementById('lsOcrStatus').textContent='Selecione uma ou várias páginas (JPG, PNG ou WebP). As páginas serão lidas em sequência.';document.getElementById('lsImportBtn').disabled=true;document.getElementById('lsPreviewFlyerBtn').disabled=true;document.getElementById('lsCampaign').value='';lsScriptEdited=false;lsSaveConfig_();var f=document.getElementById('lsFlyerFile');if(f)f.value='';lsRadioPriceReview_();}
 async function lsCreateFlyerPlates_(){
   if(lsFlyerBusy){mostrarToast('Aguarde a conclusão da leitura atual.','warn');return;}
   lsSyncFlyerRowsFromDOM_();
@@ -6414,7 +6431,8 @@ async function lsCreateFlyerPlates_(){
     var lookup=cod?buscarPorCodigo(cod):null;if(!lookup){var exact=buscarProdutos(produto,20).filter(function(p){return normalizarTexto(p.nome)===normalizarTexto(produto);});if(exact.length){cod=normalizarCodigo(exact[0].cod);lookup=buscarPorCodigo(cod);}}
     var nomeBanco=lookup&&lookup.nome||produto,unidadeBanco=normalizarUnidadeBanco(lookup&&lookup.unidade||''),precoVenda=lookup&&lookup.preco||bancoPreco[cod]||0;
     var registro={id:gerarIdEncarte(),versaoRegistro:7,codigo:cod,produto:nomeBanco,produtoDigitado:produto,descricaoTransform:'',produtoInfo:{codigo:cod,descricao:produto||nomeBanco,unidade:unidadeBanco,valorVenda:precoVenda},de:'',por:por,precoPromocional:por,unidade:unit,unidadePromocao:unit,unidadeBanco:unidadeBanco,unidadeMedida:unit,validade:c.querySelector('.ls-validade').value.trim(),tipoPromocao:tipo==='PACK'?'PACK':'UNITARIA',radioTipoPromocao:tipo,radioClub:c.querySelector('.ls-club').checked||tipo==='CLUB',radioNarrarDePor:false,packQtd:qtd,packTipo:modo,packUnidade:modo==='apartir'?unit:'',unirOn:false,unirLayout:'',cod2:'',produtoB:'',produtosExtra:[],descricaoFinal:'',data:new Date().toISOString(),origem:'encarte-foto'};
-    try{var res=await _gasPost('upsertEncarte',{registro:registro});if(res&&res.ok){lsStorePromoMeta_(registro.id,{radioTipoPromocao:registro.radioTipoPromocao,radioClub:registro.radioClub,radioNarrarDePor:narrarDePor});createdRows.push(parseInt(c.getAttribute('data-row'),10));ok++;}else fail++;}catch(e){fail++;}
+    Object.assign(registro,lsPageMeta_(lsFlyerRows[parseInt(c.getAttribute('data-row'),10)]||{}));
+    try{var res=await _gasPost('upsertEncarte',{registro:registro});if(res&&res.ok){lsStorePromoMeta_(registro.id,Object.assign({radioTipoPromocao:registro.radioTipoPromocao,radioClub:registro.radioClub,radioNarrarDePor:narrarDePor},lsPageMeta_(registro)));createdRows.push(parseInt(c.getAttribute('data-row'),10));ok++;}else fail++;}catch(e){fail++;}
     if(loaderTicket)window.AuraLoader.progress(i+1,chosen.length,'Criando as placas revisadas…');
   }
   lsSyncFlyerRowsFromDOM_();
@@ -6620,25 +6638,30 @@ function lsIntro_(cat){
   var spoken=lsNomeNatural_(camp).replace(/^quarta\s+e\s+quinta\s+(?:do\s+)?hortifrúti$/i,'Quarta e quinta do hortifrúti');
   return 'Atenção cliente! Confira as ofertas selecionadas'+(camp?' da campanha '+spoken:'')+' e aproveite!';
 }
-// Um bloco por setor: todos os seus produtos juntos, inclusive Club e comuns.
+// Um bloco por imagem: setores são subdivisões internas, nunca unidades da fila.
 function lsBlocks_(includeMissing){
-  var offers=lsSelectedOffers_(includeMissing),grouped=Object.create(null),order=[];
-  offers.forEach(function(it){var cat=lsCategory_(it);if(!grouped[cat]){grouped[cat]=[];order.push(cat);}grouped[cat].push(it);});
-  if(!offers.length)return [];
-  return order.map(function(cat){return {category:cat,items:grouped[cat]};});
+  var offers=lsSelectedOffers_(includeMissing).slice().sort(lsPageOrder_),pages=Object.create(null),order=[];
+  offers.forEach(function(it){
+    var key=it.radioPageId||'sem-pagina';
+    if(!pages[key]){pages[key]={key:key,label:lsPageLabel_(it),items:[],groups:[],bySector:Object.create(null)};order.push(key);}
+    var page=pages[key],cat=lsCategory_(it);page.items.push(it);
+    if(!page.bySector[cat]){page.bySector[cat]={category:cat,items:[]};page.groups.push(page.bySector[cat]);}
+    page.bySector[cat].items.push(it);
+  });
+  return order.map(function(key){var page=pages[key];delete page.bySector;return page;});
 }
 // O cursor só avança após a locução concluída; prévias não alteram a fila.
-function lsNextSectorPos_(blocks){
+function lsNextPagePos_(blocks){
   if(!blocks.length)return -1;
-  var last=blocks.findIndex(function(b){return b.category===lsLastSector_;});
+  var last=blocks.findIndex(function(b){return b.key===lsLastPage_;});
   return last>=0?(last+1)%blocks.length:Math.max(0,lsSpeakIndex)%blocks.length;
 }
-function lsCommitSector_(block){if(!block)return;lsLastSector_=block.category;lsSpeakIndex++;}
-function lsRefreshPreviewSectors_(blocks){
-  var el=document.getElementById('lsPreviewSector');if(!el)return;
+function lsCommitPage_(block){if(!block)return;lsLastPage_=block.key;lsSpeakIndex++;}
+function lsRefreshPreviewPages_(blocks){
+  var el=document.getElementById('lsPreviewPage');if(!el)return;
   blocks=blocks||lsBlocks_(false);var current=el.value;
-  el.innerHTML='<option value="">Próximo setor da fila</option>'+blocks.map(function(b){return '<option value="'+lsEscape_(b.category)+'">'+lsEscape_(b.category)+' ('+b.items.length+' ofertas)</option>';}).join('');
-  if(blocks.some(function(b){return b.category===current;}))el.value=current;
+  el.innerHTML='<option value="">Próxima página da fila</option>'+blocks.map(function(b){return '<option value="'+lsEscape_(b.key)+'">'+lsEscape_(b.label)+' ('+b.items.length+' ofertas)</option>';}).join('');
+  if(blocks.some(function(b){return b.key===current;}))el.value=current;
 }
 // Validação exclusiva da rádio: aceita valores BR e decimal com ponto; rejeita texto parcial, vazio e zero.
 function lsOfferPriceOK_(it){
@@ -6653,7 +6676,7 @@ function lsRadioPriceReview_(invalid){
   invalid=invalid||lsInvalidSelectedOffers_();
   var el=document.getElementById('lsPricePending');
   if(el){el.hidden=!invalid.length;el.textContent=invalid.length?'⚠ '+invalid.length+' oferta(s) selecionada(s) com preço ou condição de pack pendente: '+invalid.map(function(it){return it.produtoDigitado||it.produto||'Produto sem nome';}).join('; ')+'. Corrija o preço ou a quantidade e modalidade do pack na lista de ofertas. A rádio anuncia os demais produtos e inclui os corrigidos na próxima chamada.':'';}
-  lsRefreshPreviewSectors_();
+  lsRefreshPreviewPages_();
   return invalid;
 }
 function lsRadioPendingSuffix_(invalid){return invalid.length?' '+invalid.length+' oferta(s) com preço ou pack pendente não anunciada(s); confira o aviso abaixo.':'';}
@@ -6752,7 +6775,7 @@ function lsSectorCallPool_(c,groups,all){
   if(weekend&&(all||h>=14))add('beb-ocasiao','bebidas','Vai reunir a galera ou a família? Escolha as melhores bebidas para brindar os bons momentos!',34);
   return pool;
 }
-// v8.86 — planeja chamadas somente em fronteiras reais de setores da fila falada.
+// v8.89 — chamadas institucionais somente ao concluir a página, com afinidade ao último setor.
 function lsSpotSectorKey_(category){
   var k=normalizarTexto(String(category||''));
   if(/HORTIFRUTI/.test(k))return 'horti';
@@ -6773,7 +6796,7 @@ function lsCommercialBoundaries_(groups){
 }
 function lsSectorCallsForBlock_(total,cycle,date,groups){
   var el=document.getElementById('lsSectorCalls');if((el&&!el.checked)||!total||!groups||!groups.length)return [];
-  var c=lsCommercialClock_(date),pool=lsSectorCallPool_(c,groups,false),boundaries=lsCommercialBoundaries_(groups);
+  var c=lsCommercialClock_(date),pool=lsSectorCallPool_(c,groups,false),boundaries=lsCommercialBoundaries_(groups).filter(function(b){return b.last;});
   var history=lsCallHistory_(),picked=[],count=total>=40?4:total>=15?3:2;
   function recent(id){for(var i=history.length-1;i>=0;i--)if(history[i].indexOf(id)>=0)return history.length-i;return 99;}
   function rank(a,b){return Number(recent(b.id)===99)-Number(recent(a.id)===99)||(recent(a.id)!==99&&recent(b.id)!==99?recent(b.id)-recent(a.id):0)||b.score-a.score||a.id.localeCompare(b.id);}
@@ -6928,11 +6951,11 @@ var LS_PROMO_META_KEY='boas_compras_lider_station_promo_meta_v1';
 function lsPromoMeta_(){try{return JSON.parse(localStorage.getItem(LS_PROMO_META_KEY)||'{}');}catch(e){return {};}}
 function lsStorePromoMeta_(id,meta){try{var all=lsPromoMeta_();all[String(id)]=Object.assign(all[String(id)]||{},meta||{});localStorage.setItem(LS_PROMO_META_KEY,JSON.stringify(all));}catch(e){}}
 function lsMergeMeta_(it){var meta=lsPromoMeta_()[String(it.id)]||{};return Object.assign({},it,meta);}
-function lsRenderQueue(){var el=document.getElementById('lsQueue');if(!el)return;var list=encartesCache||[];if(!list.length){el.innerHTML='<div class="ls-note">Ainda não há placas salvas. Revise a prévia do encarte e clique em Criar placas para disponibilizá-las para impressão.</div>';return;}el.innerHTML=list.map(function(raw,i){var it=lsMergeMeta_(raw),price=it.precoPromocional||it.por||'';return '<label class="ls-promo" style="grid-template-columns:24px minmax(120px,2fr) minmax(80px,1fr) minmax(80px,1fr)"><input type="checkbox" class="ls-queue-check" value="'+lsEscape_(it.id)+'" checked><span>'+lsEscape_(it.produto||'Produto')+'</span><span>R$ '+lsEscape_(price)+'</span><span>'+lsEscape_(lsCategory_(it))+'</span></label>';}).join('');}
+function lsRenderQueue(){var el=document.getElementById('lsQueue');if(!el)return;var list=encartesCache||[];if(!list.length){el.innerHTML='<div class="ls-note">Ainda não há placas salvas. Revise a prévia do encarte e clique em Criar placas para disponibilizá-las para impressão.</div>';return;}el.innerHTML=list.map(function(raw,i){var it=lsMergeMeta_(raw),price=it.precoPromocional||it.por||'';return '<label class="ls-promo" style="grid-template-columns:24px minmax(120px,2fr) minmax(80px,1fr) minmax(80px,1fr)"><input type="checkbox" class="ls-queue-check" value="'+lsEscape_(it.id)+'" checked><span>'+lsEscape_(it.produto||'Produto')+'</span><span>R$ '+lsEscape_(price)+'</span><span>'+lsEscape_(lsPageLabel_(it))+'</span></label>';}).join('');lsRefreshPreviewPages_();}
 function lsSelectedOffers_(includeMissing){
   if(document.querySelector('#lsOcrRows .ls-promo')){
     var drafts=lsSyncFlyerRowsFromDOM_().filter(function(r){return r.selecionada&&r.produto&&(includeMissing||(lsOfferPriceOK_(r)&&lsOfferPackOK_(r)));});
-    return drafts.map(function(r,i){return {id:'ls-flyer-preview-'+i,codigo:r.codigo,produto:r.produto,produtoDigitado:r.produto,por:r.por,precoPromocional:r.por,de:'',unidade:r.unidade,tipoPromocao:r.tipo==='PACK'?'PACK':'UNITARIA',radioTipoPromocao:r.tipo,radioClub:r.club,radioNarrarDePor:false,packQtd:r.qtd,packTipo:r.modo,validade:r.validade,origem:'previsualizacao-local'};});
+    return drafts.map(function(r,i){return Object.assign(lsPageMeta_(r),{id:'ls-flyer-preview-'+i,codigo:r.codigo,produto:r.produto,produtoDigitado:r.produto,por:r.por,precoPromocional:r.por,de:'',unidade:r.unidade,tipoPromocao:r.tipo==='PACK'?'PACK':'UNITARIA',radioTipoPromocao:r.tipo,radioClub:r.club,radioNarrarDePor:false,packQtd:r.qtd,packTipo:r.modo,validade:r.validade,origem:'previsualizacao-local'});});
   }
   var ids=[].slice.call(document.querySelectorAll('.ls-queue-check:checked')).map(function(x){return x.value;});
   return (encartesCache||[]).filter(function(it){return ids.indexOf(String(it.id))>=0;}).map(lsMergeMeta_).filter(function(it){return includeMissing||(lsOfferPriceOK_(it)&&lsOfferPackOK_(it));});
@@ -7037,9 +7060,9 @@ function lsSpeechChunks_(text,voice,greetingSet){
 async function lsSpeakUtterance_(text,isGreeting){
   if(!window.speechSynthesis)return false;
   var currentJob=lsAudioJobToken,voice=lsSelectedVoice_();
-  if(!voice){console.warn('[Líder Station v8.88] Nenhuma voz pt-BR disponível.');return false;}
+  if(!voice){console.warn('[Líder Station v8.89] Nenhuma voz pt-BR disponível.');return false;}
   var greetingSet=lsGreetingSpeechSet_(voice),chunks=lsSpeechChunks_(text,voice,greetingSet);
-  console.info('[Líder Station v8.88] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
+  console.info('[Líder Station v8.89] Voz fixada para a chamada:',voice.name,'·',chunks.length,'trechos');
   for(var i=0;i<chunks.length;i++){
     if(currentJob!==lsAudioJobToken)return false;
     var chunk=chunks[i],isPhone=/\bwhatsapp\b/i.test(chunk);
@@ -7153,11 +7176,11 @@ async function lsPreviewNext_(recordSession){
     script=custom&&typed?typed:'Líder Station! A rádio do Boas Compras! '+lsTimePhrase_()+' Teste de locução. Selecione uma oferta e informe o preço promocional para ouvir a chamada completa. Líder das ofertas! Líder no ar!';
     document.getElementById('lsNow').textContent='Prévia de teste da voz.';
   }else{
-    var choice=document.getElementById('lsPreviewSector').value,pos=blocks.findIndex(function(b){return b.category===choice;});if(pos<0)pos=lsNextSectorPos_(blocks);
+    var choice=document.getElementById('lsPreviewPage').value,pos=blocks.findIndex(function(b){return b.key===choice;});if(pos<0)pos=lsNextPagePos_(blocks);
     var block=blocks[pos],parts=lsBuildBlock_(block,pos===blocks.length-1,true);
     script=custom?(input.value||'').trim():lsFullScript_(parts);
     if(!custom)input.value=script;
-    document.getElementById('lsNow').textContent='Prévia local — bloco '+block.category+' ('+block.items.length+' ofertas).';
+    document.getElementById('lsNow').textContent='Prévia local — '+block.label+' ('+block.items.length+' ofertas).';
   }
   if(!script){status.textContent='O texto da prévia está vazio.';return;}
   var token=++lsAudioJobToken;if(recordSession)recordSession.token=token;window.speechSynthesis.cancel();lsRadioSpeaking=true;status.textContent='Preparando prévia da locução e trilha, sem gravar placas.';
@@ -7395,7 +7418,7 @@ function lsClearAdvance_(){clearTimeout(lsAdvanceTimer_);lsAdvanceTimer_=0;}
 function lsResetTracking_(){lsEnteringOffer_=false;lsMusicFadePending_=false;lsClearAdvance_();clearInterval(lsTrackWatch_);clearTimeout(lsStartTimeout_);lsTrackWatch_=lsStartTimeout_=0;lsTrack_=lsEndedTrack_=lsOfferRetryEnded_=null;}
 function lsPauseForVoice_(){clearInterval(lsVolumeTimer);try{lsPlayer.setVolume(0);}catch(e){}try{lsPlayer.pauseVideo();}catch(e){console.warn('[Líder Station Rádio] Pausa:',e);}}
 function lsResumeCurrent_(){if(!lsRadioActive)return;try{lsPlayer.setVolume(0);lsPrepareMusicReturn_();lsPlayer.playVideo();}catch(e){lsRadioFailure_('Não foi possível retomar a playlist: '+e.message);}}
-function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.88]',message);}
+function lsRadioFailure_(message){lsStopRadio();document.getElementById('lsRadioStatus').textContent=message;console.warn('[Líder Station Rádio v8.89]',message);}
 function lsStartupDeadline_(message,ms){clearTimeout(lsStartTimeout_);lsStartTimeout_=setTimeout(function(){if(lsStartRequested_||lsRadioPhase_==='arming')lsRadioFailure_(message);},ms);}
 function lsOpeningFromPlayer_(){
   if(!lsRadioActive||lsRadioPhase_!=='arming')return;
@@ -7424,7 +7447,7 @@ function lsAdvanceEnded_(ended){
 function lsTransition_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='music')return;
   lsCallCount++;
-  console.info('[Líder Station Rádio v8.88] Transição:',reason,'·',lsCallCount,'música(s)');
+  console.info('[Líder Station Rádio v8.89] Transição:',reason,'·',lsCallCount,'música(s)');
   lsClearAdvance_();lsRadioPhase_='offer';lsPendingAnnouncement=true;lsPauseForVoice_();lsRunAutomaticOffer_(reason,ended).catch(function(e){if(lsRadioActive)lsHoldOffer_(ended,'Falha na chamada: '+e.message);});
 }
 function lsObservePlaying_(){
@@ -7451,7 +7474,7 @@ function lsStartRadio(){
   if(lsAudioBusy_()||lsRadioActive){mostrarToast('A rádio já está ativa ou preparando áudio.','warn');return;}
   var id=lsExtractPlaylist_(document.getElementById('lsPlaylist').value);
   if(!id){document.getElementById('lsRadioStatus').textContent='Cole um link de playlist do YouTube válido.';return;}
-  clearTimeout(lsPlaylistPrepareTimer_);lsResetTracking_();lsPlaylistId=id;lsCallCount=0;lsSpeakIndex=0;lsLastSector_=null;lsPendingAnnouncement=false;lsStartRequested_=true;
+  clearTimeout(lsPlaylistPrepareTimer_);lsResetTracking_();lsPlaylistId=id;lsCallCount=0;lsSpeakIndex=0;lsLastPage_=null;lsPendingAnnouncement=false;lsStartRequested_=true;
   lsStartupDeadline_('A playlist não confirmou o carregamento. Verifique o link e clique em Iniciar rádio novamente.',20000);
   if(!lsPlayer||!lsPlayerReady_||lsCurrentCuedPlaylist_!==id){lsPreparePlaylist_();document.getElementById('lsNow').textContent='Preparando a playlist. A programação inicia assim que o YouTube terminar de carregá-la.';return;}
   lsBeginRadio_();
@@ -7487,22 +7510,22 @@ function lsHoldOffer_(ended,message){
 async function lsRunAutomaticOffer_(reason,ended){
   if(!lsRadioActive||lsRadioPhase_!=='offer'||lsRadioSpeaking)return;
   if(lsFlyerBusy){lsHoldOffer_(ended,'Leitura de encarte ainda em andamento.');return;}
-  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.88] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
-  var blocks=lsBlocks_(false),pos=lsNextSectorPos_(blocks),block=blocks[pos],parts=block?lsBuildBlock_(block,pos===blocks.length-1):null,token=++lsAudioJobToken;
+  var invalid=lsRadioPriceReview_();if(invalid.length)console.warn('[Líder Station Rádio v8.89] Preços pendentes — fora desta chamada:',invalid.map(function(it){return it.produtoDigitado||it.produto;}));
+  var blocks=lsBlocks_(false),pos=lsNextPagePos_(blocks),block=blocks[pos],parts=block?lsBuildBlock_(block,pos===blocks.length-1):null,token=++lsAudioJobToken;
   var input=document.getElementById('lsScript');
   function build(){return parts?lsFullScript_(parts):'Líder Station! A rádio do Boas Compras! '+lsTimePhrase_()+' Líder das ofertas! Líder no ar!';}
   input.value=build();lsScriptEdited=false;lsRadioSpeaking=true;
   var total=block?block.items.length:0;
-  document.getElementById('lsNow').textContent=block?'No ar — '+block.category+' · setor '+(pos+1)+'/'+blocks.length+' ('+total+' ofertas).':'No ar — identificação da rádio e hora certa.';
-  document.getElementById('lsRadioStatus').textContent=(reason==='manual'?'Chamada manual.':reason==='troca de faixa'?'Troca de música detectada.':'A música terminou.')+' Preparando '+(block?block.category+' — '+total+' ofertas':'identificação')+' e hora certa.'+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.88] Início da chamada integral:',total,'ofertas ·',reason);
+  document.getElementById('lsNow').textContent=block?'No ar — '+block.label+' · página '+(pos+1)+'/'+blocks.length+' ('+total+' ofertas).':'No ar — identificação da rádio e hora certa.';
+  document.getElementById('lsRadioStatus').textContent=(reason==='manual'?'Chamada manual.':reason==='troca de faixa'?'Troca de música detectada.':'A música terminou.')+' Preparando '+(block?block.label+' — '+total+' ofertas':'identificação')+' e hora certa.'+lsRadioPendingSuffix_(invalid);
+  console.info('[Líder Station Rádio v8.89] Início da chamada integral:',total,'ofertas ·',reason);
   var ok=await lsVoiceWithBed_(token,build,false);
   if(token!==lsAudioJobToken||!lsRadioActive)return;
   if(!ok){lsHoldOffer_(ended,'A locução não foi concluída.');return;}
-  if(block){lsCommitSector_(block);lsCommitCalls_(parts);lsCommitGreeting_(parts.greeting);}
+  if(block){lsCommitPage_(block);lsCommitCalls_(parts);lsCommitGreeting_(parts.greeting);}
   lsRadioSpeaking=false;lsPendingAnnouncement=false;lsRadioPhase_='music';lsOfferRetryEnded_=null;
-  document.getElementById('lsRadioStatus').textContent='Chamada concluída: '+(block?block.category+' — ':'')+total+' oferta(s). Voltando à playlist. '+(blocks.length?'Próximo setor: '+blocks[lsNextSectorPos_(blocks)].category+'.':'')+lsRadioPendingSuffix_(invalid);
-  console.info('[Líder Station Rádio v8.88] Chamada concluída:',total,'ofertas.');
+  document.getElementById('lsRadioStatus').textContent='Chamada concluída: '+(block?block.label+' — ':'')+total+' oferta(s). Voltando à playlist. '+(blocks.length?'Próxima página: '+blocks[lsNextPagePos_(blocks)].label+'.':'')+lsRadioPendingSuffix_(invalid);
+  console.info('[Líder Station Rádio v8.89] Chamada concluída:',total,'ofertas.');
   if(ended)lsAdvanceEnded_(ended);
   else{lsTrack_=lsReadTrack_()||lsTrack_;lsEndedTrack_=null;lsResumeCurrent_();}
 }
@@ -7512,7 +7535,7 @@ async function lsSpeakNext(force){
   if(lsRadioActive){var ended=lsRadioPhase_==='offer-error'?lsOfferRetryEnded_:lsEndedTrack_;lsClearAdvance_();lsRadioPhase_='offer';lsPendingAnnouncement=true;lsEnteringOffer_=!ended&&lsPlayer&&lsPlayer.getPlayerState&&lsPlayer.getPlayerState()===1;if(!lsEnteringOffer_)lsPauseForVoice_();return lsRunAutomaticOffer_('manual',ended);}
   var invalid=lsRadioPriceReview_();
   var blocks=lsBlocks_(false);if(!blocks.length){document.getElementById('lsNow').textContent='Selecione ofertas para a rádio.';return;}
-  var pos=lsNextSectorPos_(blocks),block=blocks[pos],parts=lsBuildBlock_(block,pos===blocks.length-1);
+  var pos=lsNextPagePos_(blocks),block=blocks[pos],parts=lsBuildBlock_(block,pos===blocks.length-1);
   var input=document.getElementById('lsScript'),custom=lsScriptEdited&&!invalid.length,script=custom?input.value.trim():lsFullScript_(parts);if(!custom)input.value=script;
   var status=document.getElementById('lsRadioStatus');if(!window.speechSynthesis){status.textContent='Abra a Líder Station no Microsoft Edge para ouvir a prévia com a voz padrão.';return;}
   if(!script){status.textContent='O texto da chamada está vazio.';return;}
